@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, FileSearch2, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Download, FileSearch2, LayoutTemplate, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
@@ -15,7 +15,18 @@ export default function BuilderPage() {
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [previewMode, setPreviewMode] = useState<'standard' | 'ats'>('standard');
   const [tick, setTick] = useState(Date.now());
-  const { document: cvDocument, hydrated, initFromStorage, persist, createNewCV, resetCV, saveStatus, savedAt } = useCVStore();
+  const {
+    document: cvDocument,
+    hydrated,
+    initFromStorage,
+    persist,
+    createNewCV,
+    resetCV,
+    saveStatus,
+    savedAt,
+    templateId,
+    setTemplateId,
+  } = useCVStore();
 
   useEffect(() => {
     initFromStorage();
@@ -54,7 +65,7 @@ export default function BuilderPage() {
   const previewLabel = previewMode === 'ats' ? 'ATS friendly' : 'Standard';
 
   const handleExportJson = () => {
-    downloadTextFile('quick-free-cv-draft.json', JSON.stringify(cvDocument, null, 2), 'application/json;charset=utf-8');
+    downloadTextFile('quick-free-cv-draft.json', JSON.stringify({ templateId, ...cvDocument }, null, 2), 'application/json;charset=utf-8');
   };
 
   const handleReset = () => {
@@ -98,14 +109,22 @@ export default function BuilderPage() {
               <Button variant="secondary" onClick={handleExportJson}>
                 <Download className="h-4 w-4" /> Export JSON
               </Button>
-              <Button variant={previewMode === 'standard' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('standard')}>
-                <FileSearch2 className="h-4 w-4" /> Standard
+              <Button variant={templateId === 'classic' ? 'primary' : 'secondary'} onClick={() => setTemplateId('classic')}>
+                <LayoutTemplate className="h-4 w-4" /> Classic
+              </Button>
+              <Button variant={templateId === 'modern' ? 'primary' : 'secondary'} onClick={() => setTemplateId('modern')}>
+                <LayoutTemplate className="h-4 w-4" /> Modern
+              </Button>
+              <Button variant={templateId === 'compact' ? 'primary' : 'secondary'} onClick={() => setTemplateId('compact')}>
+                <LayoutTemplate className="h-4 w-4" /> Compact
               </Button>
               <Button variant={previewMode === 'ats' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('ats')}>
                 <ShieldAlert className="h-4 w-4" /> ATS friendly
               </Button>
             </div>
-            <div className="mt-3 text-xs text-slate-500">Preview mode: {previewLabel}</div>
+            <div className="mt-3 text-xs text-slate-500">
+              Template: {templateId} · Preview mode: {previewLabel}
+            </div>
           </div>
 
           <div className="lg:hidden rounded-[1.75rem] border border-border bg-white p-2 shadow-soft">

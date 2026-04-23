@@ -1,6 +1,6 @@
 import type { SavedCVPayload } from '../types/cv';
 
-const STORAGE_KEY = 'quick-free-cv-builder:v1';
+const STORAGE_KEY = 'quick-free-cv-builder:v2';
 
 export const loadSavedCV = (): SavedCVPayload | null => {
   if (typeof window === 'undefined') return null;

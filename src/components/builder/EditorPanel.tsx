@@ -20,7 +20,10 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
       education: 'Education',
       languages: 'Languages',
       certifications: 'Certifications',
+      volunteer: 'Volunteer Work',
       awards: 'Awards',
+      interests: 'Interests',
+      references: 'References',
     };
     return map[activeSection];
   }, [activeSection]);
@@ -58,7 +61,10 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
       {activeSection === 'education' && <EducationForm />}
       {activeSection === 'languages' && <LanguagesForm />}
       {activeSection === 'certifications' && <SimpleSectionForm section="certifications" title="Certifications" />}
+      {activeSection === 'volunteer' && <SimpleSectionForm section="volunteer" title="Volunteer Work" />}
       {activeSection === 'awards' && <SimpleSectionForm section="awards" title="Awards" />}
+      {activeSection === 'interests' && <InterestsForm />}
+      {activeSection === 'references' && <SimpleSectionForm section="references" title="References" />}
     </div>
   );
 }
@@ -77,13 +83,28 @@ function PersonalInfoForm() {
       <Field label="LinkedIn"><Input value={info.linkedinUrl} onChange={(e) => updatePersonalInfo('linkedinUrl', e.target.value)} placeholder="https://linkedin.com/in/janedoe" /></Field>
       <Field label="Website"><Input value={info.websiteUrl} onChange={(e) => updatePersonalInfo('websiteUrl', e.target.value)} placeholder="https://janedoe.com" /></Field>
       <Field label="Profile photo">
-        <div className="flex items-center gap-4">
-          {info.profilePhoto ? (
-            <img src={info.profilePhoto} alt="Profile preview" className="h-16 w-16 rounded-2xl border border-border object-cover" />
-          ) : (
-            <div className="grid h-16 w-16 place-items-center rounded-2xl border border-dashed border-border bg-slate-50 text-xs text-slate-500">No photo</div>
-          )}
-          <div className="flex-1 space-y-2">
+        <div className="grid gap-4 lg:grid-cols-[130px_minmax(0,1fr)]">
+          <div className="flex items-center justify-center">
+            {info.profilePhoto ? (
+              <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-border bg-slate-50">
+                <img
+                  src={info.profilePhoto}
+                  alt="Profile preview"
+                  className="h-full w-full object-cover"
+                  style={{
+                    transform: `translate(${info.photoX - 50}%, ${info.photoY - 50}%) scale(${info.photoZoom})`,
+                    objectPosition: '50% 50%',
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="grid h-28 w-28 place-items-center rounded-3xl border border-dashed border-border bg-slate-50 text-xs text-slate-500">
+                No photo
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
             <input
               type="file"
               accept="image/*"
@@ -94,6 +115,17 @@ function PersonalInfoForm() {
                 updateProfilePhoto(await readFileAsDataUrl(file));
               }}
             />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Zoom">
+                <Input type="range" min="1" max="2.5" step="0.05" value={info.photoZoom} onChange={(e) => updatePersonalInfo('photoZoom', Number(e.target.value))} />
+              </Field>
+              <Field label="X position">
+                <Input type="range" min="0" max="100" step="1" value={info.photoX} onChange={(e) => updatePersonalInfo('photoX', Number(e.target.value))} />
+              </Field>
+              <Field label="Y position">
+                <Input type="range" min="0" max="100" step="1" value={info.photoY} onChange={(e) => updatePersonalInfo('photoY', Number(e.target.value))} />
+              </Field>
+            </div>
             {info.profilePhoto && (
               <Button variant="secondary" className="text-xs" onClick={removeProfilePhoto}>
                 Remove photo
@@ -108,7 +140,6 @@ function PersonalInfoForm() {
 
 function SummaryForm() {
   const { document, updateSummary } = useCVStore();
-
   return (
     <Field label="Professional summary">
       <Textarea value={document.personalInfo.summary} onChange={(e) => updateSummary(e.target.value)} rows={10} placeholder="Write a concise, achievement-focused summary..." />
@@ -140,11 +171,7 @@ function ExperienceForm() {
             <Field label="End date"><Input value={item.endDate} onChange={(e) => updateExperience(item.id, { endDate: e.target.value })} placeholder="YYYY-MM" disabled={item.isCurrent} /></Field>
             <Field label="Current role">
               <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={item.isCurrent}
-                  onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked, endDate: e.target.checked ? '' : item.endDate })}
-                />
+                <input type="checkbox" checked={item.isCurrent} onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked, endDate: e.target.checked ? '' : item.endDate })} />
                 Yes
               </label>
             </Field>
@@ -311,7 +338,56 @@ function LanguagesForm() {
   );
 }
 
-function SimpleSectionForm({ section, title }: { section: 'certifications' | 'awards'; title: string }) {
+function InterestsForm() {
+  const { document, setSkills } = useCVStore();
+  const [draft, setDraft] = useState('');
+
+  const addInterest = (interest: string) => {
+    const next = interest.trim();
+    if (!next) return;
+    if (document.interests.some((item) => item.toLowerCase() === next.toLowerCase())) return;
+    // use skills setter temporarily would be wrong, but interests are part of doc; update through direct store below
+  };
+
+  const { document: cvDocument, clearSection } = useCVStore();
+  const updateInterests = (next: string[]) => {
+    useCVStore.setState((state) => ({
+      document: { ...state.document, interests: next, lastUpdatedAt: new Date().toISOString() },
+      saveStatus: 'saving',
+    }));
+  };
+
+  const add = (interest: string) => {
+    const next = interest.trim();
+    if (!next) return;
+    if (cvDocument.interests.some((item) => item.toLowerCase() === next.toLowerCase())) return;
+    updateInterests([...cvDocument.interests, next]);
+    setDraft('');
+  };
+
+  return (
+    <div className="space-y-4">
+      <Field label="Add an interest">
+        <div className="flex gap-2">
+          <Input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }} placeholder="e.g. Travel" />
+          <Button variant="secondary" onClick={() => add(draft)}><Plus className="h-4 w-4" /> Add</Button>
+        </div>
+      </Field>
+      <div className="flex flex-wrap gap-2">
+        {cvDocument.interests.map((interest) => (
+          <button key={interest} type="button" className="rounded-full border border-border bg-slate-50 px-3 py-1.5 text-sm text-slate-700" onClick={() => updateInterests(cvDocument.interests.filter((item) => item !== interest))}>
+            {interest} <span className="text-slate-400">×</span>
+          </button>
+        ))}
+      </div>
+      <Field label="Interests (comma separated)">
+        <Textarea rows={4} value={cvDocument.interests.join(', ')} onChange={(e) => updateInterests(parseCsvList(e.target.value))} />
+      </Field>
+    </div>
+  );
+}
+
+function SimpleSectionForm({ section, title }: { section: 'certifications' | 'volunteer' | 'awards' | 'references'; title: string }) {
   const { document, addSimpleItem, duplicateSimpleItem, updateSimpleItem, deleteSimpleItem } = useCVStore();
   const items = document[section];
 

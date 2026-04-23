@@ -52,7 +52,9 @@ select {
   }
 
   .break-inside-avoid,
-  .resume-section {
+  .resume-section,
+  .pdf-avoid-break,
+  .pdf-section-group {
     break-inside: avoid;
     page-break-inside: avoid;
   }

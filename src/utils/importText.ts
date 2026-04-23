@@ -11,7 +11,7 @@ export interface ImportedTextDraft {
 
 const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/;
-const urlRegex = /(https?:\/\/[\w.-]+(?:\/[\w\-./?%&=]*)?)/i;
+const urlRegex = /(https?:\/\/[\w.-]+(?:\/[\w\-./?%&=]*)?)/gi;
 
 export const parseImportedText = (text: string): ImportedTextDraft => {
   const lines = text
@@ -21,7 +21,7 @@ export const parseImportedText = (text: string): ImportedTextDraft => {
 
   const email = text.match(emailRegex)?.[0] ?? '';
   const phone = text.match(phoneRegex)?.[0] ?? '';
-  const urls = [...text.matchAll(urlRegex)].map((match) => match[1]);
+  const urls = Array.from(text.matchAll(urlRegex)).map((match) => match[1]);
   const linkedinUrl = urls.find((url) => /linkedin\.com/i.test(url)) ?? '';
   const websiteUrl = urls.find((url) => !/linkedin\.com/i.test(url)) ?? '';
   const fullName = lines[0] && !emailRegex.test(lines[0]) ? lines[0].replace(/resume|cv/i, '').trim() : '';

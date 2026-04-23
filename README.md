@@ -9,9 +9,12 @@ Quick Free CV Builder is a privacy-first, no-signup CV editor with live preview 
 - Reorder and hide/show sections
 - Duplicate, clear, and reset sections
 - Export / import JSON drafts
+- PDF, DOCX, TXT, and image import support
 - ATS-friendly preview mode
-- Profile photo upload
+- Classic / Modern / Compact templates
+- Profile photo upload and crop controls
 - Export to PDF via browser print flow
+- Optional CV sections for volunteer work, interests, awards, and references
 
 ## Stack
 - React

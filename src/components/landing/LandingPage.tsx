@@ -3,9 +3,7 @@ import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
-import { normalizeImportedDocument } from '../../utils/importDocument';
-import { readFileAsDataUrl } from '../../utils/files';
-import { parseImportedText } from '../../utils/importText';
+import { buildImportedDocument } from '../../utils/importFile';
 import { getSavedDraftMeta } from '../../utils/storage';
 
 export default function LandingPage() {
@@ -27,7 +25,7 @@ export default function LandingPage() {
               Create a clean, trustworthy CV in minutes. No paywall, no sign-up, no data harvesting, and no watermark.
             </p>
 
-            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row sm:flex-wrap">
               <Button className="min-w-48 text-base" onClick={() => navigate('/builder')}>
                 Create New CV
               </Button>
@@ -42,66 +40,12 @@ export default function LandingPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/json,.json,.txt,image/*"
+                accept="application/json,.json,.txt,.pdf,.docx,image/*"
                 className="hidden"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
-
-                  if (file.type.startsWith('image/')) {
-                    const profilePhoto = await readFileAsDataUrl(file);
-                    const document = normalizeImportedDocument({
-                      personalInfo: { profilePhoto },
-                      skills: [],
-                      experience: [],
-                      education: [],
-                      projects: [],
-                      languages: [],
-                      certifications: [],
-                      awards: [],
-                    });
-
-                    if (document) {
-                      loadImportedDocument(document);
-                      navigate('/builder');
-                    }
-                    return;
-                  }
-
-                  const text = await file.text();
-
-                  try {
-                    const parsed = JSON.parse(text);
-                    const document = normalizeImportedDocument(parsed);
-                    if (document) {
-                      loadImportedDocument(document);
-                      navigate('/builder');
-                      return;
-                    }
-                  } catch {
-                    // Fall back to a simple text import.
-                  }
-
-                  const parsedText = parseImportedText(text);
-                  const document = normalizeImportedDocument({
-                    personalInfo: {
-                      fullName: parsedText.fullName,
-                      summary: parsedText.summary,
-                      email: parsedText.email,
-                      phone: parsedText.phone,
-                      location: parsedText.location,
-                      linkedinUrl: parsedText.linkedinUrl,
-                      websiteUrl: parsedText.websiteUrl,
-                    },
-                    skills: parsedText.skills,
-                    experience: [],
-                    education: [],
-                    projects: [],
-                    languages: [],
-                    certifications: [],
-                    awards: [],
-                  });
-
+                  const document = await buildImportedDocument(file);
                   if (document) {
                     loadImportedDocument(document);
                     navigate('/builder');

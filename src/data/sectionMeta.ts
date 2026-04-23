@@ -9,7 +9,10 @@ export const sectionDefaults: CVSectionMeta[] = [
   { id: 'education', label: 'Education', visible: true, optional: false },
   { id: 'languages', label: 'Languages', visible: true, optional: false },
   { id: 'certifications', label: 'Certifications', visible: false, optional: true },
+  { id: 'volunteer', label: 'Volunteer Work', visible: false, optional: true },
   { id: 'awards', label: 'Awards', visible: false, optional: true },
+  { id: 'interests', label: 'Interests', visible: false, optional: true },
+  { id: 'references', label: 'References', visible: false, optional: true },
 ];
 
 export const defaultOrder: SectionId[] = sectionDefaults.map((section) => section.id);

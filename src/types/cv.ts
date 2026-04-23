@@ -7,7 +7,12 @@ export type SectionId =
   | 'education'
   | 'languages'
   | 'certifications'
-  | 'awards';
+  | 'volunteer'
+  | 'awards'
+  | 'interests'
+  | 'references';
+
+export type ResumeTemplateId = 'classic' | 'modern' | 'compact';
 
 export interface PersonalInfo {
   fullName: string;
@@ -18,6 +23,9 @@ export interface PersonalInfo {
   linkedinUrl: string;
   websiteUrl: string;
   profilePhoto: string;
+  photoZoom: number;
+  photoX: number;
+  photoY: number;
   summary: string;
 }
 
@@ -80,7 +88,10 @@ export interface CVDocument {
   projects: ProjectItem[];
   languages: LanguageItem[];
   certifications: SimpleSectionItem[];
+  volunteer: SimpleSectionItem[];
   awards: SimpleSectionItem[];
+  interests: string[];
+  references: SimpleSectionItem[];
   sectionOrder: SectionId[];
   sectionVisibility: Record<SectionId, boolean>;
   lastUpdatedAt: string;
@@ -91,4 +102,5 @@ export interface SavedCVPayload {
   document: CVDocument;
   activeSection: SectionId;
   activeItemIds: Record<string, string | null>;
+  templateId?: ResumeTemplateId;
 }
