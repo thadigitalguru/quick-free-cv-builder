@@ -3,8 +3,9 @@ import { Copy, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
+import { readFileAsDataUrl } from '../../utils/files';
 
-export default function EditorPanel() {
+export default function EditorPanel({ validationIssues = [] }: { validationIssues?: { field: string; message: string }[] }) {
   const { activeSection } = useCVStore();
 
   const heading = useMemo(() => {
@@ -29,6 +30,17 @@ export default function EditorPanel() {
         <p className="text-sm text-slate-500">Edit the selected section below.</p>
       </div>
 
+      {validationIssues.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Quick checks</p>
+          <ul className="mt-2 space-y-1 list-disc pl-5">
+            {validationIssues.map((issue) => (
+              <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {activeSection === 'personalInfo' && <PersonalInfoForm />}
       {activeSection === 'summary' && <SummaryForm />}
       {activeSection === 'experience' && <ExperienceForm />}
@@ -43,7 +55,7 @@ export default function EditorPanel() {
 }
 
 function PersonalInfoForm() {
-  const { document, updatePersonalInfo } = useCVStore();
+  const { document, updatePersonalInfo, updateProfilePhoto } = useCVStore();
   const info = document.personalInfo;
 
   return (
@@ -55,6 +67,27 @@ function PersonalInfoForm() {
       <Field label="Location"><Input value={info.location} onChange={(e) => updatePersonalInfo('location', e.target.value)} placeholder="Lagos, Nigeria" /></Field>
       <Field label="LinkedIn"><Input value={info.linkedinUrl} onChange={(e) => updatePersonalInfo('linkedinUrl', e.target.value)} placeholder="https://linkedin.com/in/janedoe" /></Field>
       <Field label="Website"><Input value={info.websiteUrl} onChange={(e) => updatePersonalInfo('websiteUrl', e.target.value)} placeholder="https://janedoe.com" /></Field>
+      <Field label="Profile photo">
+        <div className="flex items-center gap-4">
+          {info.profilePhoto ? (
+            <img src={info.profilePhoto} alt="Profile preview" className="h-16 w-16 rounded-2xl border border-border object-cover" />
+          ) : (
+            <div className="grid h-16 w-16 place-items-center rounded-2xl border border-dashed border-border bg-slate-50 text-xs text-slate-500">No photo</div>
+          )}
+          <div className="flex-1">
+            <input
+              type="file"
+              accept="image/*"
+              className="w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                updateProfilePhoto(await readFileAsDataUrl(file));
+              }}
+            />
+          </div>
+        </div>
+      </Field>
     </div>
   );
 }

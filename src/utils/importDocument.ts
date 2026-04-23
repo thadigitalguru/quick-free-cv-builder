@@ -89,6 +89,7 @@ export const normalizeImportedDocument = (raw: unknown): CVDocument | null => {
       location: stringValue(source.personalInfo && isRecord(source.personalInfo) ? source.personalInfo.location : source.location),
       linkedinUrl: stringValue(source.personalInfo && isRecord(source.personalInfo) ? source.personalInfo.linkedinUrl : source.linkedinUrl),
       websiteUrl: stringValue(source.personalInfo && isRecord(source.personalInfo) ? source.personalInfo.websiteUrl : source.websiteUrl),
+      profilePhoto: stringValue(source.personalInfo && isRecord(source.personalInfo) ? source.personalInfo.profilePhoto : source.profilePhoto),
       summary: stringValue(source.personalInfo && isRecord(source.personalInfo) ? source.personalInfo.summary : source.summary),
     },
     experience: normalizeExperience(source.experience),

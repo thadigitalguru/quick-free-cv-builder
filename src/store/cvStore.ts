@@ -70,6 +70,7 @@ const createEmptyDocument = (): CVDocument => ({
     location: '',
     linkedinUrl: '',
     websiteUrl: '',
+    profilePhoto: '',
     summary: '',
   },
   experience: [createExperienceItem()],
@@ -107,6 +108,7 @@ interface CVState {
   setSaveStatus: (status: SaveStatus) => void;
   updatePersonalInfo: (field: keyof PersonalInfo, value: string) => void;
   updateSummary: (value: string) => void;
+  updateProfilePhoto: (value: string) => void;
   setSkills: (skills: string[]) => void;
   addExperience: () => void;
   duplicateExperience: (id: string) => void;
@@ -235,6 +237,14 @@ export const useCVStore = create<CVState>((set, get) => ({
       document: withUpdatedTimestamp({
         ...state.document,
         personalInfo: { ...state.document.personalInfo, summary: value },
+      }),
+      saveStatus: 'saving',
+    })),
+  updateProfilePhoto: (value) =>
+    set((state) => ({
+      document: withUpdatedTimestamp({
+        ...state.document,
+        personalInfo: { ...state.document.personalInfo, profilePhoto: value },
       }),
       saveStatus: 'saving',
     })),

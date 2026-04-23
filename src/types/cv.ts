@@ -17,6 +17,7 @@ export interface PersonalInfo {
   location: string;
   linkedinUrl: string;
   websiteUrl: string;
+  profilePhoto: string;
   summary: string;
 }
 

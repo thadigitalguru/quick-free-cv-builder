@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, RotateCcw, Save, Sparkles } from 'lucide-react';
+import { Download, FileSearch2, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
@@ -7,10 +7,12 @@ import TopBar from './TopBar';
 import SectionSidebar from './SectionSidebar';
 import EditorPanel from './EditorPanel';
 import ResumePreview from './ResumePreview';
+import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 
 export default function BuilderPage() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [previewMode, setPreviewMode] = useState<'standard' | 'ats'>('standard');
   const [tick, setTick] = useState(Date.now());
   const { document: cvDocument, hydrated, initFromStorage, persist, createNewCV, resetCV, saveStatus, savedAt } = useCVStore();
 
@@ -29,6 +31,9 @@ export default function BuilderPage() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
+  const blockingIssue = hasBlockingIssues(validationIssues);
+
   const statusLabel = useMemo(() => {
     if (saveStatus === 'loaded') return 'Draft restored';
     if (saveStatus === 'saving') return 'Saving…';
@@ -45,6 +50,8 @@ export default function BuilderPage() {
     return 'Ready';
   }, [saveStatus, savedAt, tick]);
 
+  const previewLabel = previewMode === 'ats' ? 'ATS friendly' : 'Standard';
+
   if (!hydrated) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-100 text-slate-600">
@@ -57,7 +64,13 @@ export default function BuilderPage() {
     <main className="min-h-screen bg-slate-100 text-ink">
       <TopBar
         onBack={() => navigate('/')}
-        onDownload={() => window.document.getElementById('resume-preview-root')?.dispatchEvent(new CustomEvent('download-pdf'))}
+        onDownload={() => {
+          if (blockingIssue) {
+            window.alert('Please add your full name before exporting the CV.');
+            return;
+          }
+          window.document.getElementById('resume-preview-root')?.dispatchEvent(new CustomEvent('download-pdf'));
+        }}
         statusLabel={statusLabel}
       />
 
@@ -77,10 +90,17 @@ export default function BuilderPage() {
               <Button onClick={createNewCV} variant="secondary" className="flex-1">
                 New CV
               </Button>
-              <Button variant="secondary" className="flex-1" onClick={() => navigate('/') }>
-                Back to start
+              <Button variant="secondary" className="flex-1" onClick={() => navigate('/')}>Back to start</Button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant={previewMode === 'standard' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('standard')} className="flex-1">
+                <FileSearch2 className="h-4 w-4" /> Standard
+              </Button>
+              <Button variant={previewMode === 'ats' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('ats')} className="flex-1">
+                <ShieldAlert className="h-4 w-4" /> ATS friendly
               </Button>
             </div>
+            <div className="mt-3 text-xs text-slate-500">Preview mode: {previewLabel}</div>
           </div>
 
           <div className="lg:hidden rounded-[1.75rem] border border-border bg-white p-2 shadow-soft">
@@ -88,16 +108,20 @@ export default function BuilderPage() {
               <Button variant={viewMode === 'edit' ? 'primary' : 'secondary'} onClick={() => setViewMode('edit')}>Edit</Button>
               <Button variant={viewMode === 'preview' ? 'primary' : 'secondary'} onClick={() => setViewMode('preview')}>Preview</Button>
             </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button variant={previewMode === 'standard' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('standard')}>Standard</Button>
+              <Button variant={previewMode === 'ats' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('ats')}>ATS</Button>
+            </div>
           </div>
 
           <div className={`${viewMode === 'preview' ? 'hidden lg:flex' : 'flex'} flex-col gap-5`}>
             <SectionSidebar />
-            <EditorPanel />
+            <EditorPanel validationIssues={validationIssues} />
           </div>
         </aside>
 
         <div className={`${viewMode === 'edit' ? 'hidden lg:block' : 'block'} min-h-[calc(100vh-8rem)] rounded-[1.75rem] border border-border bg-slate-50 p-3 shadow-soft`}>
-          <ResumePreview />
+          <ResumePreview mode={previewMode} />
         </div>
       </section>
     </main>

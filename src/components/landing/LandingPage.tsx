@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
 import { normalizeImportedDocument } from '../../utils/importDocument';
+import { readFileAsDataUrl } from '../../utils/files';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -33,11 +34,32 @@ export default function LandingPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/json,.json,.txt"
+                accept="application/json,.json,.txt,image/*"
                 className="hidden"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
+
+                  if (file.type.startsWith('image/')) {
+                    const profilePhoto = await readFileAsDataUrl(file);
+                    const document = normalizeImportedDocument({
+                      personalInfo: { profilePhoto },
+                      skills: [],
+                      experience: [],
+                      education: [],
+                      projects: [],
+                      languages: [],
+                      certifications: [],
+                      awards: [],
+                    });
+
+                    if (document) {
+                      loadImportedDocument(document);
+                      navigate('/builder');
+                    }
+                    return;
+                  }
+
                   const text = await file.text();
 
                   try {
