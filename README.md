@@ -1,27 +1,14 @@
 # Quick Free CV Builder
 
-Quick Free CV Builder is a privacy-first, no-signup CV editor with live preview and PDF export.
+A free, privacy-first CV builder with no login, no paywall, no watermark, autosave, live preview, and PDF export.
 
-## Features
-- Landing page with free/trust messaging
-- Builder with editable sections and live preview
-- Local autosave in browser storage
-- Reorder and hide/show sections
-- Duplicate, clear, and reset sections
-- Export / import JSON drafts
-- PDF, DOCX, TXT, and image import support
-- ATS-friendly preview mode
-- Classic / Modern / Compact templates
-- Profile photo upload and crop controls
-- Export to PDF via browser print flow
-- Optional CV sections for volunteer work, interests, awards, and references
-
-## Stack
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Zustand
+## What it does
+- Create a new CV in one click
+- Edit personal info, summary, experience, education, skills, projects, languages, and optional sections
+- Import JSON, TXT, PDF, DOCX, or image files
+- Export JSON drafts and PDFs
+- Use Classic, Modern, Compact, or ATS preview modes
+- Store everything locally in the browser
 
 ## Run locally
 ```bash
@@ -29,14 +16,21 @@ npm install
 npm run dev
 ```
 
-## Build
+## Validate
 ```bash
 npm run build
 ```
 
 ## Deploy
-The app is configured for SPA hosting with:
+This app is already configured for SPA deployment:
 - `vercel.json`
 - `public/_redirects`
 
-This supports direct refreshes on `/builder` and other client routes.
+For hosting, use:
+- build command: `npm run build`
+- output directory: `dist`
+
+## Documentation
+- `docs/launch-note.md`
+- `docs/launch-checklist.md`
+- `docs/deployment.md`
