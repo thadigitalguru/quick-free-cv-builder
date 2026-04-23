@@ -8,6 +8,7 @@ import SectionSidebar from './SectionSidebar';
 import EditorPanel from './EditorPanel';
 import ResumePreview from './ResumePreview';
 import { hasBlockingIssues, validateDocument } from '../../utils/validation';
+import { downloadTextFile } from '../../utils/download';
 
 export default function BuilderPage() {
   const navigate = useNavigate();
@@ -52,12 +53,18 @@ export default function BuilderPage() {
 
   const previewLabel = previewMode === 'ats' ? 'ATS friendly' : 'Standard';
 
+  const handleExportJson = () => {
+    downloadTextFile('quick-free-cv-draft.json', JSON.stringify(cvDocument, null, 2), 'application/json;charset=utf-8');
+  };
+
+  const handleReset = () => {
+    const confirmed = window.confirm('Reset this CV draft? Your unsaved changes will be cleared.');
+    if (!confirmed) return;
+    resetCV();
+  };
+
   if (!hydrated) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-slate-100 text-slate-600">
-        Loading your CV workspace…
-      </div>
-    );
+    return <div className="grid min-h-screen place-items-center bg-slate-100 text-slate-600">Loading your CV workspace…</div>;
   }
 
   return (
@@ -82,21 +89,19 @@ export default function BuilderPage() {
                 <h2 className="text-lg font-semibold">Builder workspace</h2>
                 <p className="mt-1 text-sm text-slate-500">Edit sections on the left and preview the CV on the right.</p>
               </div>
-              <Button variant="secondary" onClick={resetCV} title="Reset CV">
+              <Button variant="secondary" onClick={handleReset} title="Reset CV">
                 <RotateCcw className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button onClick={createNewCV} variant="secondary" className="flex-1">
-                New CV
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Button onClick={createNewCV} variant="secondary">New CV</Button>
+              <Button variant="secondary" onClick={handleExportJson}>
+                <Download className="h-4 w-4" /> Export JSON
               </Button>
-              <Button variant="secondary" className="flex-1" onClick={() => navigate('/')}>Back to start</Button>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant={previewMode === 'standard' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('standard')} className="flex-1">
+              <Button variant={previewMode === 'standard' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('standard')}>
                 <FileSearch2 className="h-4 w-4" /> Standard
               </Button>
-              <Button variant={previewMode === 'ats' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('ats')} className="flex-1">
+              <Button variant={previewMode === 'ats' ? 'primary' : 'secondary'} onClick={() => setPreviewMode('ats')}>
                 <ShieldAlert className="h-4 w-4" /> ATS friendly
               </Button>
             </div>

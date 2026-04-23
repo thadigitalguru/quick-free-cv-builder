@@ -6,7 +6,7 @@ import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 import { readFileAsDataUrl } from '../../utils/files';
 
 export default function EditorPanel({ validationIssues = [] }: { validationIssues?: { field: string; message: string }[] }) {
-  const { activeSection } = useCVStore();
+  const { activeSection, clearSection } = useCVStore();
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
@@ -25,9 +25,16 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
 
   return (
     <div className="rounded-[1.75rem] border border-border bg-white p-5 shadow-soft">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">{heading}</h3>
-        <p className="text-sm text-slate-500">Edit the selected section below.</p>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold">{heading}</h3>
+          <p className="text-sm text-slate-500">Edit the selected section below.</p>
+        </div>
+        {activeSection !== 'personalInfo' && (
+          <Button variant="secondary" className="text-xs" onClick={() => clearSection(activeSection as any)}>
+            <Trash2 className="h-4 w-4" /> Clear section
+          </Button>
+        )}
       </div>
 
       {validationIssues.length > 0 && (

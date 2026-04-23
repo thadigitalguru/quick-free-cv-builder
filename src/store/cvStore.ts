@@ -139,6 +139,7 @@ interface CVState {
   addOptionalSection: (sectionId: 'certifications' | 'awards') => void;
   removeOptionalSection: (sectionId: 'certifications' | 'awards') => void;
   loadImportedDocument: (document: CVDocument) => void;
+  clearSection: (sectionId: SectionId) => void;
   persist: () => void;
 }
 
@@ -325,7 +326,7 @@ export const useCVStore = create<CVState>((set, get) => ({
     if (!normalized) return;
     set({
       document: normalized,
-      activeSection: normalized.sectionVisibility.certifications ? 'certifications' : 'personalInfo',
+      activeSection: normalized.sectionVisibility.experience ? 'experience' : 'personalInfo',
       activeExperienceId: normalized.experience[0]?.id ?? null,
       activeEducationId: normalized.education[0]?.id ?? null,
       activeProjectId: normalized.projects[0]?.id ?? null,
@@ -336,6 +337,39 @@ export const useCVStore = create<CVState>((set, get) => ({
       hydrated: true,
     });
   },
+  clearSection: (sectionId) => set((state) => {
+    const next = { ...state.document };
+    const nextState: Partial<CVState> = { saveStatus: 'saving' };
+
+    if (sectionId === 'summary') {
+      next.personalInfo = { ...next.personalInfo, summary: '' };
+    } else if (sectionId === 'experience') {
+      next.experience = [];
+      nextState.activeExperienceId = null;
+    } else if (sectionId === 'education') {
+      next.education = [];
+      nextState.activeEducationId = null;
+    } else if (sectionId === 'projects') {
+      next.projects = [];
+      nextState.activeProjectId = null;
+    } else if (sectionId === 'skills') {
+      next.skills = [];
+    } else if (sectionId === 'languages') {
+      next.languages = [];
+      nextState.activeLanguageId = null;
+    } else if (sectionId === 'certifications') {
+      next.certifications = [];
+      nextState.activeSimpleSection = state.activeSimpleSection === 'certifications' ? null : state.activeSimpleSection;
+    } else if (sectionId === 'awards') {
+      next.awards = [];
+      nextState.activeSimpleSection = state.activeSimpleSection === 'awards' ? null : state.activeSimpleSection;
+    }
+
+    return {
+      ...nextState,
+      document: withUpdatedTimestamp(next),
+    };
+  }),
   persist: () => {
     const state = get();
     const payload: SavedCVPayload = {
