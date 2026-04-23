@@ -1,0 +1,69 @@
+import { ChevronDown, ChevronUp, EyeOff, Eye, Plus } from 'lucide-react';
+import { sectionDefaults } from '../../data/sectionMeta';
+import { useCVStore } from '../../store/cvStore';
+import { Button } from '../shared/controls';
+import { cn } from '../../utils/dom';
+
+export default function SectionSidebar() {
+  const { document, activeSection, setActiveSection, moveSection, toggleSectionVisibility, addOptionalSection, removeOptionalSection } = useCVStore();
+  const optionalSections = sectionDefaults.filter((section) => section.optional);
+
+  return (
+    <div className="rounded-[1.75rem] border border-border bg-white p-5 shadow-soft">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold">Sections</h3>
+          <p className="text-sm text-slate-500">Reorder, hide, or add optional sections.</p>
+        </div>
+        <Button variant="secondary" onClick={() => addOptionalSection('certifications')}>
+          <Plus className="h-4 w-4" /> Add section
+        </Button>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {document.sectionOrder.map((sectionId, index) => {
+          const meta = sectionDefaults.find((section) => section.id === sectionId)!;
+          const visible = document.sectionVisibility[sectionId];
+          return (
+            <div
+              key={sectionId}
+              className={cn(
+                'flex items-center gap-2 rounded-2xl border px-3 py-3 transition',
+                activeSection === sectionId ? 'border-brand-200 bg-brand-50' : 'border-border bg-white',
+              )}
+            >
+              <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setActiveSection(sectionId)}>
+                <span className={cn('h-2.5 w-2.5 rounded-full', visible ? 'bg-emerald-500' : 'bg-slate-300')} />
+                <span className="truncate text-sm font-medium text-ink">{meta.label}</span>
+                {!visible && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">Hidden</span>}
+              </button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" className="h-9 w-9 p-0" onClick={() => moveSection(sectionId, 'up')} disabled={index === 0} aria-label={`Move ${meta.label} up`}>
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" className="h-9 w-9 p-0" onClick={() => moveSection(sectionId, 'down')} disabled={index === document.sectionOrder.length - 1} aria-label={`Move ${meta.label} down`}>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" className="h-9 w-9 p-0" onClick={() => toggleSectionVisibility(sectionId)} aria-label={`${visible ? 'Hide' : 'Show'} ${meta.label}`}>
+                  {visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+        <p className="font-medium text-slate-700">Optional sections</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {optionalSections.map((section) => (
+            <Button key={section.id} variant="secondary" className="text-xs" onClick={() => addOptionalSection(section.id as 'certifications' | 'awards')}>
+              {section.visible ? 'Hide' : 'Add'} {section.label}
+            </Button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-slate-500">Added optional sections can be hidden again without losing content.</p>
+      </div>
+    </div>
+  );
+}
