@@ -64,7 +64,7 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
 }
 
 function PersonalInfoForm() {
-  const { document, updatePersonalInfo, updateProfilePhoto } = useCVStore();
+  const { document, updatePersonalInfo, updateProfilePhoto, removeProfilePhoto } = useCVStore();
   const info = document.personalInfo;
 
   return (
@@ -95,7 +95,7 @@ function PersonalInfoForm() {
               }}
             />
             {info.profilePhoto && (
-              <Button variant="secondary" className="text-xs" onClick={() => updateProfilePhoto('')}>
+              <Button variant="secondary" className="text-xs" onClick={removeProfilePhoto}>
                 Remove photo
               </Button>
             )}

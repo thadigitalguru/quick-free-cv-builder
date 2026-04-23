@@ -1,18 +1,21 @@
 import { ChevronDown, ChevronUp, EyeOff, Eye, Plus, X, FolderInput } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { sectionDefaults } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { Button } from '../shared/controls';
 import { cn } from '../../utils/dom';
 
 export default function SectionSidebar() {
-  const { document, activeSection, setActiveSection, moveSection, toggleSectionVisibility, addOptionalSection, removeOptionalSection } = useCVStore();
+  const { document, activeSection, setActiveSection, moveSection, moveSectionToIndex, toggleSectionVisibility, addOptionalSection, removeOptionalSection } = useCVStore();
+  const [draggingSection, setDraggingSection] = useState<string | null>(null);
   const activeRef = useRef<HTMLDivElement | null>(null);
   const optionalSections = sectionDefaults.filter((section) => section.optional);
   const hiddenOptionals = optionalSections.filter((section) => !document.sectionVisibility[section.id]);
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [activeSection]);
+
+  const orderedSections = useMemo(() => document.sectionOrder, [document.sectionOrder]);
 
   const sectionCounts: Record<string, number> = {
     personalInfo: 1,
@@ -51,19 +54,30 @@ export default function SectionSidebar() {
       </div>
 
       <div className="mt-4 space-y-2">
-        {document.sectionOrder.map((sectionId, index) => {
+        {orderedSections.map((sectionId, index) => {
           const meta = sectionDefaults.find((section) => section.id === sectionId)!;
           const visible = document.sectionVisibility[sectionId];
           return (
             <div
               key={sectionId}
               ref={activeSection === sectionId ? activeRef : null}
+              draggable
+              onDragStart={() => setDraggingSection(sectionId)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => {
+                if (!draggingSection || draggingSection === sectionId) return;
+                const targetIndex = orderedSections.indexOf(sectionId);
+                if (targetIndex === -1) return;
+                moveSectionToIndex(draggingSection as any, targetIndex);
+                setDraggingSection(null);
+              }}
+              onDragEnd={() => setDraggingSection(null)}
               className={cn(
                 'flex items-center gap-2 rounded-2xl border px-3 py-3 transition',
-                activeSection === sectionId ? 'border-brand-200 bg-brand-50' : 'border-border bg-white',
+                draggingSection === sectionId ? 'border-brand-400 bg-brand-50 opacity-70' : activeSection === sectionId ? 'border-brand-200 bg-brand-50' : 'border-border bg-white',
               )}
             >
-              <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setActiveSection(sectionId)}>
+              <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setActiveSection(sectionId)} title="Click to edit; drag to reorder">
                 <span className={cn('h-2.5 w-2.5 rounded-full', visible ? 'bg-emerald-500' : 'bg-slate-300')} />
                 <span className="truncate text-sm font-medium text-ink">{meta.label}</span>
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{sectionCounts[sectionId] ?? 0}</span>

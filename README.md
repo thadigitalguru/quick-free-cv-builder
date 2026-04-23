@@ -7,6 +7,10 @@ Quick Free CV Builder is a privacy-first, no-signup CV editor with live preview 
 - Builder with editable sections and live preview
 - Local autosave in browser storage
 - Reorder and hide/show sections
+- Duplicate, clear, and reset sections
+- Export / import JSON drafts
+- ATS-friendly preview mode
+- Profile photo upload
 - Export to PDF via browser print flow
 
 ## Stack
@@ -26,3 +30,10 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Deploy
+The app is configured for SPA hosting with:
+- `vercel.json`
+- `public/_redirects`
+
+This supports direct refreshes on `/builder` and other client routes.

@@ -5,6 +5,7 @@ import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
 import { normalizeImportedDocument } from '../../utils/importDocument';
 import { readFileAsDataUrl } from '../../utils/files';
+import { parseImportedText } from '../../utils/importText';
 import { getSavedDraftMeta } from '../../utils/storage';
 
 export default function LandingPage() {
@@ -81,9 +82,18 @@ export default function LandingPage() {
                     // Fall back to a simple text import.
                   }
 
+                  const parsedText = parseImportedText(text);
                   const document = normalizeImportedDocument({
-                    personalInfo: { summary: text },
-                    skills: [],
+                    personalInfo: {
+                      fullName: parsedText.fullName,
+                      summary: parsedText.summary,
+                      email: parsedText.email,
+                      phone: parsedText.phone,
+                      location: parsedText.location,
+                      linkedinUrl: parsedText.linkedinUrl,
+                      websiteUrl: parsedText.websiteUrl,
+                    },
+                    skills: parsedText.skills,
                     experience: [],
                     education: [],
                     projects: [],

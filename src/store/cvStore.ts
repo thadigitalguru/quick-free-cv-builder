@@ -109,6 +109,7 @@ interface CVState {
   updatePersonalInfo: (field: keyof PersonalInfo, value: string) => void;
   updateSummary: (value: string) => void;
   updateProfilePhoto: (value: string) => void;
+  removeProfilePhoto: () => void;
   setSkills: (skills: string[]) => void;
   addExperience: () => void;
   duplicateExperience: (id: string) => void;
@@ -135,6 +136,7 @@ interface CVState {
   updateSimpleItem: (section: 'certifications' | 'awards', id: string, patch: Partial<SimpleSectionItem>) => void;
   deleteSimpleItem: (section: 'certifications' | 'awards', id: string) => void;
   moveSection: (sectionId: SectionId, direction: 'up' | 'down') => void;
+  moveSectionToIndex: (sectionId: SectionId, targetIndex: number) => void;
   toggleSectionVisibility: (sectionId: SectionId) => void;
   addOptionalSection: (sectionId: 'certifications' | 'awards') => void;
   removeOptionalSection: (sectionId: 'certifications' | 'awards') => void;
@@ -249,6 +251,14 @@ export const useCVStore = create<CVState>((set, get) => ({
       }),
       saveStatus: 'saving',
     })),
+  removeProfilePhoto: () =>
+    set((state) => ({
+      document: withUpdatedTimestamp({
+        ...state.document,
+        personalInfo: { ...state.document.personalInfo, profilePhoto: '' },
+      }),
+      saveStatus: 'saving',
+    })),
   setSkills: (skills) =>
     set((state) => ({
       document: withUpdatedTimestamp({ ...state.document, skills }),
@@ -316,6 +326,14 @@ export const useCVStore = create<CVState>((set, get) => ({
     if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.document.sectionOrder.length) return {};
     const nextOrder = [...state.document.sectionOrder];
     [nextOrder[currentIndex], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[currentIndex]];
+    return { document: withUpdatedTimestamp({ ...state.document, sectionOrder: nextOrder }), saveStatus: 'saving' };
+  }),
+  moveSectionToIndex: (sectionId, targetIndex) => set((state) => {
+    const currentIndex = state.document.sectionOrder.indexOf(sectionId);
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= state.document.sectionOrder.length || currentIndex === targetIndex) return {};
+    const nextOrder = [...state.document.sectionOrder];
+    nextOrder.splice(currentIndex, 1);
+    nextOrder.splice(targetIndex, 0, sectionId);
     return { document: withUpdatedTimestamp({ ...state.document, sectionOrder: nextOrder }), saveStatus: 'saving' };
   }),
   toggleSectionVisibility: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, !state.document.sectionVisibility[sectionId])), saveStatus: 'saving' })),
