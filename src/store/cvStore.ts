@@ -109,22 +109,27 @@ interface CVState {
   updateSummary: (value: string) => void;
   setSkills: (skills: string[]) => void;
   addExperience: () => void;
+  duplicateExperience: (id: string) => void;
   updateExperience: (id: string, patch: Partial<ExperienceItem>) => void;
   deleteExperience: (id: string) => void;
   moveExperience: (id: string, direction: 'up' | 'down') => void;
   addEducation: () => void;
+  duplicateEducation: (id: string) => void;
   updateEducation: (id: string, patch: Partial<EducationItem>) => void;
   deleteEducation: (id: string) => void;
   moveEducation: (id: string, direction: 'up' | 'down') => void;
   addProject: () => void;
+  duplicateProject: (id: string) => void;
   updateProject: (id: string, patch: Partial<ProjectItem>) => void;
   deleteProject: (id: string) => void;
   moveProject: (id: string, direction: 'up' | 'down') => void;
   addLanguage: () => void;
+  duplicateLanguage: (id: string) => void;
   updateLanguage: (id: string, patch: Partial<LanguageItem>) => void;
   deleteLanguage: (id: string) => void;
   moveLanguage: (id: string, direction: 'up' | 'down') => void;
   addSimpleItem: (section: 'certifications' | 'awards') => void;
+  duplicateSimpleItem: (section: 'certifications' | 'awards', id: string) => void;
   updateSimpleItem: (section: 'certifications' | 'awards', id: string, patch: Partial<SimpleSectionItem>) => void;
   deleteSimpleItem: (section: 'certifications' | 'awards', id: string) => void;
   moveSection: (sectionId: SectionId, direction: 'up' | 'down') => void;
@@ -147,6 +152,15 @@ const moveItem = <T,>(items: T[], id: string, direction: 'up' | 'down') => {
 
 const updateItem = <T extends { id: string }>(items: T[], id: string, patch: Partial<T>) =>
   items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+
+const duplicateAfter = <T extends { id: string }>(items: T[], id: string, clone: (item: T) => T) => {
+  const index = items.findIndex((item) => item.id === id);
+  if (index < 0) return { items, insertedId: null as string | null };
+  const nextItem = clone(items[index]);
+  const next = [...items];
+  next.splice(index + 1, 0, nextItem);
+  return { items: next, insertedId: nextItem.id };
+};
 
 const deleteItem = <T extends { id: string }>(items: T[], id: string) => items.filter((item) => item.id !== id);
 
@@ -233,12 +247,22 @@ export const useCVStore = create<CVState>((set, get) => ({
     const item = createExperienceItem();
     return { document: withUpdatedTimestamp({ ...state.document, experience: [...state.document.experience, item] }), activeSection: 'experience', activeExperienceId: item.id, saveStatus: 'saving' };
   }),
+  duplicateExperience: (id) => set((state) => {
+    const { items, insertedId } = duplicateAfter(state.document.experience, id, (item) => ({ ...item, id: createId(), achievements: [...item.achievements], technologies: [...item.technologies] }));
+    if (!insertedId) return {};
+    return { document: withUpdatedTimestamp({ ...state.document, experience: items }), activeSection: 'experience', activeExperienceId: insertedId, saveStatus: 'saving' };
+  }),
   updateExperience: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: updateItem(state.document.experience, id, patch) }), activeExperienceId: id, activeSection: 'experience', saveStatus: 'saving' })),
   deleteExperience: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: deleteItem(state.document.experience, id) }), activeExperienceId: state.activeExperienceId === id ? null : state.activeExperienceId, saveStatus: 'saving' })),
   moveExperience: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: moveItem(state.document.experience, id, direction) }), saveStatus: 'saving' })),
   addEducation: () => set((state) => {
     const item = createEducationItem();
     return { document: withUpdatedTimestamp({ ...state.document, education: [...state.document.education, item] }), activeSection: 'education', activeEducationId: item.id, saveStatus: 'saving' };
+  }),
+  duplicateEducation: (id) => set((state) => {
+    const { items, insertedId } = duplicateAfter(state.document.education, id, (item) => ({ ...item, id: createId() }));
+    if (!insertedId) return {};
+    return { document: withUpdatedTimestamp({ ...state.document, education: items }), activeSection: 'education', activeEducationId: insertedId, saveStatus: 'saving' };
   }),
   updateEducation: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: updateItem(state.document.education, id, patch) }), activeEducationId: id, activeSection: 'education', saveStatus: 'saving' })),
   deleteEducation: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: deleteItem(state.document.education, id) }), activeEducationId: state.activeEducationId === id ? null : state.activeEducationId, saveStatus: 'saving' })),
@@ -247,6 +271,11 @@ export const useCVStore = create<CVState>((set, get) => ({
     const item = createProjectItem();
     return { document: withUpdatedTimestamp({ ...state.document, projects: [...state.document.projects, item] }), activeSection: 'projects', activeProjectId: item.id, saveStatus: 'saving' };
   }),
+  duplicateProject: (id) => set((state) => {
+    const { items, insertedId } = duplicateAfter(state.document.projects, id, (item) => ({ ...item, id: createId(), technologies: [...item.technologies] }));
+    if (!insertedId) return {};
+    return { document: withUpdatedTimestamp({ ...state.document, projects: items }), activeSection: 'projects', activeProjectId: insertedId, saveStatus: 'saving' };
+  }),
   updateProject: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: updateItem(state.document.projects, id, patch) }), activeProjectId: id, activeSection: 'projects', saveStatus: 'saving' })),
   deleteProject: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: deleteItem(state.document.projects, id) }), activeProjectId: state.activeProjectId === id ? null : state.activeProjectId, saveStatus: 'saving' })),
   moveProject: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: moveItem(state.document.projects, id, direction) }), saveStatus: 'saving' })),
@@ -254,10 +283,20 @@ export const useCVStore = create<CVState>((set, get) => ({
     const item = createLanguageItem();
     return { document: withUpdatedTimestamp({ ...state.document, languages: [...state.document.languages, item] }), activeSection: 'languages', activeLanguageId: item.id, saveStatus: 'saving' };
   }),
+  duplicateLanguage: (id) => set((state) => {
+    const { items, insertedId } = duplicateAfter(state.document.languages, id, (item) => ({ ...item, id: createId() }));
+    if (!insertedId) return {};
+    return { document: withUpdatedTimestamp({ ...state.document, languages: items }), activeSection: 'languages', activeLanguageId: insertedId, saveStatus: 'saving' };
+  }),
   updateLanguage: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: updateItem(state.document.languages, id, patch) }), activeLanguageId: id, activeSection: 'languages', saveStatus: 'saving' })),
   deleteLanguage: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: deleteItem(state.document.languages, id) }), activeLanguageId: state.activeLanguageId === id ? null : state.activeLanguageId, saveStatus: 'saving' })),
   moveLanguage: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: moveItem(state.document.languages, id, direction) }), saveStatus: 'saving' })),
   addSimpleItem: (section) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, [section]: [...state.document[section], createSimpleItem(section === 'certifications' ? 'New Certification' : 'New Award')] }), activeSection: section, activeSimpleSection: section, saveStatus: 'saving' })),
+  duplicateSimpleItem: (section, id) => set((state) => {
+    const { items, insertedId } = duplicateAfter(state.document[section], id, (item) => ({ ...item, id: createId() }));
+    if (!insertedId) return {};
+    return { document: withUpdatedTimestamp({ ...state.document, [section]: items }), activeSection: section, activeSimpleSection: section, saveStatus: 'saving' };
+  }),
   updateSimpleItem: (section, id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, [section]: updateItem(state.document[section], id, patch) }), activeSection: section, activeSimpleSection: section, saveStatus: 'saving' })),
   deleteSimpleItem: (section, id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, [section]: deleteItem(state.document[section], id) }), activeSimpleSection: state.activeSimpleSection === section ? null : state.activeSimpleSection, saveStatus: 'saving' })),
   moveSection: (sectionId, direction) => set((state) => {

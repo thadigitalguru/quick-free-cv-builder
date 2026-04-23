@@ -1,12 +1,11 @@
-import { useMemo, type ReactNode } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Copy, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 
 export default function EditorPanel() {
-  const store = useCVStore();
-  const { activeSection, document } = store;
+  const { activeSection } = useCVStore();
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
@@ -46,6 +45,7 @@ export default function EditorPanel() {
 function PersonalInfoForm() {
   const { document, updatePersonalInfo } = useCVStore();
   const info = document.personalInfo;
+
   return (
     <div className="grid gap-4">
       <Field label="Full name"><Input value={info.fullName} onChange={(e) => updatePersonalInfo('fullName', e.target.value)} placeholder="Jane Doe" /></Field>
@@ -61,6 +61,7 @@ function PersonalInfoForm() {
 
 function SummaryForm() {
   const { document, updateSummary } = useCVStore();
+
   return (
     <Field label="Professional summary">
       <Textarea value={document.personalInfo.summary} onChange={(e) => updateSummary(e.target.value)} rows={10} placeholder="Write a concise, achievement-focused summary..." />
@@ -69,7 +70,8 @@ function SummaryForm() {
 }
 
 function ExperienceForm() {
-  const { document, addExperience, updateExperience, deleteExperience, moveExperience } = useCVStore();
+  const { document, addExperience, duplicateExperience, updateExperience, deleteExperience, moveExperience } = useCVStore();
+
   return (
     <div className="space-y-4">
       {document.experience.map((item, index) => (
@@ -79,6 +81,7 @@ function ExperienceForm() {
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'down')} disabled={index === document.experience.length - 1}>Down</Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateExperience(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteExperience(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -89,7 +92,14 @@ function ExperienceForm() {
             <Field label="Start date"><Input value={item.startDate} onChange={(e) => updateExperience(item.id, { startDate: e.target.value })} placeholder="YYYY-MM" /></Field>
             <Field label="End date"><Input value={item.endDate} onChange={(e) => updateExperience(item.id, { endDate: e.target.value })} placeholder="YYYY-MM" disabled={item.isCurrent} /></Field>
             <Field label="Current role">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={item.isCurrent} onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked, endDate: e.target.checked ? '' : item.endDate })} /> Yes</label>
+              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={item.isCurrent}
+                  onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked, endDate: e.target.checked ? '' : item.endDate })}
+                />
+                Yes
+              </label>
             </Field>
           </div>
           <div className="mt-4 grid gap-3">
@@ -106,7 +116,8 @@ function ExperienceForm() {
 }
 
 function EducationForm() {
-  const { document, addEducation, updateEducation, deleteEducation, moveEducation } = useCVStore();
+  const { document, addEducation, duplicateEducation, updateEducation, deleteEducation, moveEducation } = useCVStore();
+
   return (
     <div className="space-y-4">
       {document.education.map((item, index) => (
@@ -116,6 +127,7 @@ function EducationForm() {
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'down')} disabled={index === document.education.length - 1}>Down</Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateEducation(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteEducation(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -136,15 +148,66 @@ function EducationForm() {
 
 function SkillsForm() {
   const { document, setSkills } = useCVStore();
+  const [draft, setDraft] = useState('');
+
+  const addSkill = (skill: string) => {
+    const next = skill.trim();
+    if (!next) return;
+    if (document.skills.some((item) => item.toLowerCase() === next.toLowerCase())) return;
+    setSkills([...document.skills, next]);
+    setDraft('');
+  };
+
+  const removeSkill = (skill: string) => {
+    setSkills(document.skills.filter((item) => item !== skill));
+  };
+
   return (
-    <Field label="Skills (comma separated)">
-      <Textarea rows={8} value={document.skills.join(', ')} onChange={(e) => setSkills(parseCsvList(e.target.value))} placeholder="React, TypeScript, Accessibility" />
-    </Field>
+    <div className="space-y-4">
+      <Field label="Add a skill">
+        <div className="flex gap-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addSkill(draft);
+              }
+            }}
+            placeholder="e.g. Figma"
+          />
+          <Button variant="secondary" onClick={() => addSkill(draft)}>
+            <Plus className="h-4 w-4" /> Add
+          </Button>
+        </div>
+      </Field>
+
+      <div className="flex flex-wrap gap-2">
+        {document.skills.map((skill) => (
+          <button
+            key={skill}
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100"
+            onClick={() => removeSkill(skill)}
+            title="Remove skill"
+          >
+            {skill}
+            <span className="text-slate-400">×</span>
+          </button>
+        ))}
+      </div>
+
+      <Field label="Skills (comma separated)">
+        <Textarea rows={6} value={document.skills.join(', ')} onChange={(e) => setSkills(parseCsvList(e.target.value))} placeholder="React, TypeScript, Accessibility" />
+      </Field>
+    </div>
   );
 }
 
 function ProjectsForm() {
-  const { document, addProject, updateProject, deleteProject, moveProject } = useCVStore();
+  const { document, addProject, duplicateProject, updateProject, deleteProject, moveProject } = useCVStore();
+
   return (
     <div className="space-y-4">
       {document.projects.map((item, index) => (
@@ -154,6 +217,7 @@ function ProjectsForm() {
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'down')} disabled={index === document.projects.length - 1}>Down</Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateProject(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteProject(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -173,7 +237,8 @@ function ProjectsForm() {
 }
 
 function LanguagesForm() {
-  const { document, addLanguage, updateLanguage, deleteLanguage, moveLanguage } = useCVStore();
+  const { document, addLanguage, duplicateLanguage, updateLanguage, deleteLanguage, moveLanguage } = useCVStore();
+
   return (
     <div className="space-y-4">
       {document.languages.map((item, index) => (
@@ -189,6 +254,7 @@ function LanguagesForm() {
           <div className="flex gap-2">
             <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveLanguage(item.id, 'up')} disabled={index === 0}>Up</Button>
             <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveLanguage(item.id, 'down')} disabled={index === document.languages.length - 1}>Down</Button>
+            <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateLanguage(item.id)}><Copy className="h-4 w-4" /></Button>
             <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteLanguage(item.id)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
@@ -199,8 +265,9 @@ function LanguagesForm() {
 }
 
 function SimpleSectionForm({ section, title }: { section: 'certifications' | 'awards'; title: string }) {
-  const { document, addSimpleItem, updateSimpleItem, deleteSimpleItem } = useCVStore();
+  const { document, addSimpleItem, duplicateSimpleItem, updateSimpleItem, deleteSimpleItem } = useCVStore();
   const items = document[section];
+
   return (
     <div className="space-y-4">
       {items.map((item) => (
@@ -209,7 +276,8 @@ function SimpleSectionForm({ section, title }: { section: 'certifications' | 'aw
             <Field label={`${title} title`}><Input value={item.title} onChange={(e) => updateSimpleItem(section, item.id, { title: e.target.value })} /></Field>
             <Field label="Details"><Input value={item.details} onChange={(e) => updateSimpleItem(section, item.id, { details: e.target.value })} /></Field>
           </div>
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateSimpleItem(section, item.id)}><Copy className="h-4 w-4" /></Button>
             <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteSimpleItem(section, item.id)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>

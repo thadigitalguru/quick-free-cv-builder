@@ -26,3 +26,7 @@ export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSe
 export function Label({ children }: { children: ReactNode }) {
   return <label className="mb-1.5 block text-sm font-medium text-slate-700">{children}</label>;
 }
+
+export function Pill({ children }: { children: ReactNode }) {
+  return <span className="inline-flex items-center rounded-full border border-border bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">{children}</span>;
+}

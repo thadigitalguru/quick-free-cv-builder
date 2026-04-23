@@ -25,12 +25,28 @@ export default function ResumePreview() {
             <p className="text-lg font-medium text-brand-700">{cvDocument.personalInfo.jobTitle || 'Professional Title'}</p>
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-            {cvDocument.personalInfo.email && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.email}</span>}
-            {cvDocument.personalInfo.phone && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.phone}</span>}
-            {cvDocument.personalInfo.location && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.location}</span>}
-            {cvDocument.personalInfo.linkedinUrl && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.linkedinUrl}</span>}
+            {cvDocument.personalInfo.email && <span>{cvDocument.personalInfo.email}</span>}
+            {cvDocument.personalInfo.phone && <span>{cvDocument.personalInfo.phone}</span>}
+            {cvDocument.personalInfo.location && <span>{cvDocument.personalInfo.location}</span>}
+            {cvDocument.personalInfo.linkedinUrl && <span>{cvDocument.personalInfo.linkedinUrl}</span>}
             {cvDocument.personalInfo.websiteUrl && <span>{cvDocument.personalInfo.websiteUrl}</span>}
           </div>
+          {(cvDocument.personalInfo.summary || cvDocument.skills.length > 0) && (
+            <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 sm:grid-cols-2">
+              {cvDocument.personalInfo.summary && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Summary</p>
+                  <p className="mt-1 max-h-24 overflow-hidden leading-6 text-slate-700">{cvDocument.personalInfo.summary}</p>
+                </div>
+              )}
+              {cvDocument.skills.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Top skills</p>
+                  <p className="mt-1 leading-6 text-slate-700">{cvDocument.skills.slice(0, 8).join(' · ')}</p>
+                </div>
+              )}
+            </div>
+          )}
         </header>
 
         <div className="mt-6 space-y-7">
