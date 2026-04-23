@@ -5,11 +5,13 @@ import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
 import { normalizeImportedDocument } from '../../utils/importDocument';
 import { readFileAsDataUrl } from '../../utils/files';
+import { getSavedDraftMeta } from '../../utils/storage';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const loadImportedDocument = useCVStore((state) => state.loadImportedDocument);
+  const draftMeta = getSavedDraftMeta();
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10 text-ink">
@@ -28,6 +30,11 @@ export default function LandingPage() {
               <Button className="min-w-48 text-base" onClick={() => navigate('/builder')}>
                 Create New CV
               </Button>
+              {draftMeta && (
+                <Button className="min-w-48 text-base" variant="secondary" onClick={() => navigate('/builder')}>
+                  Resume last draft
+                </Button>
+              )}
               <Button className="min-w-48 text-base" variant="secondary" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4" /> Upload Existing CV
               </Button>

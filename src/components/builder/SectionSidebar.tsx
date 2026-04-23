@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp, EyeOff, Eye, Plus, X, FolderInput } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { sectionDefaults } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { Button } from '../shared/controls';
@@ -6,8 +7,13 @@ import { cn } from '../../utils/dom';
 
 export default function SectionSidebar() {
   const { document, activeSection, setActiveSection, moveSection, toggleSectionVisibility, addOptionalSection, removeOptionalSection } = useCVStore();
+  const activeRef = useRef<HTMLDivElement | null>(null);
   const optionalSections = sectionDefaults.filter((section) => section.optional);
   const hiddenOptionals = optionalSections.filter((section) => !document.sectionVisibility[section.id]);
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [activeSection]);
+
   const sectionCounts: Record<string, number> = {
     personalInfo: 1,
     summary: document.personalInfo.summary ? 1 : 0,
@@ -51,6 +57,7 @@ export default function SectionSidebar() {
           return (
             <div
               key={sectionId}
+              ref={activeSection === sectionId ? activeRef : null}
               className={cn(
                 'flex items-center gap-2 rounded-2xl border px-3 py-3 transition',
                 activeSection === sectionId ? 'border-brand-200 bg-brand-50' : 'border-border bg-white',

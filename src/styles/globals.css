@@ -51,9 +51,14 @@ select {
     display: block;
   }
 
-  .break-inside-avoid {
+  .break-inside-avoid,
+  .resume-section {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .resume-section + .resume-section {
+    break-before: auto;
   }
 
   @page {

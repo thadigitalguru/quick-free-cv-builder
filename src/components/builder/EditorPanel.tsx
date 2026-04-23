@@ -4,9 +4,11 @@ import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 import { readFileAsDataUrl } from '../../utils/files';
+import { groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 
-export default function EditorPanel({ validationIssues = [] }: { validationIssues?: { field: string; message: string }[] }) {
+export default function EditorPanel({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
   const { activeSection, clearSection } = useCVStore();
+  const issuesBySection = groupIssuesBySection(validationIssues);
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
@@ -41,7 +43,7 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-semibold">Quick checks</p>
           <ul className="mt-2 space-y-1 list-disc pl-5">
-            {validationIssues.map((issue) => (
+            {(issuesBySection[activeSection] ?? validationIssues).map((issue) => (
               <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
             ))}
           </ul>
@@ -81,7 +83,7 @@ function PersonalInfoForm() {
           ) : (
             <div className="grid h-16 w-16 place-items-center rounded-2xl border border-dashed border-border bg-slate-50 text-xs text-slate-500">No photo</div>
           )}
-          <div className="flex-1">
+          <div className="flex-1 space-y-2">
             <input
               type="file"
               accept="image/*"
@@ -92,6 +94,11 @@ function PersonalInfoForm() {
                 updateProfilePhoto(await readFileAsDataUrl(file));
               }}
             />
+            {info.profilePhoto && (
+              <Button variant="secondary" className="text-xs" onClick={() => updateProfilePhoto('')}>
+                Remove photo
+              </Button>
+            )}
           </div>
         </div>
       </Field>

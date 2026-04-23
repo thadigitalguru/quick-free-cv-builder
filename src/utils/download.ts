@@ -10,5 +10,5 @@ export const downloadTextFile = (filename: string, content: string, mimeType = '
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };

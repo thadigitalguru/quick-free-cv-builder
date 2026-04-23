@@ -83,7 +83,7 @@ function PreviewSection({ sectionId, mode }: { sectionId: keyof typeof sectionLa
   if (sectionId === 'awards' && cvDocument.awards.length === 0) return null;
 
   return (
-    <section className="break-inside-avoid">
+    <section className="break-inside-avoid resume-section">
       <h2 className={`pb-2 text-sm font-bold uppercase tracking-[0.18em] ${mode === 'ats' ? 'border-b border-black text-black' : 'border-b border-slate-200 text-slate-700'}`}>{label}</h2>
       <div className="mt-3">
         {sectionId === 'summary' && <p className={`whitespace-pre-line text-sm leading-6 ${mode === 'ats' ? 'text-black' : 'text-slate-700'}`}>{cvDocument.personalInfo.summary}</p>}

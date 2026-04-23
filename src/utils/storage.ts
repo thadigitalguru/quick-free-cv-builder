@@ -22,3 +22,12 @@ export const clearSavedCV = () => {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(STORAGE_KEY);
 };
+
+export const getSavedDraftMeta = () => {
+  const saved = loadSavedCV();
+  if (!saved) return null;
+  return {
+    savedAt: saved.document.lastUpdatedAt,
+    activeSection: saved.activeSection,
+  };
+};
