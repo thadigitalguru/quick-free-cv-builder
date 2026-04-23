@@ -13,6 +13,7 @@ import type {
 import { clearSavedCV, loadSavedCV, saveCV } from '../utils/storage';
 import { createId } from '../utils/cvUtils';
 import { defaultOrder, sectionDefaults } from '../data/sectionMeta';
+import { normalizeImportedDocument } from '../utils/importDocument';
 
 const nowIso = () => new Date().toISOString();
 
@@ -130,6 +131,7 @@ interface CVState {
   toggleSectionVisibility: (sectionId: SectionId) => void;
   addOptionalSection: (sectionId: 'certifications' | 'awards') => void;
   removeOptionalSection: (sectionId: 'certifications' | 'awards') => void;
+  loadImportedDocument: (document: CVDocument) => void;
   persist: () => void;
 }
 
@@ -269,6 +271,22 @@ export const useCVStore = create<CVState>((set, get) => ({
   toggleSectionVisibility: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, !state.document.sectionVisibility[sectionId])), saveStatus: 'saving' })),
   addOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, true)), activeSection: sectionId, saveStatus: 'saving' })),
   removeOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, false)), saveStatus: 'saving' })),
+  loadImportedDocument: (incomingDocument) => {
+    const normalized = normalizeImportedDocument(incomingDocument);
+    if (!normalized) return;
+    set({
+      document: normalized,
+      activeSection: normalized.sectionVisibility.certifications ? 'certifications' : 'personalInfo',
+      activeExperienceId: normalized.experience[0]?.id ?? null,
+      activeEducationId: normalized.education[0]?.id ?? null,
+      activeProjectId: normalized.projects[0]?.id ?? null,
+      activeLanguageId: normalized.languages[0]?.id ?? null,
+      activeSimpleSection: normalized.certifications.length ? 'certifications' : normalized.awards.length ? 'awards' : null,
+      saveStatus: 'loaded',
+      savedAt: normalized.lastUpdatedAt,
+      hydrated: true,
+    });
+  },
   persist: () => {
     const state = get();
     const payload: SavedCVPayload = {

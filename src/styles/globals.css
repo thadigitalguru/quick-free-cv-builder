@@ -36,6 +36,7 @@ select {
 @media print {
   body {
     background: #fff;
+    color: #000;
   }
 
   #root {
@@ -48,6 +49,11 @@ select {
 
   .print-only {
     display: block;
+  }
+
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   @page {

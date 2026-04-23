@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, EyeOff, Eye, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, EyeOff, Eye, Plus, X, FolderInput } from 'lucide-react';
 import { sectionDefaults } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { Button } from '../shared/controls';
@@ -7,6 +7,7 @@ import { cn } from '../../utils/dom';
 export default function SectionSidebar() {
   const { document, activeSection, setActiveSection, moveSection, toggleSectionVisibility, addOptionalSection, removeOptionalSection } = useCVStore();
   const optionalSections = sectionDefaults.filter((section) => section.optional);
+  const hiddenOptionals = optionalSections.filter((section) => !document.sectionVisibility[section.id]);
 
   return (
     <div className="rounded-[1.75rem] border border-border bg-white p-5 shadow-soft">
@@ -15,7 +16,7 @@ export default function SectionSidebar() {
           <h3 className="text-lg font-semibold">Sections</h3>
           <p className="text-sm text-slate-500">Reorder, hide, or add optional sections.</p>
         </div>
-        <Button variant="secondary" onClick={() => addOptionalSection('certifications')}>
+        <Button variant="secondary" onClick={() => addOptionalSection(hiddenOptionals[0]?.id as 'certifications' | 'awards') } disabled={hiddenOptionals.length === 0}>
           <Plus className="h-4 w-4" /> Add section
         </Button>
       </div>
@@ -47,6 +48,16 @@ export default function SectionSidebar() {
                 <Button variant="ghost" className="h-9 w-9 p-0" onClick={() => toggleSectionVisibility(sectionId)} aria-label={`${visible ? 'Hide' : 'Show'} ${meta.label}`}>
                   {visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </Button>
+                {meta.optional && visible && (
+                  <Button
+                    variant="ghost"
+                    className="h-9 w-9 p-0 text-rose-600"
+                    onClick={() => removeOptionalSection(sectionId as 'certifications' | 'awards')}
+                    aria-label={`Remove ${meta.label}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           );
@@ -56,13 +67,13 @@ export default function SectionSidebar() {
       <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
         <p className="font-medium text-slate-700">Optional sections</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {optionalSections.map((section) => (
+          {hiddenOptionals.length > 0 ? hiddenOptionals.map((section) => (
             <Button key={section.id} variant="secondary" className="text-xs" onClick={() => addOptionalSection(section.id as 'certifications' | 'awards')}>
-              {section.visible ? 'Hide' : 'Add'} {section.label}
+              <FolderInput className="h-3.5 w-3.5" /> Add {section.label}
             </Button>
-          ))}
+          )) : <span className="text-xs text-slate-500">All optional sections are already visible.</span>}
         </div>
-        <p className="mt-3 text-xs text-slate-500">Added optional sections can be hidden again without losing content.</p>
+        <p className="mt-3 text-xs text-slate-500">Optional sections can be hidden or removed from the workspace without deleting the content.</p>
       </div>
     </div>
   );

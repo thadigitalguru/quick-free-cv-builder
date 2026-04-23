@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, RotateCcw, Save, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
@@ -10,6 +10,8 @@ import ResumePreview from './ResumePreview';
 
 export default function BuilderPage() {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [tick, setTick] = useState(Date.now());
   const { document: cvDocument, hydrated, initFromStorage, persist, createNewCV, resetCV, saveStatus, savedAt } = useCVStore();
 
   useEffect(() => {
@@ -22,13 +24,26 @@ export default function BuilderPage() {
     return () => window.clearTimeout(timer);
   }, [cvDocument, hydrated, persist]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setTick(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const statusLabel = useMemo(() => {
     if (saveStatus === 'loaded') return 'Draft restored';
     if (saveStatus === 'saving') return 'Saving…';
+    if (savedAt) {
+      const elapsed = Math.max(0, Math.round((tick - new Date(savedAt).getTime()) / 1000));
+      if (elapsed < 5) return 'Saved just now';
+      if (elapsed < 60) return `Saved ${elapsed}s ago`;
+      const minutes = Math.floor(elapsed / 60);
+      if (minutes < 60) return `Saved ${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      return `Saved ${hours}h ago`;
+    }
     if (saveStatus === 'saved') return 'Changes saved';
-    if (savedAt) return 'Saved locally';
     return 'Ready';
-  }, [saveStatus, savedAt]);
+  }, [saveStatus, savedAt, tick]);
 
   if (!hydrated) {
     return (
@@ -68,11 +83,20 @@ export default function BuilderPage() {
             </div>
           </div>
 
-          <SectionSidebar />
-          <EditorPanel />
+          <div className="lg:hidden rounded-[1.75rem] border border-border bg-white p-2 shadow-soft">
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant={viewMode === 'edit' ? 'primary' : 'secondary'} onClick={() => setViewMode('edit')}>Edit</Button>
+              <Button variant={viewMode === 'preview' ? 'primary' : 'secondary'} onClick={() => setViewMode('preview')}>Preview</Button>
+            </div>
+          </div>
+
+          <div className={`${viewMode === 'preview' ? 'hidden lg:flex' : 'flex'} flex-col gap-5`}>
+            <SectionSidebar />
+            <EditorPanel />
+          </div>
         </aside>
 
-        <div className="min-h-[calc(100vh-8rem)] rounded-[1.75rem] border border-border bg-slate-50 p-3 shadow-soft">
+        <div className={`${viewMode === 'edit' ? 'hidden lg:block' : 'block'} min-h-[calc(100vh-8rem)] rounded-[1.75rem] border border-border bg-slate-50 p-3 shadow-soft`}>
           <ResumePreview />
         </div>
       </section>

@@ -1,9 +1,14 @@
 import { ExternalLink, Lock, ShieldCheck, Sparkles, Upload } from 'lucide-react';
+import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
+import { useCVStore } from '../../store/cvStore';
+import { normalizeImportedDocument } from '../../utils/importDocument';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const loadImportedDocument = useCVStore((state) => state.loadImportedDocument);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10 text-ink">
@@ -22,18 +27,52 @@ export default function LandingPage() {
               <Button className="min-w-48 text-base" onClick={() => navigate('/builder')}>
                 Create New CV
               </Button>
-              <Button className="min-w-48 text-base" variant="secondary">
+              <Button className="min-w-48 text-base" variant="secondary" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4" /> Upload Existing CV
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json,.txt"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+
+                  try {
+                    const parsed = JSON.parse(text);
+                    const document = normalizeImportedDocument(parsed);
+                    if (document) {
+                      loadImportedDocument(document);
+                      navigate('/builder');
+                      return;
+                    }
+                  } catch {
+                    // Fall back to a simple text import.
+                  }
+
+                  const document = normalizeImportedDocument({
+                    personalInfo: { summary: text },
+                    skills: [],
+                    experience: [],
+                    education: [],
+                    projects: [],
+                    languages: [],
+                    certifications: [],
+                    awards: [],
+                  });
+
+                  if (document) {
+                    loadImportedDocument(document);
+                    navigate('/builder');
+                  }
+                }}
+              />
             </div>
 
             <div className="mt-8 grid gap-3 rounded-[1.5rem] bg-slate-50 p-5 text-left text-sm text-slate-600 sm:grid-cols-2">
-              {[
-                'No paywall',
-                'No sign-up',
-                'No data harvesting',
-                'No watermark',
-              ].map((item) => (
+              {['No paywall', 'No sign-up', 'No data harvesting', 'No watermark'].map((item) => (
                 <div key={item} className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
                   {item}
@@ -42,7 +81,9 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-2"><Lock className="h-4 w-4" /> All data stays in your browser</span>
+              <span className="inline-flex items-center gap-2">
+                <Lock className="h-4 w-4" /> All data stays in your browser
+              </span>
               <Link className="inline-flex items-center gap-2 font-medium text-brand-600 hover:text-brand-700" to="https://github.com" target="_blank" rel="noreferrer">
                 <ExternalLink className="h-4 w-4" /> GitHub
               </Link>

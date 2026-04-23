@@ -25,15 +25,15 @@ export default function ResumePreview() {
             <p className="text-lg font-medium text-brand-700">{cvDocument.personalInfo.jobTitle || 'Professional Title'}</p>
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-            {cvDocument.personalInfo.email && <span>{cvDocument.personalInfo.email}</span>}
-            {cvDocument.personalInfo.phone && <span>{cvDocument.personalInfo.phone}</span>}
-            {cvDocument.personalInfo.location && <span>{cvDocument.personalInfo.location}</span>}
-            {cvDocument.personalInfo.linkedinUrl && <span>{cvDocument.personalInfo.linkedinUrl}</span>}
+            {cvDocument.personalInfo.email && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.email}</span>}
+            {cvDocument.personalInfo.phone && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.phone}</span>}
+            {cvDocument.personalInfo.location && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.location}</span>}
+            {cvDocument.personalInfo.linkedinUrl && <span className="after:ml-4 after:text-slate-300 after:content-['•']">{cvDocument.personalInfo.linkedinUrl}</span>}
             {cvDocument.personalInfo.websiteUrl && <span>{cvDocument.personalInfo.websiteUrl}</span>}
           </div>
         </header>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-7">
           {visibleOrder.map((sectionId) => (
             <PreviewSection key={sectionId} sectionId={sectionId} />
           ))}
@@ -76,7 +76,7 @@ function PreviewSection({ sectionId }: { sectionId: keyof typeof sectionLabelMap
                 {(item.technologies.length > 0 || item.achievements.length > 0) && (
                   <div className="mt-2 space-y-1.5">
                     {item.technologies.length > 0 && <p className="text-xs uppercase tracking-wider text-slate-400">{item.technologies.join(' • ')}</p>}
-                    <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                    <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700 marker:text-brand-600">
                       {item.achievements.map((bullet, index) => (
                         <li key={index}>{bullet}</li>
                       ))}
