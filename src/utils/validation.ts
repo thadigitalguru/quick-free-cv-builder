@@ -13,25 +13,25 @@ export const validateDocument = (document: CVDocument): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
 
   if (!document.personalInfo.fullName.trim()) {
-    issues.push({ field: 'fullName', sectionId: 'personalInfo', message: 'Full name is required for export.' });
+    issues.push({ field: 'fullName', sectionId: 'personalInfo', message: 'Add your full name to export.' });
   }
 
   if (document.personalInfo.email && !emailPattern.test(document.personalInfo.email.trim())) {
-    issues.push({ field: 'email', sectionId: 'personalInfo', message: 'Email format looks invalid.' });
+    issues.push({ field: 'email', sectionId: 'personalInfo', message: 'That email format looks invalid.' });
   }
 
   if (document.personalInfo.linkedinUrl && !urlPattern.test(document.personalInfo.linkedinUrl.trim())) {
-    issues.push({ field: 'linkedinUrl', sectionId: 'personalInfo', message: 'LinkedIn URL looks invalid.' });
+    issues.push({ field: 'linkedinUrl', sectionId: 'personalInfo', message: 'That LinkedIn URL looks invalid.' });
   }
 
   if (document.personalInfo.websiteUrl && !urlPattern.test(document.personalInfo.websiteUrl.trim())) {
-    issues.push({ field: 'websiteUrl', sectionId: 'personalInfo', message: 'Website URL looks invalid.' });
+    issues.push({ field: 'websiteUrl', sectionId: 'personalInfo', message: 'That website URL looks invalid.' });
   }
 
-  if (document.experience.length === 0) issues.push({ field: 'experience', sectionId: 'experience', message: 'Add at least one experience entry.' });
-  if (document.education.length === 0) issues.push({ field: 'education', sectionId: 'education', message: 'Add at least one education entry.' });
-  if (document.skills.length === 0) issues.push({ field: 'skills', sectionId: 'skills', message: 'Add at least one skill.' });
-  if (document.interests.length === 0) issues.push({ field: 'interests', sectionId: 'interests', message: 'Add at least one interest.' });
+  if (document.experience.length === 0) issues.push({ field: 'experience', sectionId: 'experience', message: 'Add at least one experience entry to export.' });
+  if (document.education.length === 0) issues.push({ field: 'education', sectionId: 'education', message: 'Add at least one education entry to export.' });
+  if (document.skills.length === 0) issues.push({ field: 'skills', sectionId: 'skills', message: 'Add at least one skill to export.' });
+  if (document.interests.length === 0) issues.push({ field: 'interests', sectionId: 'interests', message: 'Add at least one interest to export.' });
 
   return issues;
 };

@@ -15,7 +15,19 @@ export const sectionDefaults: CVSectionMeta[] = [
   { id: 'references', label: 'References', visible: false, optional: true },
 ];
 
-export const defaultOrder: SectionId[] = sectionDefaults.map((section) => section.id);
+export const defaultOrder: SectionId[] = [
+  'personalInfo',
+  'projects',
+  'experience',
+  'skills',
+  'languages',
+  'education',
+  'certifications',
+  'volunteer',
+  'awards',
+  'interests',
+  'references',
+];
 
 export const sectionLabelMap = Object.fromEntries(
   sectionDefaults.map((section) => [section.id, section.label]),

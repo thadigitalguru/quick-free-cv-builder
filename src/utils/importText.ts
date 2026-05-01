@@ -24,8 +24,9 @@ export const parseImportedText = (text: string): ImportedTextDraft => {
   const urls = Array.from(text.matchAll(urlRegex)).map((match) => match[1]);
   const linkedinUrl = urls.find((url) => /linkedin\.com/i.test(url)) ?? '';
   const websiteUrl = urls.find((url) => !/linkedin\.com/i.test(url)) ?? '';
-  const fullName = lines[0] && !emailRegex.test(lines[0]) ? lines[0].replace(/resume|cv/i, '').trim() : '';
-  const summary = lines.slice(1).join('\n').trim() || text.trim();
+  const nameIndex = lines.findIndex((line) => line.length <= 80 && !emailRegex.test(line) && !phoneRegex.test(line) && !/https?:\/\//i.test(line) && !/linkedin/i.test(line));
+  const fullName = nameIndex >= 0 ? lines[nameIndex].replace(/resume|cv/i, '').trim() : '';
+  const summary = lines.slice(nameIndex >= 0 ? nameIndex + 1 : 1).join('\n').trim() || text.trim();
   const skills = Array.from(
     new Set(
       text

@@ -1,13 +1,22 @@
 import type { SavedCVPayload } from '../types/cv';
 
-const STORAGE_KEY = 'quick-free-cv-builder:v2';
+const STORAGE_KEY = 'quick-free-cv-builder:v3';
+
+const isSavedCVPayload = (value: unknown): value is SavedCVPayload => {
+  if (typeof value !== 'object' || value === null) return false;
+  const payload = value as Record<string, unknown>;
+  const document = payload.document as Record<string, unknown> | undefined;
+  const activeItemIds = payload.activeItemIds as Record<string, unknown> | undefined;
+  return !!document && !!activeItemIds && typeof payload.activeSection === 'string';
+};
 
 export const loadSavedCV = (): SavedCVPayload | null => {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SavedCVPayload;
+    const parsed = JSON.parse(raw) as unknown;
+    return isSavedCVPayload(parsed) ? parsed : null;
   } catch {
     return null;
   }

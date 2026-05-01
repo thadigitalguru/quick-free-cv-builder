@@ -2,7 +2,7 @@ import { defaultOrder, sectionDefaults } from '../data/sectionMeta';
 import type { CVDocument, EducationItem, ExperienceItem, LanguageItem, ProjectItem, SectionId, SimpleSectionItem } from '../types/cv';
 import { createId } from './cvUtils';
 
-const allowedSectionIds = new Set<SectionId>(sectionDefaults.map((section) => section.id));
+const allowedSectionIds = new Set<SectionId>(defaultOrder);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const stringValue = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);

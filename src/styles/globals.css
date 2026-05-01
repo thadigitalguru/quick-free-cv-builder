@@ -33,6 +33,25 @@ select {
   display: none;
 }
 
+.pdf-export {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.pdf-export * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pdf-export a {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.pdf-export [class*='shadow'] {
+  box-shadow: none !important;
+}
+
 @media print {
   body {
     background: #fff;

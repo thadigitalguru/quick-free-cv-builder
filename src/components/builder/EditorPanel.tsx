@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Copy, Plus, Trash2 } from 'lucide-react';
+import { Copy, Info, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
@@ -7,13 +7,12 @@ import { readFileAsDataUrl } from '../../utils/files';
 import { groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 
 export default function EditorPanel({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
-  const { activeSection, clearSection } = useCVStore();
+  const { activeSection } = useCVStore();
   const issuesBySection = groupIssuesBySection(validationIssues);
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
       personalInfo: 'Personal Info',
-      summary: 'Professional Summary',
       experience: 'Experience',
       skills: 'Skills',
       projects: 'Projects',
@@ -25,27 +24,17 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
       interests: 'Interests',
       references: 'References',
     };
-    return map[activeSection];
+    return map[activeSection] ?? 'Personal Info';
   }, [activeSection]);
 
   return (
-    <div className="rounded-[1.75rem] border border-border bg-white p-5 shadow-soft">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold">{heading}</h3>
-          <p className="text-sm text-slate-500">Edit the selected section below.</p>
-        </div>
-        {activeSection !== 'personalInfo' && (
-          <Button variant="secondary" className="text-xs" onClick={() => clearSection(activeSection as any)}>
-            <Trash2 className="h-4 w-4" /> Clear section
-          </Button>
-        )}
-      </div>
+    <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white p-6 shadow-none">
+      <h3 className="mb-6 text-[22px] font-semibold tracking-[-0.02em] text-[#1f2937]">{heading}</h3>
 
       {validationIssues.length > 0 && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">Quick checks</p>
-          <ul className="mt-2 space-y-1 list-disc pl-5">
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Checks</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
             {(issuesBySection[activeSection] ?? validationIssues).map((issue) => (
               <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
             ))}
@@ -54,7 +43,6 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
       )}
 
       {activeSection === 'personalInfo' && <PersonalInfoForm />}
-      {activeSection === 'summary' && <SummaryForm />}
       {activeSection === 'experience' && <ExperienceForm />}
       {activeSection === 'skills' && <SkillsForm />}
       {activeSection === 'projects' && <ProjectsForm />}
@@ -74,81 +62,153 @@ function PersonalInfoForm() {
   const info = document.personalInfo;
 
   return (
-    <div className="grid gap-4">
-      <Field label="Full name"><Input value={info.fullName} onChange={(e) => updatePersonalInfo('fullName', e.target.value)} placeholder="Jane Doe" /></Field>
-      <Field label="Job title"><Input value={info.jobTitle} onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)} placeholder="Product Designer" /></Field>
-      <Field label="Email"><Input value={info.email} onChange={(e) => updatePersonalInfo('email', e.target.value)} placeholder="jane@example.com" /></Field>
-      <Field label="Phone"><Input value={info.phone} onChange={(e) => updatePersonalInfo('phone', e.target.value)} placeholder="+1 234 567 890" /></Field>
-      <Field label="Location"><Input value={info.location} onChange={(e) => updatePersonalInfo('location', e.target.value)} placeholder="Lagos, Nigeria" /></Field>
-      <Field label="LinkedIn"><Input value={info.linkedinUrl} onChange={(e) => updatePersonalInfo('linkedinUrl', e.target.value)} placeholder="https://linkedin.com/in/janedoe" /></Field>
-      <Field label="Website"><Input value={info.websiteUrl} onChange={(e) => updatePersonalInfo('websiteUrl', e.target.value)} placeholder="https://janedoe.com" /></Field>
-      <Field label="Profile photo">
-        <div className="grid gap-4 lg:grid-cols-[130px_minmax(0,1fr)]">
-          <div className="flex items-center justify-center">
-            {info.profilePhoto ? (
-              <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-border bg-slate-50">
-                <img
-                  src={info.profilePhoto}
-                  alt="Profile preview"
-                  className="h-full w-full object-cover"
-                  style={{
-                    transform: `translate(${info.photoX - 50}%, ${info.photoY - 50}%) scale(${info.photoZoom})`,
-                    objectPosition: '50% 50%',
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="grid h-28 w-28 place-items-center rounded-3xl border border-dashed border-border bg-slate-50 text-xs text-slate-500">
-                No photo
-              </div>
-            )}
-          </div>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <div className="grid gap-5">
+        <div>
+          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Full Name <span className="text-rose-500">*</span></label>
+          <Input
+            value={info.fullName}
+            onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
+            placeholder="Jane Doe"
+            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+          />
+        </div>
 
-          <div className="space-y-3">
+        <div>
+          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Job Title</label>
+          <Input
+            value={info.jobTitle}
+            onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)}
+            placeholder="Software Engineer, Product Designer, etc."
+            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label className="block text-[15px] font-semibold text-[#374151]">Summary / Objective</label>
+            <Button variant="ghost" className="h-auto self-start px-2 py-1 text-xs leading-none text-slate-500" onClick={() => useCVStore.getState().clearSection('summary')}>Clear summary</Button>
+          </div>
+          <Textarea
+            value={info.summary}
+            onChange={(e) => updatePersonalInfo('summary', e.target.value)}
+            rows={4}
+            placeholder="2–4 lines summarizing your experience and goals. Markdown supported."
+            className="min-h-[108px] rounded-[12px] border-[#cbd6e4] px-4 py-3 text-[15px] placeholder:text-[#a1aab8]"
+          />
+          <p className="mt-2 flex items-center gap-2 text-[13px] text-[#8390a6]">
+            Tip: use <strong className="font-semibold text-[#5b6780]">**bold**</strong> for emphasis and <strong className="font-semibold text-[#5b6780]">*bullets*</strong> if needed.
+            <Info className="h-4 w-4 shrink-0" />
+          </p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Email <span className="text-rose-500">*</span></label>
+            <Input
+              value={info.email}
+              onChange={(e) => updatePersonalInfo('email', e.target.value)}
+              placeholder="jane@example.com"
+              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Phone</label>
+            <Input
+              value={info.phone}
+              onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+              placeholder="+1 234 567 890"
+              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Location</label>
+            <Input
+              value={info.location}
+              onChange={(e) => updatePersonalInfo('location', e.target.value)}
+              placeholder="City, Country"
+              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">LinkedIn URL</label>
+            <Input
+              value={info.linkedinUrl}
+              onChange={(e) => updatePersonalInfo('linkedinUrl', e.target.value)}
+              placeholder="https://linkedin.com/in/you"
+              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Personal Website</label>
+          <Input
+            value={info.websiteUrl}
+            onChange={(e) => updatePersonalInfo('websiteUrl', e.target.value)}
+            placeholder="https://your-portfolio.com"
+            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+          />
+        </div>
+      </div>
+
+      <div className="pt-9 lg:pl-6">
+        <div className="text-[15px] font-semibold text-[#374151]">Profile Photo</div>
+        <div className="mt-6 flex flex-col items-center lg:items-start">
+          {info.profilePhoto ? (
+            <div className="relative h-[142px] w-[142px] overflow-hidden rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc]">
+              <img
+                src={info.profilePhoto}
+                alt="Profile preview"
+                className="h-full w-full object-cover"
+                style={{
+                  transform: `translate(${info.photoX - 50}%, ${info.photoY - 50}%) scale(${info.photoZoom})`,
+                  objectPosition: '50% 50%',
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid h-[142px] w-[142px] place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc] text-[14px] font-medium text-[#96a3bb]">
+              No photo
+            </div>
+          )}
+
+          <div className="mt-6 w-full max-w-[220px]">
             <input
               type="file"
               accept="image/*"
-              className="w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+              className="hidden"
+              id="profile-photo-upload"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 updateProfilePhoto(await readFileAsDataUrl(file));
               }}
             />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Zoom">
-                <Input type="range" min="1" max="2.5" step="0.05" value={info.photoZoom} onChange={(e) => updatePersonalInfo('photoZoom', Number(e.target.value))} />
-              </Field>
-              <Field label="X position">
-                <Input type="range" min="0" max="100" step="1" value={info.photoX} onChange={(e) => updatePersonalInfo('photoX', Number(e.target.value))} />
-              </Field>
-              <Field label="Y position">
-                <Input type="range" min="0" max="100" step="1" value={info.photoY} onChange={(e) => updatePersonalInfo('photoY', Number(e.target.value))} />
-              </Field>
-            </div>
-            {info.profilePhoto && (
-              <Button variant="secondary" className="text-xs" onClick={removeProfilePhoto}>
-                Remove photo
+            <label htmlFor="profile-photo-upload" className="block">
+              <Button variant="secondary" className="h-[46px] w-full rounded-[12px] border-[#c3cde0] bg-white px-5 text-[15px] font-semibold text-[#374151] shadow-[0_2px_0_rgba(15,23,42,0.02)]">
+                Upload photo
               </Button>
-            )}
+            </label>
+            <p className="mt-4 text-center text-[13px] leading-5 text-[#8a97ac]">Recommended: use a square image, at least 400×400px.</p>
           </div>
+
+          {info.profilePhoto && (
+            <Button variant="ghost" className="mt-4 text-xs text-slate-500" onClick={removeProfilePhoto}>
+              Remove photo
+            </Button>
+          )}
         </div>
-      </Field>
+      </div>
     </div>
   );
 }
 
-function SummaryForm() {
-  const { document, updateSummary } = useCVStore();
-  return (
-    <Field label="Professional summary">
-      <Textarea value={document.personalInfo.summary} onChange={(e) => updateSummary(e.target.value)} rows={10} placeholder="Write a concise, achievement-focused summary..." />
-    </Field>
-  );
-}
-
 function ExperienceForm() {
-  const { document, addExperience, duplicateExperience, updateExperience, deleteExperience, moveExperience } = useCVStore();
+  const { document, addExperience, duplicateExperience, updateExperience, deleteExperience, moveExperience, clearSection } = useCVStore();
 
   return (
     <div className="space-y-4">
@@ -163,18 +223,30 @@ function ExperienceForm() {
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteExperience(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('experience')}>Clear section</Button>
+          </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Role"><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} /></Field>
             <Field label="Company"><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} /></Field>
             <Field label="Location"><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} /></Field>
             <Field label="Start date"><Input value={item.startDate} onChange={(e) => updateExperience(item.id, { startDate: e.target.value })} placeholder="YYYY-MM" /></Field>
-            <Field label="End date"><Input value={item.endDate} onChange={(e) => updateExperience(item.id, { endDate: e.target.value })} placeholder="YYYY-MM" disabled={item.isCurrent} /></Field>
-            <Field label="Current role">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" checked={item.isCurrent} onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked, endDate: e.target.checked ? '' : item.endDate })} />
-                Yes
-              </label>
+            <Field label="End date">
+              <Input
+                value={item.endDate}
+                onChange={(e) => updateExperience(item.id, { endDate: e.target.value })}
+                placeholder="YYYY-MM"
+              />
             </Field>
+            <div className="sm:col-span-2">
+              <Field label="Current role">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                  <input type="checkbox" checked={item.isCurrent} onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked })} />
+                  Yes
+                </label>
+              </Field>
+              {item.isCurrent && <p className="mt-1 text-xs text-slate-500">Shown as Present in the CV preview.</p>}
+            </div>
           </div>
           <div className="mt-4 grid gap-3">
             <Field label="Achievements (one per line)">
@@ -190,7 +262,7 @@ function ExperienceForm() {
 }
 
 function EducationForm() {
-  const { document, addEducation, duplicateEducation, updateEducation, deleteEducation, moveEducation } = useCVStore();
+  const { document, addEducation, duplicateEducation, updateEducation, deleteEducation, moveEducation, clearSection } = useCVStore();
 
   return (
     <div className="space-y-4">
@@ -204,6 +276,9 @@ function EducationForm() {
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateEducation(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteEducation(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('education')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Institution"><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} /></Field>
@@ -221,7 +296,7 @@ function EducationForm() {
 }
 
 function SkillsForm() {
-  const { document, setSkills } = useCVStore();
+  const { document, setSkills, clearSection } = useCVStore();
   const [draft, setDraft] = useState('');
 
   const addSkill = (skill: string) => {
@@ -238,6 +313,9 @@ function SkillsForm() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('skills')}>Clear section</Button>
+      </div>
       <Field label="Add a skill">
         <div className="flex gap-2">
           <Input
@@ -280,7 +358,7 @@ function SkillsForm() {
 }
 
 function ProjectsForm() {
-  const { document, addProject, duplicateProject, updateProject, deleteProject, moveProject } = useCVStore();
+  const { document, addProject, duplicateProject, updateProject, deleteProject, moveProject, clearSection } = useCVStore();
 
   return (
     <div className="space-y-4">
@@ -294,6 +372,9 @@ function ProjectsForm() {
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateProject(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteProject(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('projects')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Name"><Input value={item.name} onChange={(e) => updateProject(item.id, { name: e.target.value })} /></Field>
@@ -311,10 +392,13 @@ function ProjectsForm() {
 }
 
 function LanguagesForm() {
-  const { document, addLanguage, duplicateLanguage, updateLanguage, deleteLanguage, moveLanguage } = useCVStore();
+  const { document, addLanguage, duplicateLanguage, updateLanguage, deleteLanguage, moveLanguage, clearSection } = useCVStore();
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('languages')}>Clear section</Button>
+      </div>
       {document.languages.map((item, index) => (
         <div key={item.id} className="grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <Field label="Language"><Input value={item.name} onChange={(e) => updateLanguage(item.id, { name: e.target.value })} /></Field>
@@ -339,22 +423,11 @@ function LanguagesForm() {
 }
 
 function InterestsForm() {
-  const { document, setSkills } = useCVStore();
+  const { document: cvDocument, setInterests, clearSection } = useCVStore();
   const [draft, setDraft] = useState('');
 
-  const addInterest = (interest: string) => {
-    const next = interest.trim();
-    if (!next) return;
-    if (document.interests.some((item) => item.toLowerCase() === next.toLowerCase())) return;
-    // use skills setter temporarily would be wrong, but interests are part of doc; update through direct store below
-  };
-
-  const { document: cvDocument, clearSection } = useCVStore();
   const updateInterests = (next: string[]) => {
-    useCVStore.setState((state) => ({
-      document: { ...state.document, interests: next, lastUpdatedAt: new Date().toISOString() },
-      saveStatus: 'saving',
-    }));
+    setInterests(next);
   };
 
   const add = (interest: string) => {
@@ -367,6 +440,9 @@ function InterestsForm() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('interests')}>Clear section</Button>
+      </div>
       <Field label="Add an interest">
         <div className="flex gap-2">
           <Input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }} placeholder="e.g. Travel" />
@@ -388,11 +464,14 @@ function InterestsForm() {
 }
 
 function SimpleSectionForm({ section, title }: { section: 'certifications' | 'volunteer' | 'awards' | 'references'; title: string }) {
-  const { document, addSimpleItem, duplicateSimpleItem, updateSimpleItem, deleteSimpleItem } = useCVStore();
+  const { document, addSimpleItem, duplicateSimpleItem, updateSimpleItem, deleteSimpleItem, clearSection } = useCVStore();
   const items = document[section];
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection(section)}>Clear section</Button>
+      </div>
       {items.map((item) => (
         <div key={item.id} className="rounded-2xl border border-border p-4">
           <div className="grid gap-3 sm:grid-cols-2">

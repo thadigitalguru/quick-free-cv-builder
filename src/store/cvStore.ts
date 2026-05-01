@@ -20,14 +20,14 @@ const nowIso = () => new Date().toISOString();
 
 const createExperienceItem = (): ExperienceItem => ({
   id: createId(),
-  role: 'Senior Product Designer',
-  company: 'Company Name',
-  location: 'Remote',
-  startDate: '2022-01',
+  role: '',
+  company: '',
+  location: '',
+  startDate: '',
   endDate: '',
-  isCurrent: true,
-  achievements: ['Led design for a core product area and improved user completion rates.', 'Collaborated with engineering and stakeholders to ship polished experiences.'],
-  technologies: ['Figma', 'Design Systems', 'Research'],
+  isCurrent: false,
+  achievements: [],
+  technologies: [],
 });
 
 const createEducationItem = (): EducationItem => ({
@@ -77,15 +77,15 @@ const createEmptyDocument = (): CVDocument => ({
     photoY: 50,
     summary: '',
   },
-  experience: [createExperienceItem()],
-  education: [createEducationItem()],
-  skills: ['Communication', 'Leadership', 'Problem Solving'],
-  projects: [createProjectItem()],
-  languages: [createLanguageItem()],
-  certifications: [createSimpleItem('Google UX Certificate')],
+  experience: [],
+  education: [],
+  skills: [],
+  projects: [],
+  languages: [],
+  certifications: [],
   volunteer: [],
   awards: [],
-  interests: ['Design', 'Technology', 'Writing'],
+  interests: [],
   references: [],
   sectionOrder: defaultOrder,
   sectionVisibility: sectionDefaults.reduce((acc, section) => {
@@ -120,6 +120,7 @@ interface CVState {
   updateProfilePhoto: (value: string) => void;
   removeProfilePhoto: () => void;
   setSkills: (skills: string[]) => void;
+  setInterests: (interests: string[]) => void;
   addExperience: () => void;
   duplicateExperience: (id: string) => void;
   updateExperience: (id: string, patch: Partial<ExperienceItem>) => void;
@@ -180,8 +181,11 @@ const withUpdatedTimestamp = (document: CVDocument): CVDocument => ({
 });
 
 const hydrateDocument = (saved?: SavedCVPayload | null) => {
-  if (saved?.document) return saved.document;
-  return createEmptyDocument();
+  if (!saved?.document) return createEmptyDocument();
+  return {
+    ...saved.document,
+    sectionOrder: saved.document.sectionOrder.filter((sectionId) => sectionId !== 'summary'),
+  };
 };
 
 const sectionKeyMap: Record<string, keyof CVDocument> = {
@@ -218,12 +222,12 @@ export const useCVStore = create<CVState>((set, get) => ({
     if (saved?.document) {
       set({
         document: hydrateDocument(saved),
-        activeSection: saved.activeSection ?? 'personalInfo',
-        activeExperienceId: saved.activeItemIds.experience ?? null,
-        activeEducationId: saved.activeItemIds.education ?? null,
-        activeProjectId: saved.activeItemIds.projects ?? null,
-        activeLanguageId: saved.activeItemIds.languages ?? null,
-        activeSimpleSection: (saved.activeItemIds.simpleSection as CVState['activeSimpleSection']) ?? null,
+        activeSection: saved.activeSection === 'summary' ? 'personalInfo' : (saved.activeSection ?? 'personalInfo'),
+        activeExperienceId: saved.activeItemIds?.experience ?? null,
+        activeEducationId: saved.activeItemIds?.education ?? null,
+        activeProjectId: saved.activeItemIds?.projects ?? null,
+        activeLanguageId: saved.activeItemIds?.languages ?? null,
+        activeSimpleSection: (saved.activeItemIds?.simpleSection as CVState['activeSimpleSection']) ?? null,
         saveStatus: 'loaded',
         savedAt: saved.document.lastUpdatedAt,
         hydrated: true,
@@ -233,10 +237,13 @@ export const useCVStore = create<CVState>((set, get) => ({
     }
     set({ document: createEmptyDocument(), hydrated: true, saveStatus: 'idle', templateId: 'classic' });
   },
-  createNewCV: () => set({ document: createEmptyDocument(), activeSection: 'personalInfo', saveStatus: 'idle', templateId: 'classic' }),
+  createNewCV: () => {
+    clearSavedCV();
+    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic' });
+  },
   resetCV: () => {
     clearSavedCV();
-    set({ document: createEmptyDocument(), activeSection: 'personalInfo', saveStatus: 'idle', savedAt: null, templateId: 'classic' });
+    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic' });
   },
   setActiveSection: (section) => set({ activeSection: section }),
   setSaveStatus: (status) => set({ saveStatus: status }),
@@ -279,6 +286,11 @@ export const useCVStore = create<CVState>((set, get) => ({
   setSkills: (skills) =>
     set((state) => ({
       document: withUpdatedTimestamp({ ...state.document, skills }),
+      saveStatus: 'saving',
+    })),
+  setInterests: (interests) =>
+    set((state) => ({
+      document: withUpdatedTimestamp({ ...state.document, interests }),
       saveStatus: 'saving',
     })),
   addExperience: () => set((state) => {
@@ -374,9 +386,10 @@ export const useCVStore = create<CVState>((set, get) => ({
   loadImportedDocument: (incomingDocument) => {
     const normalized = normalizeImportedDocument(incomingDocument);
     if (!normalized) return;
+    const activeSection = getInitialActiveSection(normalized);
     set({
       document: normalized,
-      activeSection: normalized.sectionVisibility.experience ? 'experience' : 'personalInfo',
+      activeSection,
       activeExperienceId: normalized.experience[0]?.id ?? null,
       activeEducationId: normalized.education[0]?.id ?? null,
       activeProjectId: normalized.projects[0]?.id ?? null,
@@ -447,6 +460,20 @@ export const useCVStore = create<CVState>((set, get) => ({
     set({ saveStatus: 'saved', savedAt: new Date().toISOString() });
   },
 }));
+
+function getInitialActiveSection(document: CVDocument): SectionId {
+  if (document.experience.length > 0) return 'experience';
+  if (document.projects.length > 0) return 'projects';
+  if (document.education.length > 0) return 'education';
+  if (document.skills.length > 0) return 'skills';
+  if (document.languages.length > 0) return 'languages';
+  if (document.certifications.length > 0) return 'certifications';
+  if (document.volunteer.length > 0) return 'volunteer';
+  if (document.awards.length > 0) return 'awards';
+  if (document.interests.length > 0) return 'interests';
+  if (document.references.length > 0) return 'references';
+  return 'personalInfo';
+}
 
 function moveItems<T extends { id: string }>(items: T[], id: string, direction: 'up' | 'down') {
   const currentIndex = items.findIndex((item) => item.id === id);

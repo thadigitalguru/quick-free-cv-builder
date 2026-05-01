@@ -31,11 +31,60 @@ export const readImportedFile = async (file: File) => {
 };
 
 export const buildImportedDocument = async (file: File) => {
-  const imported = await readImportedFile(file);
+  try {
+    const imported = await readImportedFile(file);
 
-  if (imported.kind === 'image') {
+    if (imported.kind === 'image') {
+      return normalizeImportedDocument({
+        personalInfo: { profilePhoto: imported.dataUrl },
+        experience: [],
+        education: [],
+        projects: [],
+        languages: [],
+        certifications: [],
+        volunteer: [],
+        awards: [],
+        interests: [],
+        references: [],
+        skills: [],
+      });
+    }
+
+    const text = imported.text.trim();
+    if (!text) return null;
+
+    try {
+      const parsed = JSON.parse(text);
+      const normalized = normalizeImportedDocument(parsed);
+      if (normalized) return normalized;
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    const parsedText = parseImportedText(text);
+    const hasAnyContent = Boolean(
+      parsedText.fullName ||
+        parsedText.summary ||
+        parsedText.email ||
+        parsedText.phone ||
+        parsedText.location ||
+        parsedText.linkedinUrl ||
+        parsedText.websiteUrl ||
+        parsedText.skills.length,
+    );
+
+    if (!hasAnyContent) return null;
+
     return normalizeImportedDocument({
-      personalInfo: { profilePhoto: imported.dataUrl },
+      personalInfo: {
+        fullName: parsedText.fullName,
+        summary: parsedText.summary,
+        email: parsedText.email,
+        phone: parsedText.phone,
+        location: parsedText.location,
+        linkedinUrl: parsedText.linkedinUrl,
+        websiteUrl: parsedText.websiteUrl,
+      },
       experience: [],
       education: [],
       projects: [],
@@ -43,45 +92,14 @@ export const buildImportedDocument = async (file: File) => {
       certifications: [],
       volunteer: [],
       awards: [],
-      interests: [],
+      interests: parsedText.skills,
       references: [],
-      skills: [],
+      skills: parsedText.skills,
     });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to read the selected file.';
+    throw new Error(message);
   }
-
-  const text = imported.text.trim();
-  if (!text) return null;
-
-  try {
-    const parsed = JSON.parse(text);
-    const normalized = normalizeImportedDocument(parsed);
-    if (normalized) return normalized;
-  } catch {
-    // ignore JSON parse errors
-  }
-
-  const parsedText = parseImportedText(text);
-  return normalizeImportedDocument({
-    personalInfo: {
-      fullName: parsedText.fullName,
-      summary: parsedText.summary,
-      email: parsedText.email,
-      phone: parsedText.phone,
-      location: parsedText.location,
-      linkedinUrl: parsedText.linkedinUrl,
-      websiteUrl: parsedText.websiteUrl,
-    },
-    experience: [],
-    education: [],
-    projects: [],
-    languages: [],
-    certifications: [],
-    volunteer: [],
-    awards: [],
-    interests: parsedText.skills,
-    references: [],
-    skills: parsedText.skills,
-  });
 };
 
 async function extractPdfText(file: File) {

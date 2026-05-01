@@ -1,14 +1,28 @@
 # Quick Free CV Builder
 
-A free, privacy-first CV builder with no login, no paywall, no watermark, autosave, live preview, and PDF export.
+A free, privacy-first CV builder with no login, no paywall, no watermark, autosave, live preview, and PDF/JSON export.
 
-## What it does
-- Create a new CV in one click
-- Edit personal info, summary, experience, education, skills, projects, languages, and optional sections
-- Import JSON, TXT, PDF, DOCX, or image files
-- Export JSON drafts and PDFs
-- Use Classic, Modern, Compact, or ATS preview modes
-- Store everything locally in the browser
+## Overview
+Quick Free CV Builder lets you create, edit, preview, import, and export CVs entirely in the browser. All data stays local in the browser storage unless you choose to download a file.
+
+## What it includes
+- Landing page with trust-first messaging
+- Two-pane builder workspace with live preview
+- Section reordering and show/hide controls
+- Autosave to localStorage
+- Profile photo upload and preview
+- Import support for JSON, TXT, PDF, DOCX, and image files
+- Export support for JSON drafts and PDFs
+- Classic, Modern, and Compact templates
+- Standard and ATS preview modes
+- Optional sections for certifications, volunteer work, awards, interests, and references
+
+## Suggested final builds
+If you want to ship a clean final release, the best build targets are:
+1. **Classic Standard** — safest default for general users and printed CVs.
+2. **ATS Mode** — monochrome, keyword-friendly export for recruiter systems.
+3. **Compact Template** — best for longer CVs that need tighter spacing.
+4. **Modern Template** — polished showcase view for portfolio-style presentation.
 
 ## Run locally
 ```bash
@@ -16,9 +30,10 @@ npm install
 npm run dev
 ```
 
-## Validate
+## Validate the production build
 ```bash
 npm run build
+npm run preview
 ```
 
 ## Deploy
@@ -26,11 +41,14 @@ This app is already configured for SPA deployment:
 - `vercel.json`
 - `public/_redirects`
 
-For hosting, use:
-- build command: `npm run build`
-- output directory: `dist`
+Hosting settings:
+- Build command: `npm run build`
+- Output directory: `dist`
 
-## Documentation
-- `docs/launch-note.md`
-- `docs/launch-checklist.md`
-- `docs/deployment.md`
+## Release notes and docs
+- Launch note: `docs/launch-note.md`
+- Launch checklist: `docs/launch-checklist.md`
+- Deployment guide: `docs/deployment.md`
+
+## GitHub
+Repository: https://github.com/thadigitalguru/quick-free-cv-builder
