@@ -1,7 +1,9 @@
 import { parseImportedText } from './importText';
 import { normalizeImportedDocument } from './importDocument';
 
-export const readImportedFile = async (file: File) => {
+export type ImportProgressCallback = (message: string) => void;
+
+export const readImportedFile = async (file: File, onProgress?: ImportProgressCallback) => {
   const lowerName = file.name.toLowerCase();
   const isPdf = file.type === 'application/pdf' || lowerName.endsWith('.pdf');
   const isDocx =
@@ -9,30 +11,36 @@ export const readImportedFile = async (file: File) => {
     lowerName.endsWith('.docx');
 
   if (file.type.startsWith('image/')) {
+    onProgress?.('Preparing image preview…');
     return { kind: 'image' as const, text: '', dataUrl: await readFileAsDataUrl(file) };
   }
 
   if (isPdf) {
+    onProgress?.('Extracting text from PDF…');
     const text = await extractPdfText(file);
     return { kind: 'text' as const, text, dataUrl: '' };
   }
 
   if (isDocx) {
+    onProgress?.('Extracting text from DOCX…');
     const { default: mammoth } = await import('mammoth');
     const buffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer: buffer });
     return { kind: 'text' as const, text: result.value, dataUrl: '' };
   }
 
+  onProgress?.('Reading text file…');
   const text = await file.text();
   return { kind: 'text' as const, text, dataUrl: '' };
 };
 
-export const buildImportedDocument = async (file: File) => {
+export const buildImportedDocument = async (file: File, onProgress?: ImportProgressCallback) => {
   try {
-    const imported = await readImportedFile(file);
+    onProgress?.('Reading file…');
+    const imported = await readImportedFile(file, onProgress);
 
     if (imported.kind === 'image') {
+      onProgress?.('Using image as profile photo…');
       return normalizeImportedDocument({
         personalInfo: { profilePhoto: imported.dataUrl },
         experience: [],
@@ -52,6 +60,7 @@ export const buildImportedDocument = async (file: File) => {
     if (!text) return null;
 
     try {
+      onProgress?.('Checking for JSON export…');
       const parsed = JSON.parse(text);
       const normalized = normalizeImportedDocument(parsed);
       if (normalized) return normalized;
@@ -59,6 +68,7 @@ export const buildImportedDocument = async (file: File) => {
       // ignore JSON parse errors
     }
 
+    onProgress?.('Extracting resume text…');
     const parsedText = parseImportedText(text);
     const hasAnyContent = Boolean(
       parsedText.fullName ||
