@@ -3,7 +3,6 @@ import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
-import { buildImportedDocument } from '../../utils/importFile';
 import { getSavedDraftMeta } from '../../utils/storage';
 
 export default function LandingPage() {
@@ -11,7 +10,18 @@ export default function LandingPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const loadImportedDocument = useCVStore((state) => state.loadImportedDocument);
+  const createNewCV = useCVStore((state) => state.createNewCV);
   const draftMeta = getSavedDraftMeta();
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleStartFresh = () => {
+    createNewCV();
+    navigate('/builder');
+  };
+
+  const handleResumeDraft = () => {
+    navigate('/builder');
+  };
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10 text-ink">
@@ -27,16 +37,23 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button className="min-w-48 text-base leading-none" onClick={() => navigate('/builder')}>
+              <Button className="min-w-48 text-base leading-none" onClick={handleStartFresh}>
                 Start fresh
               </Button>
               {draftMeta && (
-                <Button className="min-w-48 text-base leading-none" variant="secondary" onClick={() => navigate('/builder')}>
+                <Button className="min-w-48 text-base leading-none" variant="secondary" onClick={handleResumeDraft}>
                   Resume saved draft
                 </Button>
               )}
-              <Button className="min-w-48 text-base leading-none" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4" /> Import CV
+              <Button
+                className="min-w-48 text-base leading-none"
+                variant="secondary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                aria-busy={isImporting}
+              >
+                <Upload className={`h-4 w-4 ${isImporting ? 'animate-spin' : ''}`} />
+                {isImporting ? 'Importing…' : 'Import CV'}
               </Button>
               <input
                 ref={fileInputRef}
@@ -47,7 +64,9 @@ export default function LandingPage() {
                   const file = event.target.files?.[0];
                   if (!file) return;
                   setImportError(null);
+                  setIsImporting(true);
                   try {
+                    const { buildImportedDocument } = await import('../../utils/importFile');
                     const document = await buildImportedDocument(file);
                     if (!document) {
                       setImportError("We couldn't detect CV content in that file. Try another format or a cleaner export.");
@@ -58,6 +77,7 @@ export default function LandingPage() {
                   } catch (error) {
                     setImportError(error instanceof Error ? error.message : 'Import failed. Please try again.');
                   } finally {
+                    setIsImporting(false);
                     event.currentTarget.value = '';
                   }
                 }}

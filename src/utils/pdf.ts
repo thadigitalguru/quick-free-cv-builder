@@ -1,7 +1,15 @@
 export const exportPreviewAsPdf = async (element: HTMLElement | null, filename = 'Quick-Free-CV.pdf') => {
-  if (!element) return;
+  if (!element) {
+    throw new Error('PDF preview is not ready yet. Try again in a moment.');
+  }
 
-  const { default: html2pdf } = await import('html2pdf.js');
+  let html2pdf: typeof import('html2pdf.js').default;
+  try {
+    ({ default: html2pdf } = await import('html2pdf.js'));
+  } catch {
+    throw new Error('PDF export is temporarily unavailable. Please refresh and try again.');
+  }
+
   const options = {
     margin: [8, 6, 8, 6] as [number, number, number, number],
     filename,

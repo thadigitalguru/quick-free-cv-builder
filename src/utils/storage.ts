@@ -7,7 +7,8 @@ const isSavedCVPayload = (value: unknown): value is SavedCVPayload => {
   const payload = value as Record<string, unknown>;
   const document = payload.document as Record<string, unknown> | undefined;
   const activeItemIds = payload.activeItemIds as Record<string, unknown> | undefined;
-  return !!document && !!activeItemIds && typeof payload.activeSection === 'string';
+  const version = payload.version;
+  return !!document && !!activeItemIds && typeof payload.activeSection === 'string' && (typeof version === 'number' || typeof version === 'undefined');
 };
 
 export const loadSavedCV = (): SavedCVPayload | null => {
@@ -16,7 +17,14 @@ export const loadSavedCV = (): SavedCVPayload | null => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
-    return isSavedCVPayload(parsed) ? parsed : null;
+    if (!isSavedCVPayload(parsed)) return null;
+    return {
+      version: parsed.version ?? 1,
+      document: parsed.document,
+      activeSection: parsed.activeSection,
+      activeItemIds: parsed.activeItemIds,
+      templateId: parsed.templateId,
+    };
   } catch {
     return null;
   }

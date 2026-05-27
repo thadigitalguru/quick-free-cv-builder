@@ -44,6 +44,7 @@ export default function BuilderPage() {
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [typography, setTypography] = useState<PreviewTypography>(defaultTypography);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const {
     document: cvDocument,
     hydrated,
@@ -69,6 +70,9 @@ export default function BuilderPage() {
 
   const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
   const blockingIssue = hasBlockingIssues(validationIssues);
+  const exportReady = validationIssues.length === 0;
+  const blockingMessages = validationIssues.filter((issue) => issue.field === 'fullName');
+  const advisoryMessages = validationIssues.filter((issue) => issue.field !== 'fullName');
 
   const updateTypography = (key: keyof PreviewTypography, value: number) => {
     const { min, max } = typographyMinMax[key];
@@ -101,12 +105,15 @@ export default function BuilderPage() {
   };
 
   const handleDownloadPdf = async () => {
+    const node = window.document.getElementById('resume-preview-root');
+    setIsExportingPdf(true);
     try {
-      const node = window.document.getElementById('resume-preview-root');
       await exportPreviewAsPdf(node, buildCvFileName(cvDocument, 'pdf'));
       setExportError(null);
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'PDF export failed.');
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -177,11 +184,30 @@ export default function BuilderPage() {
                 <Button variant="secondary" className="h-11 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]" onClick={handleDownloadJson}>
                   Export JSON
                 </Button>
-                <Button className="h-11 rounded-[12px] px-4 text-[14px] font-semibold" onClick={handleDownloadPdf}>
-                  Export PDF
+                <Button
+                  className="h-11 rounded-[12px] px-4 text-[14px] font-semibold"
+                  onClick={handleDownloadPdf}
+                  disabled={isExportingPdf}
+                  aria-busy={isExportingPdf}
+                >
+                  {isExportingPdf ? 'Generating PDF…' : 'Export PDF'}
                 </Button>
               </div>
             </div>
+
+            {!exportReady && (
+              <div className={`mt-3 rounded-[1.25rem] border px-4 py-3 text-sm ${blockingIssue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                <p className="font-semibold">Export checklist</p>
+                <ul className="mt-2 list-disc space-y-1.5 pl-5">
+                  {blockingMessages.map((issue) => (
+                    <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
+                  ))}
+                  {advisoryMessages.map((issue) => (
+                    <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {exportError && <p className="mt-3 text-sm text-rose-600">{exportError}</p>}
 

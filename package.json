@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "check": "npm run build",
     "deploy": "npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run --environment node",
+    "test:watch": "vitest --environment node"
   },
   "keywords": [],
   "author": "",
@@ -33,7 +35,8 @@
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vitest": "^3.2.4"
   },
   "private": true
 }

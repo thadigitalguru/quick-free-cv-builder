@@ -98,6 +98,7 @@ export default function ResumePreview({
   const isBlank = isBlankDocument(cvDocument);
   const source = isBlank ? mockPreview : cvDocument;
   const visibleOrder = isBlank ? (['summary', 'experience'] as const) : getVisibleOrder(cvDocument);
+  const isDemoPreview = isBlank;
 
   return (
     <div className="h-full overflow-auto bg-transparent">
@@ -105,6 +106,12 @@ export default function ResumePreview({
         id="resume-preview-root"
         className={`pdf-section-group rounded-[1px] print:p-0 ${pageClass} ${shellClass} ${mode === 'ats' ? 'font-sans' : ''}`}
       >
+        {isDemoPreview && (
+          <div className={`mb-5 rounded-[14px] border px-4 py-3 text-sm ${mode === 'ats' ? 'border-black bg-white text-black' : isModern ? 'border-white/20 bg-white/5 text-white/80' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+            Sample content is shown here until you start entering your CV details.
+          </div>
+        )}
+
         <header className={`pb-5 ${mode === 'ats' ? 'border-b border-black' : isModern ? 'border-b border-white/20' : 'border-b border-slate-200'}`}>
           <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
             <div className="flex min-w-0 gap-4">

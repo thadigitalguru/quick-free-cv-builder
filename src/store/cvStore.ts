@@ -182,9 +182,12 @@ const withUpdatedTimestamp = (document: CVDocument): CVDocument => ({
 
 const hydrateDocument = (saved?: SavedCVPayload | null) => {
   if (!saved?.document) return createEmptyDocument();
+  const normalized = normalizeImportedDocument(saved.document);
+  if (!normalized) return createEmptyDocument();
+
   return {
-    ...saved.document,
-    sectionOrder: saved.document.sectionOrder.filter((sectionId) => sectionId !== 'summary'),
+    ...normalized,
+    sectionOrder: normalized.sectionOrder.filter((sectionId) => sectionId !== 'summary'),
   };
 };
 
@@ -205,6 +208,22 @@ const optionalSectionInitialTitles: Record<'certifications' | 'volunteer' | 'awa
 const isOptionalSection = (sectionId: string): sectionId is 'certifications' | 'volunteer' | 'awards' | 'references' =>
   sectionId in optionalSectionInitialTitles;
 
+const firstMatchingId = <T extends { id: string }>(items: T[], candidate: string | null | undefined) =>
+  candidate && items.some((item) => item.id === candidate) ? candidate : items[0]?.id ?? null;
+
+const resolveSimpleSection = (document: CVDocument, candidate: CVState['activeSimpleSection']) => {
+  if (candidate && document[candidate].length > 0) return candidate;
+  return document.certifications.length > 0
+    ? 'certifications'
+    : document.volunteer.length > 0
+      ? 'volunteer'
+      : document.awards.length > 0
+        ? 'awards'
+        : document.references.length > 0
+          ? 'references'
+          : null;
+};
+
 export const useCVStore = create<CVState>((set, get) => ({
   document: createEmptyDocument(),
   activeSection: 'personalInfo',
@@ -220,16 +239,17 @@ export const useCVStore = create<CVState>((set, get) => ({
   initFromStorage: () => {
     const saved = loadSavedCV();
     if (saved?.document) {
+      const document = hydrateDocument(saved);
       set({
-        document: hydrateDocument(saved),
+        document,
         activeSection: saved.activeSection === 'summary' ? 'personalInfo' : (saved.activeSection ?? 'personalInfo'),
-        activeExperienceId: saved.activeItemIds?.experience ?? null,
-        activeEducationId: saved.activeItemIds?.education ?? null,
-        activeProjectId: saved.activeItemIds?.projects ?? null,
-        activeLanguageId: saved.activeItemIds?.languages ?? null,
-        activeSimpleSection: (saved.activeItemIds?.simpleSection as CVState['activeSimpleSection']) ?? null,
+        activeExperienceId: firstMatchingId(document.experience, saved.activeItemIds?.experience ?? null),
+        activeEducationId: firstMatchingId(document.education, saved.activeItemIds?.education ?? null),
+        activeProjectId: firstMatchingId(document.projects, saved.activeItemIds?.projects ?? null),
+        activeLanguageId: firstMatchingId(document.languages, saved.activeItemIds?.languages ?? null),
+        activeSimpleSection: resolveSimpleSection(document, saved.activeItemIds?.simpleSection as CVState['activeSimpleSection']),
         saveStatus: 'loaded',
-        savedAt: saved.document.lastUpdatedAt,
+        savedAt: document.lastUpdatedAt,
         hydrated: true,
         templateId: saved.templateId ?? 'classic',
       });
@@ -394,7 +414,7 @@ export const useCVStore = create<CVState>((set, get) => ({
       activeEducationId: normalized.education[0]?.id ?? null,
       activeProjectId: normalized.projects[0]?.id ?? null,
       activeLanguageId: normalized.languages[0]?.id ?? null,
-      activeSimpleSection: normalized.certifications.length ? 'certifications' : normalized.volunteer.length ? 'volunteer' : normalized.awards.length ? 'awards' : normalized.references.length ? 'references' : null,
+      activeSimpleSection: resolveSimpleSection(normalized, null),
       saveStatus: 'loaded',
       savedAt: normalized.lastUpdatedAt,
       hydrated: true,
