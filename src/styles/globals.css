@@ -48,6 +48,8 @@ select {
   color: inherit;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pdf-export a {

@@ -261,6 +261,14 @@ function PreviewSection({
                   </p>
                 </div>
                 {item.description && <p className={`mt-3 leading-8 ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${typography.sectionDetails}px` }}>{item.description}</p>}
+                {item.link && (
+                  <p className={`mt-2 ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-700'}`} style={{ fontSize: `${typography.sectionDetails}px` }}>
+                    <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>Link:</span>{' '}
+                    <a className="resume-link break-all" href={normalizeWebUrl(item.link)} target="_blank" rel="noreferrer">
+                      {item.link}
+                    </a>
+                  </p>
+                )}
                 {item.technologies.length > 0 && <p className={`mt-2 text-xs uppercase tracking-wider ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/60' : 'text-slate-400'}`}>{item.technologies.join(' • ')}</p>}
               </article>
             ))}
