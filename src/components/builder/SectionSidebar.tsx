@@ -41,6 +41,7 @@ export default function SectionSidebar() {
     <aside className="relative rounded-[2rem] border border-[#d9e2ef] bg-transparent p-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <div className="px-2 pb-3 pt-6 lg:pt-8">
         <h3 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">SECTIONS</h3>
+        <p className="mt-1 text-xs text-[#8a97ac]">Tip: use Alt + ↑ / ↓ to reorder the focused section.</p>
       </div>
 
       <div className="space-y-2.5">
@@ -56,6 +57,18 @@ export default function SectionSidebar() {
                 ref={active ? activeRef : null}
                 type="button"
                 onClick={() => setActiveSection(sectionId)}
+                onKeyDown={(event) => {
+                  if (event.altKey && event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    moveSection(sectionId, 'up');
+                  }
+                  if (event.altKey && event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    moveSection(sectionId, 'down');
+                  }
+                }}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                title="Alt+ArrowUp / Alt+ArrowDown to reorder"
                 className={cn(
                   'flex h-[48px] flex-1 items-center rounded-[12px] border px-3.5 text-left transition sm:h-[55px] sm:px-4',
                   active

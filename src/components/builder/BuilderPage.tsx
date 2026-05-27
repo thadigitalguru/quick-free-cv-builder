@@ -139,7 +139,7 @@ export default function BuilderPage() {
         onResetDraft={handleResetDraft}
       />
 
-      <section className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
+      <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
         <div className={viewMode === 'edit' ? 'grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]' : 'block'}>
           <aside className={`${viewMode === 'preview' ? 'hidden' : 'block'} min-w-0`}>
             <SectionSidebar />
@@ -166,9 +166,13 @@ export default function BuilderPage() {
                 <p className="text-[15px] text-[#8b97aa]">This preview matches the PDF export.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-                <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1">
+                <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1" role="tablist" aria-label="Preview mode">
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={previewMode === 'standard'}
+                    aria-pressed={previewMode === 'standard'}
+                    aria-controls="resume-preview-root"
                     className={[
                       'rounded-[10px] px-4 py-2 text-sm font-semibold leading-none transition',
                       previewMode === 'standard' ? 'bg-[#111827] text-white' : 'text-[#5d6b84] hover:text-[#111827]',
@@ -179,6 +183,10 @@ export default function BuilderPage() {
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={previewMode === 'ats'}
+                    aria-pressed={previewMode === 'ats'}
+                    aria-controls="resume-preview-root"
                     className={[
                       'rounded-[10px] px-4 py-2 text-sm font-semibold leading-none transition',
                       previewMode === 'ats' ? 'bg-[#111827] text-white' : 'text-[#5d6b84] hover:text-[#111827]',

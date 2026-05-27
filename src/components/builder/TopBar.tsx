@@ -40,6 +40,8 @@ export default function TopBar({
           <button
             type="button"
             onClick={() => onChangeView('edit')}
+            aria-pressed={activeView === 'edit'}
+            aria-controls="builder-workspace"
             className={[
               'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
               activeView === 'edit' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#66768f] hover:text-[#111827]',
@@ -51,6 +53,8 @@ export default function TopBar({
           <button
             type="button"
             onClick={() => onChangeView('preview')}
+            aria-pressed={activeView === 'preview'}
+            aria-controls="builder-workspace"
             className={[
               'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
               activeView === 'preview' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#66768f] hover:text-[#111827]',

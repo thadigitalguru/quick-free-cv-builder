@@ -246,7 +246,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
                   updatePersonalInfo('photoZoom', 1);
                   updatePersonalInfo('photoX', 50);
                   updatePersonalInfo('photoY', 50);
-                }}>
+                }} aria-label="Reset photo crop to centered default">
                   Reset crop
                 </Button>
                 <Button variant="ghost" className="h-10 rounded-[12px] px-3 text-xs font-semibold text-slate-500" onClick={removeProfilePhoto}>
@@ -614,11 +614,15 @@ function PhotoControl({
   step: number;
   onChange: (value: number) => void;
 }) {
+  const valueText = Number.isInteger(value) ? String(value) : value.toFixed(2);
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3 text-sm font-medium text-[#425067]">
         <span>{label}</span>
-        <span className="tabular-nums text-[#6e7f99]">{Number.isInteger(value) ? value : value.toFixed(2)}</span>
+        <span className="tabular-nums text-[#6e7f99]" aria-live="polite">
+          {valueText}
+        </span>
       </div>
       <input
         type="range"
@@ -626,6 +630,11 @@ function PhotoControl({
         max={max}
         step={step}
         value={value}
+        aria-label={label}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={`${label} ${valueText}`}
         onChange={(event) => onChange(Number(event.target.value))}
         className="mt-2 w-full accent-brand-600"
       />
