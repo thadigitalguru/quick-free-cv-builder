@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useCVStore } from '../../store/cvStore';
 import { formatRange, getVisibleOrder, experienceSummary, projectSummary } from '../../utils/cvUtils';
 import { sectionLabelMap } from '../../data/sectionMeta';
@@ -20,55 +21,6 @@ const defaultTypography: PreviewTypography = {
   sectionDetails: 13,
 };
 
-const mockPreview = {
-  personalInfo: {
-    fullName: 'Titus Kores',
-    jobTitle: 'SEO Manager',
-    email: 'ntimama2@gmail.com',
-    phone: '0790965628',
-    location: 'Nairobi, Kenya',
-    linkedinUrl: 'https://www.linkedin.com/in/titus-kores-610201200/',
-    websiteUrl: 'thadigitalguru.github.io',
-    summary:
-      'Results-driven growth marketing leader with 7 years of experience in developing and executing data-driven marketing strategies. Specialized in performance marketing, SEO, content marketing and customer acquisition strategies to enhance brand visibility and organic growth marketing hacking. Proven ability to develop and execute high-impact digital campaigns, collaborate with cross-functional teams, and optimize user experience for brand growth. Adept at leveraging analytics and innovative solutions to drive engagement and measurable results.',
-  },
-  experience: [
-    {
-      id: 'mock-1',
-      role: 'Growth Marketing Specialist',
-      company: 'Pakamumi (iGaming)',
-      location: 'Nairobi, Kenya',
-      startDate: 'Feb 2022',
-      endDate: 'Mar 2025',
-      isCurrent: false,
-      technologies: ['Chrome DevTools', 'WebPageTest', 'Google Analytics', 'SEO'],
-      achievements: [
-        'Analyzed and optimized customer website performance and conversion by using tools such as Chrome DevTools, WebPageTest, Google Analytics, and SEO to identify and implement targeted improvements.',
-        'Worked in Google Sheets (Excel) with large amounts of data (filtering, conditional formatting, and applying various functions);',
-        'Achieved an 80% increase in organic traffic over a period of 18 months through effective optimization of both the website and landing pages.',
-        'Collaborated with developers to resolve Javascript SEO issues and enhance user interface designs for improved crawlability and UX.',
-        'Achieved top 10 keyword ranking positions driving over 10,000 search volume and increasing organic traffic.',
-        'Optimized SEO strategies that improved search engine rankings and overall traffic for targeted keywords.',
-        'Trained professionals in SEO, AI marketing, content strategy, and growth hacking to enable them leverage AI tools like ChatGPT, Claude, and SurferSEO to 10x their productivity and results.',
-        'Monitored website performance, user experience and analytics to optimize for best results.',
-        'Analyzed competitor’s websites for feature comparison and competitive advantage analysis.',
-        'Collaborated with development team to resolve usability issues and improve website functionality.',
-        'Identified areas of improvement within current SEO processes and recommended changes accordingly.',
-        'Managed 1000+ pages website and maintained consistent optimizations on crawlability and accessibility.',
-      ],
-    },
-  ],
-  education: [],
-  skills: [],
-  projects: [],
-  languages: [],
-  certifications: [],
-  volunteer: [],
-  awards: [],
-  interests: [],
-  references: [],
-};
-
 export default function ResumePreview({
   mode = 'standard',
   typography = defaultTypography,
@@ -78,13 +30,32 @@ export default function ResumePreview({
 }) {
   const cvDocument = useCVStore((state) => state.document);
   const templateId = useCVStore((state) => state.templateId);
+  const [samplePreview, setSamplePreview] = useState<typeof cvDocument | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!isBlankDocument(cvDocument)) {
+      setSamplePreview(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    void import('../../data/mockPreview').then(({ mockPreview }) => {
+      if (active) setSamplePreview(mockPreview as typeof cvDocument);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [cvDocument]);
 
   const isModern = templateId === 'modern' && mode !== 'ats';
   const isCompact = templateId === 'compact' && mode !== 'ats';
   const shellClass = isModern ? 'bg-slate-950 text-white' : 'bg-white text-slate-900';
   const pageClass = isCompact ? 'mx-auto w-full max-w-[980px] px-3 py-5 lg:px-4 lg:py-6' : 'mx-auto w-full max-w-[1100px] px-4 py-7 lg:px-6 lg:py-8';
   const isBlank = isBlankDocument(cvDocument);
-  const source = isBlank ? mockPreview : cvDocument;
+  const source = isBlank ? samplePreview ?? cvDocument : cvDocument;
   const visibleOrder = isBlank ? (['summary', 'experience'] as const) : getVisibleOrder(cvDocument);
   const isDemoPreview = isBlank;
 
@@ -96,7 +67,7 @@ export default function ResumePreview({
       >
         {isDemoPreview && (
           <div className={`mb-5 rounded-[14px] border px-4 py-3 text-sm ${mode === 'ats' ? 'border-black bg-white text-black' : isModern ? 'border-white/20 bg-white/5 text-white/80' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
-            Sample content is shown here until you start entering your CV details.
+            {samplePreview ? 'Sample content is shown here until you start entering your CV details.' : 'Loading sample preview…'}
           </div>
         )}
 
