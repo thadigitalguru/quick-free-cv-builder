@@ -60,7 +60,7 @@ describe('validateDocument', () => {
     expect(hasBlockingIssues(issues)).toBe(true);
   });
 
-  it('flags malformed URLs', () => {
+  it('flags malformed URLs and dates', () => {
     const issues = validateDocument({
       ...baseDocument(),
       personalInfo: {
@@ -68,8 +68,14 @@ describe('validateDocument', () => {
         linkedinUrl: 'not-a-url',
         websiteUrl: 'bad url',
       },
+      experience: [{ id: 'exp-1', role: 'Engineer', company: 'Acme', location: '', startDate: '20xx', endDate: '2024-13', isCurrent: false, achievements: [], technologies: [] }],
+      education: [{ id: 'edu-1', institution: 'Uni', qualification: 'BSc', fieldOfStudy: '', startDate: '20x1', endDate: '2024-00', description: '' }],
+      projects: [{ id: 'proj-1', name: 'App', role: '', date: '20-24', description: '', link: '', technologies: [] }],
     });
 
     expect(issues.map((issue) => issue.field)).toEqual(expect.arrayContaining(['linkedinUrl', 'websiteUrl']));
+    expect(issues.some((issue) => issue.field.includes('experience:exp-1:startDate'))).toBe(true);
+    expect(issues.some((issue) => issue.field.includes('education:edu-1:endDate'))).toBe(true);
+    expect(issues.some((issue) => issue.field.includes('projects:proj-1:date'))).toBe(true);
   });
 });

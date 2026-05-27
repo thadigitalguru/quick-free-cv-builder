@@ -4,7 +4,8 @@ import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 import { readFileAsDataUrl } from '../../utils/files';
-import { groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
+import { cn } from '../../utils/dom';
+import { fieldKey, groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 
 export default function EditorPanel({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
   const { activeSection } = useCVStore();
@@ -42,11 +43,11 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
         </div>
       )}
 
-      {activeSection === 'personalInfo' && <PersonalInfoForm />}
-      {activeSection === 'experience' && <ExperienceForm />}
+      {activeSection === 'personalInfo' && <PersonalInfoForm validationIssues={validationIssues} />}
+      {activeSection === 'experience' && <ExperienceForm validationIssues={validationIssues} />}
       {activeSection === 'skills' && <SkillsForm />}
-      {activeSection === 'projects' && <ProjectsForm />}
-      {activeSection === 'education' && <EducationForm />}
+      {activeSection === 'projects' && <ProjectsForm validationIssues={validationIssues} />}
+      {activeSection === 'education' && <EducationForm validationIssues={validationIssues} />}
       {activeSection === 'languages' && <LanguagesForm />}
       {activeSection === 'certifications' && <SimpleSectionForm section="certifications" title="Certifications" />}
       {activeSection === 'volunteer' && <SimpleSectionForm section="volunteer" title="Volunteer Work" />}
@@ -57,32 +58,38 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
   );
 }
 
-function PersonalInfoForm() {
+const buildIssueLookup = (issues: ValidationIssue[]) => new Map(issues.map((issue) => [issue.field, issue.message]));
+
+function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIssue[] }) {
   const { document, updatePersonalInfo, updateProfilePhoto, removeProfilePhoto } = useCVStore();
   const info = document.personalInfo;
+  const issueMap = useMemo(() => buildIssueLookup(validationIssues), [validationIssues]);
+  const fieldError = (field: string) => issueMap.get(field);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
       <div className="grid gap-5">
-        <div>
-          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Full Name <span className="text-rose-500">*</span></label>
+        <Field label="Full Name *" error={fieldError('fullName')}>
           <Input
             value={info.fullName}
             onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
             placeholder="Jane Doe"
-            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            autoComplete="name"
+            aria-invalid={Boolean(fieldError('fullName'))}
+            required
+            className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('fullName') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Job Title</label>
+        <Field label="Job Title">
           <Input
             value={info.jobTitle}
             onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)}
             placeholder="Software Engineer, Product Designer, etc."
+            autoComplete="organization-title"
             className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
           />
-        </div>
+        </Field>
 
         <div>
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -103,56 +110,67 @@ function PersonalInfoForm() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Email <span className="text-rose-500">*</span></label>
+          <Field label="Email *" error={fieldError('email')}>
             <Input
+              type="email"
               value={info.email}
               onChange={(e) => updatePersonalInfo('email', e.target.value)}
               placeholder="jane@example.com"
-              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+              autoComplete="email"
+              inputMode="email"
+              aria-invalid={Boolean(fieldError('email'))}
+              className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('email') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
             />
-          </div>
-          <div>
-            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Phone</label>
+          </Field>
+          <Field label="Phone">
             <Input
+              type="tel"
               value={info.phone}
               onChange={(e) => updatePersonalInfo('phone', e.target.value)}
               placeholder="+1 234 567 890"
+              autoComplete="tel"
+              inputMode="tel"
               className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
             />
-          </div>
+          </Field>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Location</label>
+          <Field label="Location">
             <Input
               value={info.location}
               onChange={(e) => updatePersonalInfo('location', e.target.value)}
               placeholder="City, Country"
+              autoComplete="address-level2"
               className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
             />
-          </div>
-          <div>
-            <label className="mb-2 block text-[15px] font-semibold text-[#374151]">LinkedIn URL</label>
+          </Field>
+          <Field label="LinkedIn URL" error={fieldError('linkedinUrl')}>
             <Input
+              type="url"
               value={info.linkedinUrl}
               onChange={(e) => updatePersonalInfo('linkedinUrl', e.target.value)}
               placeholder="https://linkedin.com/in/you"
-              className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+              inputMode="url"
+              autoComplete="url"
+              aria-invalid={Boolean(fieldError('linkedinUrl'))}
+              className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('linkedinUrl') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
             />
-          </div>
+          </Field>
         </div>
 
-        <div>
-          <label className="mb-2 block text-[15px] font-semibold text-[#374151]">Personal Website</label>
+        <Field label="Personal Website" error={fieldError('websiteUrl')}>
           <Input
+            type="url"
             value={info.websiteUrl}
             onChange={(e) => updatePersonalInfo('websiteUrl', e.target.value)}
             placeholder="https://your-portfolio.com"
-            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
+            inputMode="url"
+            autoComplete="url"
+            aria-invalid={Boolean(fieldError('websiteUrl'))}
+            className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('websiteUrl') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
           />
-        </div>
+        </Field>
       </div>
 
       <div className="pt-9 lg:pl-6">
@@ -243,8 +261,10 @@ function PersonalInfoForm() {
   );
 }
 
-function ExperienceForm() {
+function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssue[] }) {
   const { document, addExperience, duplicateExperience, updateExperience, deleteExperience, moveExperience, clearSection } = useCVStore();
+  const issueMap = useMemo(() => buildIssueLookup(validationIssues), [validationIssues]);
+  const fieldError = (field: string) => issueMap.get(field);
 
   return (
     <div className="space-y-4">
@@ -266,12 +286,24 @@ function ExperienceForm() {
             <Field label="Role"><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} /></Field>
             <Field label="Company"><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} /></Field>
             <Field label="Location"><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} /></Field>
-            <Field label="Start date"><Input value={item.startDate} onChange={(e) => updateExperience(item.id, { startDate: e.target.value })} placeholder="YYYY-MM" /></Field>
-            <Field label="End date">
+            <Field label="Start date" error={fieldError(fieldKey('experience', item.id, 'startDate'))}>
+              <Input
+                value={item.startDate}
+                onChange={(e) => updateExperience(item.id, { startDate: e.target.value })}
+                placeholder="YYYY or YYYY-MM"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldError(fieldKey('experience', item.id, 'startDate')))}
+                className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('experience', item.id, 'startDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
+              />
+            </Field>
+            <Field label="End date" error={fieldError(fieldKey('experience', item.id, 'endDate'))}>
               <Input
                 value={item.endDate}
                 onChange={(e) => updateExperience(item.id, { endDate: e.target.value })}
-                placeholder="YYYY-MM"
+                placeholder="YYYY or YYYY-MM"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldError(fieldKey('experience', item.id, 'endDate')))}
+                className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('experience', item.id, 'endDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
               />
             </Field>
             <div className="sm:col-span-2">
@@ -297,8 +329,10 @@ function ExperienceForm() {
   );
 }
 
-function EducationForm() {
+function EducationForm({ validationIssues }: { validationIssues: ValidationIssue[] }) {
   const { document, addEducation, duplicateEducation, updateEducation, deleteEducation, moveEducation, clearSection } = useCVStore();
+  const issueMap = useMemo(() => buildIssueLookup(validationIssues), [validationIssues]);
+  const fieldError = (field: string) => issueMap.get(field);
 
   return (
     <div className="space-y-4">
@@ -320,8 +354,26 @@ function EducationForm() {
             <Field label="Institution"><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} /></Field>
             <Field label="Qualification"><Input value={item.qualification} onChange={(e) => updateEducation(item.id, { qualification: e.target.value })} /></Field>
             <Field label="Field of study"><Input value={item.fieldOfStudy} onChange={(e) => updateEducation(item.id, { fieldOfStudy: e.target.value })} /></Field>
-            <Field label="Start date"><Input value={item.startDate} onChange={(e) => updateEducation(item.id, { startDate: e.target.value })} /></Field>
-            <Field label="End date"><Input value={item.endDate} onChange={(e) => updateEducation(item.id, { endDate: e.target.value })} /></Field>
+            <Field label="Start date" error={fieldError(fieldKey('education', item.id, 'startDate'))}>
+              <Input
+                value={item.startDate}
+                onChange={(e) => updateEducation(item.id, { startDate: e.target.value })}
+                placeholder="YYYY or YYYY-MM"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldError(fieldKey('education', item.id, 'startDate')))}
+                className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('education', item.id, 'startDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
+              />
+            </Field>
+            <Field label="End date" error={fieldError(fieldKey('education', item.id, 'endDate'))}>
+              <Input
+                value={item.endDate}
+                onChange={(e) => updateEducation(item.id, { endDate: e.target.value })}
+                placeholder="YYYY or YYYY-MM"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldError(fieldKey('education', item.id, 'endDate')))}
+                className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('education', item.id, 'endDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
+              />
+            </Field>
             <Field label="Description"><Textarea rows={4} value={item.description} onChange={(e) => updateEducation(item.id, { description: e.target.value })} /></Field>
           </div>
         </div>
@@ -393,8 +445,10 @@ function SkillsForm() {
   );
 }
 
-function ProjectsForm() {
+function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[] }) {
   const { document, addProject, duplicateProject, updateProject, deleteProject, moveProject, clearSection } = useCVStore();
+  const issueMap = useMemo(() => buildIssueLookup(validationIssues), [validationIssues]);
+  const fieldError = (field: string) => issueMap.get(field);
 
   return (
     <div className="space-y-4">
@@ -415,7 +469,16 @@ function ProjectsForm() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Name"><Input value={item.name} onChange={(e) => updateProject(item.id, { name: e.target.value })} /></Field>
             <Field label="Role"><Input value={item.role} onChange={(e) => updateProject(item.id, { role: e.target.value })} /></Field>
-            <Field label="Date"><Input value={item.date} onChange={(e) => updateProject(item.id, { date: e.target.value })} /></Field>
+            <Field label="Date" error={fieldError(fieldKey('projects', item.id, 'date'))}>
+              <Input
+                value={item.date}
+                onChange={(e) => updateProject(item.id, { date: e.target.value })}
+                placeholder="YYYY or YYYY-MM"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldError(fieldKey('projects', item.id, 'date')))}
+                className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('projects', item.id, 'date')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
+              />
+            </Field>
             <Field label="Link"><Input value={item.link} onChange={(e) => updateProject(item.id, { link: e.target.value })} /></Field>
             <Field label="Description"><Textarea rows={4} value={item.description} onChange={(e) => updateProject(item.id, { description: e.target.value })} /></Field>
             <Field label="Technologies"><Input value={joinCsvList(item.technologies)} onChange={(e) => updateProject(item.id, { technologies: parseCsvList(e.target.value) })} /></Field>
@@ -525,11 +588,13 @@ function SimpleSectionForm({ section, title }: { section: 'certifications' | 'vo
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, error, hint }: { label: string; children: ReactNode; error?: string | null; hint?: string }) {
   return (
     <div>
       <Label>{label}</Label>
       {children}
+      {hint && !error && <p className="mt-1.5 text-xs text-slate-500">{hint}</p>}
+      {error && <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
     </div>
   );
 }
