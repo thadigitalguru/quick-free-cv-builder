@@ -5,6 +5,9 @@ export default function TopBar({
   onChangeView,
   saveStatus,
   savedAt,
+  exportReady,
+  blockingCount,
+  warningCount,
   onCreateNewCV,
   onResetDraft,
 }: {
@@ -12,6 +15,9 @@ export default function TopBar({
   onChangeView: (view: 'edit' | 'preview') => void;
   saveStatus: 'idle' | 'saved' | 'saving' | 'loaded';
   savedAt: string | null;
+  exportReady: boolean;
+  blockingCount: number;
+  warningCount: number;
   onCreateNewCV: () => void;
   onResetDraft: () => void;
 }) {
@@ -32,6 +38,18 @@ export default function TopBar({
     loaded: 'border-sky-200 bg-sky-50 text-sky-800',
     idle: 'border-[#d9e2ef] bg-white text-[#5d6b84]',
   }[saveStatus];
+
+  const exportLabel = exportReady
+    ? 'Export ready'
+    : blockingCount > 0
+      ? `${blockingCount} blocker${blockingCount === 1 ? '' : 's'}`
+      : `${warningCount} warning${warningCount === 1 ? '' : 's'}`;
+
+  const exportStyles = exportReady
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    : blockingCount > 0
+      ? 'border-rose-200 bg-rose-50 text-rose-800'
+      : 'border-amber-200 bg-amber-50 text-amber-800';
 
   return (
     <header className="sticky top-0 z-30 bg-[#f5f7fc]/90 px-4 pb-3 pt-4 backdrop-blur md:pt-6">
@@ -66,9 +84,14 @@ export default function TopBar({
         </div>
 
         <div className="flex items-center justify-between gap-2 md:justify-end">
-          <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${statusStyles}`}>
-            {statusLabel}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${statusStyles}`}>
+              {statusLabel}
+            </span>
+            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${exportStyles}`}>
+              {exportLabel}
+            </span>
+          </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none" onClick={onCreateNewCV}>
               Start fresh

@@ -71,6 +71,8 @@ export default function BuilderPage() {
   const exportReady = validationIssues.length === 0;
   const blockingMessages = validationIssues.filter((issue) => issue.field === 'fullName');
   const advisoryMessages = validationIssues.filter((issue) => issue.field !== 'fullName');
+  const blockingCount = blockingMessages.length;
+  const warningCount = advisoryMessages.length;
 
   const updateTypography = (key: keyof PreviewTypography, value: number) => {
     const { min, max } = typographyMinMax[key];
@@ -135,6 +137,9 @@ export default function BuilderPage() {
         onChangeView={setViewMode}
         saveStatus={saveStatus}
         savedAt={savedAt}
+        exportReady={exportReady}
+        blockingCount={blockingCount}
+        warningCount={warningCount}
         onCreateNewCV={handleCreateNewCV}
         onResetDraft={handleResetDraft}
       />
