@@ -121,20 +121,12 @@ export default function ResumePreview({
 
             <div className={`leading-[1.55] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-500'}`} style={{ fontSize: `${typography.contact}px` }}>
               <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-                <div>
-                  <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>Email:</span> <span className={mode === 'ats' ? 'text-black' : 'text-[#2f5ee2]'}>{source.personalInfo.email}</span>
-                </div>
-                <div>
-                  <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>Phone:</span> <span className={mode === 'ats' ? 'text-black' : 'text-[#2f5ee2]'}>{source.personalInfo.phone}</span>
-                </div>
-                <div>
-                  <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>Location:</span> <span className={mode === 'ats' ? 'text-black' : 'text-inherit'}>{source.personalInfo.location}</span>
-                </div>
-                <div>
-                  <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>Portfolio:</span> <span className={mode === 'ats' ? 'text-black' : 'text-[#2f5ee2]'}>{source.personalInfo.websiteUrl}</span>
-                </div>
+                <ContactLine label="Email:" value={source.personalInfo.email} href={source.personalInfo.email ? `mailto:${source.personalInfo.email}` : undefined} mode={mode} isModern={isModern} />
+                <ContactLine label="Phone:" value={source.personalInfo.phone} href={source.personalInfo.phone ? `tel:${source.personalInfo.phone.replace(/[^+\d]/g, '')}` : undefined} mode={mode} isModern={isModern} />
+                <ContactLine label="Location:" value={source.personalInfo.location} mode={mode} isModern={isModern} />
+                <ContactLine label="Portfolio:" value={source.personalInfo.websiteUrl} href={normalizeWebUrl(source.personalInfo.websiteUrl)} mode={mode} isModern={isModern} />
                 <div className="sm:col-span-2">
-                  <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>LinkedIn:</span> <span className={mode === 'ats' ? 'text-black' : 'text-[#2f5ee2]'}>{source.personalInfo.linkedinUrl}</span>
+                  <ContactLine label="LinkedIn:" value={source.personalInfo.linkedinUrl} href={normalizeWebUrl(source.personalInfo.linkedinUrl)} mode={mode} isModern={isModern} />
                 </div>
               </div>
             </div>
@@ -328,6 +320,42 @@ function PreviewSection({
       </div>
     </section>
   );
+}
+
+function ContactLine({
+  label,
+  value,
+  href,
+  mode,
+  isModern,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  mode: 'standard' | 'ats';
+  isModern: boolean;
+}) {
+  const valueClass = mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-[#2f5ee2]';
+  const linkClass = `${valueClass} resume-link underline-offset-2 hover:underline`;
+  const text = value || '—';
+
+  return (
+    <div>
+      <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>{label}</span>{' '}
+      {href && value ? (
+        <a className={linkClass} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined}>
+          {text}
+        </a>
+      ) : (
+        <span className={valueClass}>{text}</span>
+      )}
+    </div>
+  );
+}
+
+function normalizeWebUrl(value: string) {
+  if (!value.trim()) return undefined;
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
 function renderSimpleItems(

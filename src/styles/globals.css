@@ -43,8 +43,14 @@ select {
   print-color-adjust: exact;
 }
 
+.pdf-export a,
+.resume-link {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
 .pdf-export a {
-  color: inherit !important;
   text-decoration: none !important;
 }
 
