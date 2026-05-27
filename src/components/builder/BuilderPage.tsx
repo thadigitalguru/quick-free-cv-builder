@@ -7,8 +7,6 @@ import EditorPanel from './EditorPanel';
 import ResumePreview from './ResumePreview';
 import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 import { Button, Select } from '../shared/controls';
-import { buildCvFileName, downloadCvJson } from '../../utils/export';
-import { exportPreviewAsPdf } from '../../utils/pdf';
 import { templateLabelMap } from '../../utils/templateConfig';
 
 type PreviewTypography = {
@@ -99,15 +97,24 @@ export default function BuilderPage() {
     setExportError(null);
   };
 
-  const handleDownloadJson = () => {
-    downloadCvJson(cvDocument);
-    setExportError(null);
+  const handleDownloadJson = async () => {
+    try {
+      const { buildCvFileName, downloadCvJson } = await import('../../utils/export');
+      downloadCvJson(cvDocument);
+      setExportError(null);
+      return buildCvFileName(cvDocument, 'json');
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'JSON export failed.');
+      return null;
+    }
   };
 
   const handleDownloadPdf = async () => {
     const node = window.document.getElementById('resume-preview-root');
     setIsExportingPdf(true);
     try {
+      const { buildCvFileName } = await import('../../utils/export');
+      const { exportPreviewAsPdf } = await import('../../utils/pdf');
       await exportPreviewAsPdf(node, buildCvFileName(cvDocument, 'pdf'));
       setExportError(null);
     } catch (error) {

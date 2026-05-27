@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { useCVStore } from '../../store/cvStore';
 import { formatRange, getVisibleOrder, experienceSummary, projectSummary } from '../../utils/cvUtils';
 import { sectionLabelMap } from '../../data/sectionMeta';
-import { exportPreviewAsPdf } from '../../utils/pdf';
 
 type PreviewTypography = {
   fullName: number;
@@ -80,16 +78,6 @@ export default function ResumePreview({
 }) {
   const cvDocument = useCVStore((state) => state.document);
   const templateId = useCVStore((state) => state.templateId);
-
-  useEffect(() => {
-    const node = window.document.getElementById('resume-preview-root');
-    const handler = (event: Event) => {
-      const customEvent = event as CustomEvent<{ filename?: string }>;
-      void exportPreviewAsPdf(node, customEvent.detail?.filename);
-    };
-    node?.addEventListener('download-pdf', handler as EventListener);
-    return () => node?.removeEventListener('download-pdf', handler as EventListener);
-  }, []);
 
   const isModern = templateId === 'modern' && mode !== 'ats';
   const isCompact = templateId === 'compact' && mode !== 'ats';

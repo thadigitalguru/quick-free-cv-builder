@@ -1,8 +1,5 @@
-import mammoth from 'mammoth';
 import { parseImportedText } from './importText';
 import { normalizeImportedDocument } from './importDocument';
-
-const pdfjs = import('pdfjs-dist');
 
 export const readImportedFile = async (file: File) => {
   const lowerName = file.name.toLowerCase();
@@ -21,6 +18,7 @@ export const readImportedFile = async (file: File) => {
   }
 
   if (isDocx) {
+    const { default: mammoth } = await import('mammoth');
     const buffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer: buffer });
     return { kind: 'text' as const, text: result.value, dataUrl: '' };
@@ -103,7 +101,7 @@ export const buildImportedDocument = async (file: File) => {
 };
 
 async function extractPdfText(file: File) {
-  const pdfjsLib = await pdfjs;
+  const pdfjsLib = await import('pdfjs-dist');
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
