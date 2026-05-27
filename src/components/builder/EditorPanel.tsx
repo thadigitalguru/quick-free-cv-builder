@@ -81,7 +81,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
           />
         </Field>
 
-        <Field label="Job Title">
+        <Field label="Job Title" hint="Short professional title, e.g. Product Designer or SEO Manager.">
           <Input
             value={info.jobTitle}
             onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)}
@@ -110,7 +110,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Email *" error={fieldError('email')}>
+          <Field label="Email *" error={fieldError('email')} hint="Use the inbox recruiters should contact.">
             <Input
               type="email"
               value={info.email}
@@ -122,7 +122,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
               className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('email') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
             />
           </Field>
-          <Field label="Phone">
+          <Field label="Phone" hint="Include country code if you work internationally.">
             <Input
               type="tel"
               value={info.phone}
@@ -136,7 +136,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Location">
+          <Field label="Location" hint="City, country is usually enough.">
             <Input
               value={info.location}
               onChange={(e) => updatePersonalInfo('location', e.target.value)}
@@ -145,7 +145,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
               className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
             />
           </Field>
-          <Field label="LinkedIn URL" error={fieldError('linkedinUrl')}>
+          <Field label="LinkedIn URL" error={fieldError('linkedinUrl')} hint="Paste the full profile URL, including https://.">
             <Input
               type="url"
               value={info.linkedinUrl}
@@ -159,7 +159,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
           </Field>
         </div>
 
-        <Field label="Personal Website" error={fieldError('websiteUrl')}>
+        <Field label="Personal Website" error={fieldError('websiteUrl')} hint="Portfolio, website, or GitHub Pages link.">
           <Input
             type="url"
             value={info.websiteUrl}
@@ -283,10 +283,10 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
             <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('experience')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Role"><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} /></Field>
-            <Field label="Company"><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} /></Field>
-            <Field label="Location"><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} /></Field>
-            <Field label="Start date" error={fieldError(fieldKey('experience', item.id, 'startDate'))}>
+            <Field label="Role" hint="Your job title in this role."><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} /></Field>
+            <Field label="Company" hint="Employer or client name."><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} /></Field>
+            <Field label="Location" hint="City, country or remote."><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} /></Field>
+            <Field label="Start date" error={fieldError(fieldKey('experience', item.id, 'startDate'))} hint="Use YYYY or YYYY-MM, e.g. 2022 or 2022-09.">
               <Input
                 value={item.startDate}
                 onChange={(e) => updateExperience(item.id, { startDate: e.target.value })}
@@ -296,7 +296,7 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
                 className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('experience', item.id, 'startDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
               />
             </Field>
-            <Field label="End date" error={fieldError(fieldKey('experience', item.id, 'endDate'))}>
+            <Field label="End date" error={fieldError(fieldKey('experience', item.id, 'endDate'))} hint="Use YYYY or YYYY-MM, or leave blank for a current role.">
               <Input
                 value={item.endDate}
                 onChange={(e) => updateExperience(item.id, { endDate: e.target.value })}
@@ -317,10 +317,10 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
             </div>
           </div>
           <div className="mt-4 grid gap-3">
-            <Field label="Achievements (one per line)">
+            <Field label="Achievements (one per line)" hint="Start each line with an action + outcome.">
               <Textarea rows={6} value={item.achievements.join('\n')} onChange={(e) => updateExperience(item.id, { achievements: e.target.value.split('\n').filter(Boolean) })} />
             </Field>
-            <Field label="Technologies (comma separated)"><Input value={joinCsvList(item.technologies)} onChange={(e) => updateExperience(item.id, { technologies: parseCsvList(e.target.value) })} /></Field>
+            <Field label="Technologies (comma separated)" hint="Use short keywords recruiters search for."><Input value={joinCsvList(item.technologies)} onChange={(e) => updateExperience(item.id, { technologies: parseCsvList(e.target.value) })} /></Field>
           </div>
         </div>
       ))}
@@ -351,10 +351,10 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
             <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('education')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Institution"><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} /></Field>
-            <Field label="Qualification"><Input value={item.qualification} onChange={(e) => updateEducation(item.id, { qualification: e.target.value })} /></Field>
-            <Field label="Field of study"><Input value={item.fieldOfStudy} onChange={(e) => updateEducation(item.id, { fieldOfStudy: e.target.value })} /></Field>
-            <Field label="Start date" error={fieldError(fieldKey('education', item.id, 'startDate'))}>
+            <Field label="Institution" hint="School, college, or university."><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} /></Field>
+            <Field label="Qualification" hint="e.g. BSc, Diploma, MBA."><Input value={item.qualification} onChange={(e) => updateEducation(item.id, { qualification: e.target.value })} /></Field>
+            <Field label="Field of study" hint="Optional, but useful for recruiter context."><Input value={item.fieldOfStudy} onChange={(e) => updateEducation(item.id, { fieldOfStudy: e.target.value })} /></Field>
+            <Field label="Start date" error={fieldError(fieldKey('education', item.id, 'startDate'))} hint="Use YYYY or YYYY-MM.">
               <Input
                 value={item.startDate}
                 onChange={(e) => updateEducation(item.id, { startDate: e.target.value })}
@@ -364,7 +364,7 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
                 className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('education', item.id, 'startDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
               />
             </Field>
-            <Field label="End date" error={fieldError(fieldKey('education', item.id, 'endDate'))}>
+            <Field label="End date" error={fieldError(fieldKey('education', item.id, 'endDate'))} hint="Use YYYY or YYYY-MM.">
               <Input
                 value={item.endDate}
                 onChange={(e) => updateEducation(item.id, { endDate: e.target.value })}
@@ -374,7 +374,7 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
                 className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('education', item.id, 'endDate')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
               />
             </Field>
-            <Field label="Description"><Textarea rows={4} value={item.description} onChange={(e) => updateEducation(item.id, { description: e.target.value })} /></Field>
+            <Field label="Description" hint="Optional notes such as honors or coursework."><Textarea rows={4} value={item.description} onChange={(e) => updateEducation(item.id, { description: e.target.value })} /></Field>
           </div>
         </div>
       ))}
@@ -404,7 +404,7 @@ function SkillsForm() {
       <div className="flex justify-end">
         <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('skills')}>Clear section</Button>
       </div>
-      <Field label="Add a skill">
+      <Field label="Add a skill" hint="Add one keyword at a time or paste a comma-separated list.">
         <div className="flex gap-2">
           <Input
             value={draft}
@@ -438,7 +438,7 @@ function SkillsForm() {
         ))}
       </div>
 
-      <Field label="Skills (comma separated)">
+      <Field label="Skills (comma separated)" hint="Comma-separated list is best for ATS parsing.">
         <Textarea rows={6} value={document.skills.join(', ')} onChange={(e) => setSkills(parseCsvList(e.target.value))} placeholder="React, TypeScript, Accessibility" />
       </Field>
     </div>
@@ -542,7 +542,7 @@ function InterestsForm() {
       <div className="flex justify-end">
         <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('interests')}>Clear section</Button>
       </div>
-      <Field label="Add an interest">
+      <Field label="Add an interest" hint="Add hobbies or personal interests in a short phrase.">
         <div className="flex gap-2">
           <Input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }} placeholder="e.g. Travel" />
           <Button variant="secondary" onClick={() => add(draft)}><Plus className="h-4 w-4" /> Add</Button>
@@ -555,7 +555,7 @@ function InterestsForm() {
           </button>
         ))}
       </div>
-      <Field label="Interests (comma separated)">
+      <Field label="Interests (comma separated)" hint="Use short words or phrases, comma separated.">
         <Textarea rows={4} value={cvDocument.interests.join(', ')} onChange={(e) => updateInterests(parseCsvList(e.target.value))} />
       </Field>
     </div>
