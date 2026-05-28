@@ -117,7 +117,7 @@ export default function BuilderPage() {
     try {
       const { buildCvFileName } = await import('../../utils/export');
       const { exportPreviewAsPdf } = await import('../../utils/pdf');
-      await exportPreviewAsPdf(node, buildCvFileName(cvDocument, 'pdf'));
+      await exportPreviewAsPdf(node, buildCvFileName(cvDocument, 'pdf'), { templateId, mode: previewMode });
       setExportError(null);
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'PDF export failed.');
@@ -166,6 +166,11 @@ export default function BuilderPage() {
             />
 
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              {templateId === 'compact' && (
+                <div className="rounded-[1.15rem] border border-[#dbe4f0] bg-[#f7faff] px-3.5 py-2 text-sm text-[#5a6b83]">
+                  Compact template uses tighter spacing and smaller PDF margins for longer CVs.
+                </div>
+              )}
               <div>
                 <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">LIVE PREVIEW</h2>
                 <p className="text-[15px] text-[#8b97aa]">This preview matches the PDF export.</p>
@@ -204,6 +209,11 @@ export default function BuilderPage() {
                 <Button variant="secondary" className="h-11 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]" onClick={handleDownloadJson}>
                   Export JSON
                 </Button>
+                {templateId === 'compact' && (
+                  <span className="rounded-full border border-[#dbe4f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5a6b83]">
+                    Compact PDF margins enabled
+                  </span>
+                )}
                 <Button
                   className="h-11 rounded-[12px] px-4 text-[14px] font-semibold"
                   onClick={handleDownloadPdf}
@@ -305,7 +315,11 @@ function AdvancedOptionsCard({
                   ))}
                 </Select>
               </div>
-              <p className="text-sm text-[#6f7c90]">Switch between the available preview styles.</p>
+              <p className="text-sm text-[#6f7c90]">
+                {templateId === 'compact'
+                  ? 'Compact tightens spacing in the editor and export.'
+                  : 'Switch between the available preview styles.'}
+              </p>
             </div>
           </section>
 

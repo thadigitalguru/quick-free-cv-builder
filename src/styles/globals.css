@@ -60,6 +60,45 @@ select {
   box-shadow: none !important;
 }
 
+.pdf-export[data-template='compact'] .pdf-section-group {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.pdf-export[data-template='compact'] .resume-section {
+  break-inside: auto;
+  page-break-inside: auto;
+  margin-top: 0.9rem;
+}
+
+.pdf-export[data-template='compact'] .resume-section > h2 {
+  break-after: avoid;
+  page-break-after: avoid;
+  margin-bottom: 0.65rem;
+}
+
+.pdf-export[data-template='compact'] .pdf-avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pdf-export[data-template='compact'] article {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pdf-export[data-template='compact'] .resume-section ul {
+  margin-top: 0.35rem;
+}
+
+.pdf-export[data-template='compact'] .resume-section li {
+  margin-top: 0.12rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+}
+
 @media print {
   body {
     background: #fff;
