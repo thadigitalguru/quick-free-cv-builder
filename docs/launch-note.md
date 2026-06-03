@@ -4,7 +4,7 @@ Quick Free CV Builder is a free, privacy-first CV builder with no sign-up, no pa
 
 ## What ships
 - Landing page with trust-first messaging
-- Two-pane builder workspace
+- Two-pane builder workspace with drag-and-drop section reordering
 - Autosave to localStorage
 - Live CV preview
 - PDF export

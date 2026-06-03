@@ -1,12 +1,15 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sectionDefaults } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { cn } from '../../utils/dom';
+import type { SectionId } from '../../types/cv';
 
 export default function SectionSidebar() {
-  const { document, activeSection, setActiveSection, moveSection, toggleSectionVisibility } = useCVStore();
+  const { document, activeSection, setActiveSection, moveSection, moveSectionToIndex, toggleSectionVisibility } = useCVStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [draggedSectionId, setDraggedSectionId] = useState<SectionId | null>(null);
+  const [dropTargetSectionId, setDropTargetSectionId] = useState<SectionId | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -37,22 +40,85 @@ export default function SectionSidebar() {
     return () => window.removeEventListener('click', onClick);
   }, []);
 
+  const resetDragState = () => {
+    setDraggedSectionId(null);
+    setDropTargetSectionId(null);
+  };
+
+  const handleDropBefore = (targetSectionId: SectionId) => {
+    if (!draggedSectionId || draggedSectionId === targetSectionId) {
+      resetDragState();
+      return;
+    }
+
+    const currentIndex = document.sectionOrder.indexOf(draggedSectionId);
+    const targetIndex = document.sectionOrder.indexOf(targetSectionId);
+    if (currentIndex < 0 || targetIndex < 0) {
+      resetDragState();
+      return;
+    }
+
+    const insertionIndex = currentIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    moveSectionToIndex(draggedSectionId, insertionIndex);
+    resetDragState();
+  };
+
+  const handleDropToEnd = () => {
+    if (!draggedSectionId) {
+      resetDragState();
+      return;
+    }
+
+    moveSectionToIndex(draggedSectionId, document.sectionOrder.length - 1);
+    resetDragState();
+  };
+
   return (
     <aside className="relative rounded-[2rem] border border-[#d9e2ef] bg-transparent p-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <div className="px-2 pb-3 pt-6 lg:pt-8">
         <h3 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">SECTIONS</h3>
-        <p className="mt-1 text-xs text-[#8a97ac]">Tip: use Alt + ↑ / ↓ to reorder the focused section.</p>
+        <p className="mt-1 text-xs text-[#8a97ac]">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
       </div>
 
       <div className="space-y-2.5">
         {orderedSections.map((sectionId, index) => {
           const meta = sectionDefaults.find((section) => section.id === sectionId)!;
           const active = activeSection === sectionId;
-          const visible = document.sectionVisibility[sectionId];
           const canToggle = sectionId !== 'personalInfo';
+          const isDragged = draggedSectionId === sectionId;
+          const isDropTarget = dropTargetSectionId === sectionId;
 
           return (
-            <div key={sectionId} className="flex items-center gap-2.5">
+            <div
+              key={sectionId}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', sectionId);
+                setDraggedSectionId(sectionId);
+              }}
+              onDragEnd={resetDragState}
+              onDragOver={(event) => {
+                if (!draggedSectionId || draggedSectionId === sectionId) return;
+                event.preventDefault();
+                setDropTargetSectionId(sectionId);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                handleDropBefore(sectionId);
+              }}
+              aria-grabbed={isDragged}
+              className={cn(
+                'group flex items-center gap-2.5 rounded-[16px] border border-transparent p-1 transition',
+                isDropTarget && 'border-brand-200 bg-brand-50/70',
+                isDragged && 'opacity-60',
+              )}
+              title="Drag to reorder"
+            >
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#b4bfd0] transition group-hover:text-[#111827]">
+                <GripVertical className="h-5 w-5" />
+              </div>
+
               <button
                 ref={active ? activeRef : null}
                 type="button"
@@ -121,6 +187,21 @@ export default function SectionSidebar() {
           );
         })}
       </div>
+
+      {draggedSectionId && (
+        <button
+          type="button"
+          className="mt-2 w-full rounded-[14px] border border-dashed border-brand-200 bg-brand-50 px-4 py-2.5 text-left text-sm font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-100"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            handleDropToEnd();
+          }}
+          onClick={handleDropToEnd}
+        >
+          Drop here to move the dragged section to the end.
+        </button>
+      )}
 
       <div ref={menuRef} className="relative mt-5">
         <button

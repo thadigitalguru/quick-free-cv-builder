@@ -90,4 +90,17 @@ describe('CV store smoke tests', () => {
     expect(storage.getItem('quick-free-cv-builder:v3')).toBeNull();
     expect(useCVStore.getState().document.personalInfo.fullName).toBe('');
   });
+
+  it('reorders visible sections by target index', async () => {
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+
+    const { useCVStore } = await import('../src/store/cvStore');
+    const state = useCVStore.getState();
+
+    state.createNewCV();
+    state.moveSectionToIndex('skills', 1);
+
+    expect(useCVStore.getState().document.sectionOrder.slice(0, 4)).toEqual(['personalInfo', 'skills', 'projects', 'experience']);
+  });
 });
