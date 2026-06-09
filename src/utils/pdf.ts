@@ -9,9 +9,9 @@ export const exportPreviewAsPdf = async (
     throw new Error('PDF preview is not ready yet. Try again in a moment.');
   }
 
-  let html2pdf: typeof import('html2pdf.js').default;
+  let jsPDF: typeof import('jspdf').jsPDF;
   try {
-    ({ default: html2pdf } = await import('html2pdf.js'));
+    ({ jsPDF } = await import('jspdf'));
   } catch {
     throw new Error('PDF export is temporarily unavailable. Please refresh and try again.');
   }
@@ -22,7 +22,8 @@ export const exportPreviewAsPdf = async (
   const canvasScale = isCompact ? 2.1 : isModern ? 2.2 : 2.25;
   const exportWindowWidth = isCompact ? 1120 : 1280;
 
-  const pdfOptions = {
+  const autoPaging: 'slice' | 'text' = isCompact ? 'text' : 'slice';
+  const pdfOptions: import('jspdf').HTMLOptions = {
     margin: exportMargin,
     filename,
     image: { type: 'jpeg', quality: 0.98 },
@@ -34,22 +35,30 @@ export const exportPreviewAsPdf = async (
       scrollY: 0,
       windowWidth: exportWindowWidth,
     },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: isCompact
-      ? {
-          mode: ['css', 'legacy'],
-          avoid: ['.resume-section', '.pdf-avoid-break', '.pdf-section-group', 'article'],
-        }
-      : {
-          mode: ['css', 'legacy', 'avoid-all'],
-          avoid: ['.resume-section', '.pdf-avoid-break', '.pdf-section-group', 'article', 'li'],
-        },
-    enableLinks: true,
+    autoPaging,
+    x: exportMargin[3],
+    y: exportMargin[0],
+    width: 210 - exportMargin[1] - exportMargin[3],
+    windowWidth: exportWindowWidth,
   };
 
   element.classList.add('pdf-export');
   try {
-    await html2pdf().set(pdfOptions as any).from(element).save();
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    await new Promise<void>((resolve, reject) => {
+      try {
+        pdf.html(element, {
+          ...pdfOptions,
+          jsPDF: pdf,
+          callback: (doc) => {
+            doc.save(filename);
+            resolve();
+          },
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
   } finally {
     element.classList.remove('pdf-export');
   }
