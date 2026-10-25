@@ -47,7 +47,7 @@ const headingAliases: Record<SectionKey, string[]> = {
   summary: ['summary', 'professional summary', 'profile', 'professional profile', 'about', 'about me', 'objective', 'career objective', 'personal statement', 'career summary'],
   experience: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience'],
   education: ['education', 'academic background', 'education and training', 'education & training', 'academic qualifications', 'qualifications'],
-  skills: ['skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise'],
+  skills: ['skills', 'top skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise'],
   projects: ['projects', 'selected projects', 'key projects', 'personal projects'],
   languages: ['languages', 'language skills'],
   certifications: ['certifications', 'certificates', 'licenses & certifications', 'licenses and certifications', 'licences & certifications', 'courses', 'training'],
@@ -111,7 +111,8 @@ const detectHeading = (line: string): SectionKey | 'unknown' | null => {
   if (unsupportedHeadings.has(key)) return 'unknown';
   // ALL-CAPS short lines with no contact data read as headings we don't support; keep their content visible.
   const letters = line.replace(/[^A-Za-z]/g, '');
-  if (letters.length >= 4 && letters === letters.toUpperCase() && line.split(/\s+/).length <= 4 && !/\d/.test(line) && !emailRegex.test(line)) {
+  // Only plain words count: "SQL • POWER BI" (an upper-cased skills line) must not start a new section.
+  if (letters.length >= 4 && /^[A-Z][A-Z &/]+$/.test(line.replace(/[:：]$/, '')) && line.split(/\s+/).length <= 4) {
     return 'unknown';
   }
   return null;
@@ -231,23 +232,35 @@ const toBulletItems = (lines: string[]) => {
   return items;
 };
 
+const isUpperCaseList = (line: string) => /[•·|,]/.test(line) && line === line.toUpperCase() && /[A-Z]/.test(line);
+
 const parseExperience = (lines: string[], notes: string[]): Draft<ExperienceItem>[] => {
   const { entries, anchored } = groupEntries(lines, false);
   if (!anchored && entries.length) notes.push('Experience had no date ranges, so it was kept as one entry. Split it into roles in the editor.');
 
   return entries.map((entry) => {
-    const headerParts = entry.header.length === 1 ? splitHeaderParts(entry.header[0]) : entry.header;
+    let location = '';
+    let headerParts = entry.header.length === 1 ? splitHeaderParts(entry.header[0]) : [...entry.header];
+    // "Role" / "Company • Location" on two lines, as many templates (including ours) lay it out.
+    if (entry.header.length === 2 && /\s[•|]\s/.test(entry.header[1])) {
+      const [company, ...rest] = entry.header[1].split(/\s[•|]\s/);
+      headerParts = [entry.header[0], company.trim()];
+      location = rest.join(', ').trim();
+    }
     const [role = '', company = '', ...extraHeader] = headerParts;
+    // An all-caps keyword list right under the dates is a technologies line, not an achievement.
+    const body = [...entry.body];
+    const technologies = body.length && isUpperCaseList(body[0]) ? splitList([body.shift()!]) : [];
     return {
       role,
       company,
-      location: '',
+      location,
       startDate: normalizeDate(entry.dateStart),
       endDate: isPresent(entry.dateEnd) ? '' : normalizeDate(entry.dateEnd),
       isCurrent: isPresent(entry.dateEnd),
       // Header text we couldn't map stays with the entry instead of being dropped.
-      achievements: [...extraHeader, ...toBulletItems(entry.body)],
-      technologies: [],
+      achievements: [...extraHeader, ...toBulletItems(body)],
+      technologies,
     };
   });
 };
@@ -324,7 +337,9 @@ const parseSimpleItems = (lines: string[]): Draft<SimpleSectionItem>[] => {
   const items: Draft<SimpleSectionItem>[] = [];
   lines.forEach((line) => {
     const current = items[items.length - 1];
-    if (isBullet(line) && current && !current.details) {
+    // A bullet, or a short line with a year ("Coursera, 2022"), describes the item above it.
+    const looksLikeDetails = isBullet(line) || (singleYearRegex.test(line) && line.length <= 60);
+    if (looksLikeDetails && current && !current.details) {
       current.details = stripBullet(line);
       return;
     }
@@ -342,20 +357,51 @@ const parseList = (lines: string[], unplaced: string[], label: string) => {
   return uniqueCaseInsensitive(items);
 };
 
-export const parseImportedText = (text: string): ImportedTextDraft => {
-  const lines = text
+const contactLabelRegex = /(?:^|\s)(e-?mail|phone|tel|mobile|location|address|linkedin|portfolio|website|web)\s*:\s*/gi;
+const isContactLine = (line: string) => /^(e-?mail|phone|tel|mobile|location|address|linkedin|portfolio|website|web)\s*:/i.test(line);
+
+/** Splits "Email: a@b.com Phone: +254…" into label/value pairs. */
+const parseContactLine = (line: string) => {
+  const matches = [...line.matchAll(contactLabelRegex)];
+  return matches.map((match, index) => ({
+    label: match[1].toLowerCase(),
+    value: line.slice(match.index! + match[0].length, matches[index + 1]?.index ?? line.length).trim(),
+  }));
+};
+
+/**
+ * PDF generators often emit glyph runs with stray spaces ("example .com", "2021 - 03", "https ://").
+ * Undo only those patterns so emails, URLs and dates are recognisable again.
+ */
+export const normalizeExtractedText = (text: string) =>
+  text
     .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+([.,:;%!?)])/g, '$1')
+    .replace(/\([ \t]+/g, '(')
+    .replace(/(\d{4}) - (\d{2})(?!\d)/g, '$1-$2')
+    .replace(/(\S) \/(?=\S)/g, '$1/');
+
+export const parseImportedText = (rawText: string): ImportedTextDraft => {
+  const text = normalizeExtractedText(rawText);
+  const lines = text
     .split('\n')
     .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
+    // Some PDFs emit list markers as their own line.
+    .filter((line) => line && !/^[•●▪◦‣∙·*–—-]$/.test(line));
 
   const unplaced: string[] = [];
   const notes: string[] = [];
   const header: string[] = [];
   const sections: Partial<Record<SectionKey, string[]>> = {};
+  const contactFields: { label: string; value: string }[] = [];
   let current: SectionKey | 'header' | 'unknown' = 'header';
 
   lines.forEach((line) => {
+    // Labelled contact lines can appear anywhere (PDFs often store a header column last).
+    if (isContactLine(line)) {
+      contactFields.push(...parseContactLine(line));
+      return;
+    }
     const heading = detectHeading(line);
     if (heading === 'unknown') {
       current = 'unknown';
@@ -377,11 +423,15 @@ export const parseImportedText = (text: string): ImportedTextDraft => {
   const websiteUrl = urls.find((url) => !/linkedin\.com/i.test(url)) ?? '';
   const email = text.match(emailRegex)?.[0] ?? '';
   // Phones are only taken from the header block so a date range like "2019 - 2022" is never read as one.
-  const phone = header.flatMap((line) => line.split(/\s*[|•·●]\s*/)).find(isPhone)?.match(phoneRegex)?.[0]?.trim() ?? '';
+  const labelled = (labels: string[]) => contactFields.find((field) => labels.includes(field.label) && field.value && field.value !== '—')?.value ?? '';
+  const phone =
+    header.flatMap((line) => line.split(/\s*[|•·●]\s*/)).find(isPhone)?.match(phoneRegex)?.[0]?.trim() ||
+    labelled(['phone', 'tel', 'mobile']).match(phoneRegex)?.[0]?.trim() ||
+    '';
 
   let fullName = '';
   let jobTitle = '';
-  let location = '';
+  let location = labelled(['location', 'address']);
   const headerLeftovers: string[] = [];
   header.forEach((line) => {
     const tokens = line.split(/\s*[|•·●]\s*/).map((token) => token.trim()).filter(Boolean);
