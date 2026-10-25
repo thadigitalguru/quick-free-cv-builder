@@ -1,6 +1,7 @@
 import { parseImportedText } from './importText';
 import { normalizeImportedDocument } from './importDocument';
 import type { CVDocument, SectionId } from '../types/cv';
+import { prepareProfilePhoto } from './files';
 
 export type ImportProgressCallback = (message: string) => void;
 
@@ -74,7 +75,7 @@ export const readImportedFile = async (file: File, onProgress?: ImportProgressCa
 
   if (kind === 'image') {
     onProgress?.('Preparing image preview…');
-    return { kind, text: '', dataUrl: await readFileAsDataUrl(file), warnings };
+    return { kind, text: '', dataUrl: await prepareProfilePhoto(file), warnings };
   }
 
   if (kind === 'pdf') {
@@ -238,13 +239,4 @@ async function extractPdfText(file: File) {
     text += `${pdfItemsToText(content.items as PdfTextItem[])}\n`;
   }
   return { text, pageCount: pdf.numPages, pagesRead };
-}
-
-async function readFileAsDataUrl(file: File): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(new Error('Unable to read file'));
-    reader.readAsDataURL(file);
-  });
 }

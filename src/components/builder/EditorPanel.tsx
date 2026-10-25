@@ -3,7 +3,7 @@ import { Copy, Info, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
-import { readFileAsDataUrl } from '../../utils/files';
+import { prepareProfilePhoto } from '../../utils/files';
 import { cn } from '../../utils/dom';
 import { fieldKey, groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 
@@ -206,14 +206,18 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                updateProfilePhoto(await readFileAsDataUrl(file));
+                updateProfilePhoto(await prepareProfilePhoto(file));
+                e.target.value = '';
               }}
             />
-            <label htmlFor="profile-photo-upload" className="block">
-              <Button variant="secondary" className="h-[46px] w-full rounded-[12px] border-[#c3cde0] bg-white px-5 text-[15px] font-semibold text-[#374151] shadow-[0_2px_0_rgba(15,23,42,0.02)]">
-                Upload photo
-              </Button>
-            </label>
+            {/* A button inside a <label> doesn't open the file picker, so trigger the input directly. */}
+            <Button
+              variant="secondary"
+              className="h-[46px] w-full rounded-[12px] border-[#c3cde0] bg-white px-5 text-[15px] font-semibold text-[#374151] shadow-[0_2px_0_rgba(15,23,42,0.02)]"
+              onClick={() => window.document.getElementById('profile-photo-upload')?.click()}
+            >
+              Upload photo
+            </Button>
             <p className="mt-4 text-center text-[13px] leading-5 text-[#8a97ac]">Recommended: use a square image, at least 400×400px.</p>
           </div>
 
