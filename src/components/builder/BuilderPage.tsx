@@ -8,6 +8,8 @@ import ResumePreview from './ResumePreview';
 import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 import { Button, Select } from '../shared/controls';
 import { templateLabelMap } from '../../utils/templateConfig';
+import { documentHasContent } from '../../utils/progress';
+import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
   fullName: number;
@@ -54,7 +56,12 @@ export default function BuilderPage() {
     templateId,
     setTemplateId,
     resetCV,
+    loadImportedDocument,
+    updateProfilePhoto,
   } = useCVStore();
+  const importFlow = useCvImport();
+  const pendingImport = importFlow.pending;
+  const importIsPhoto = pendingImport?.report.sourceKind === 'image';
 
   useEffect(() => {
     initFromStorage();
@@ -101,6 +108,15 @@ export default function BuilderPage() {
     }
   };
 
+  const handleConfirmImport = () => {
+    if (!pendingImport) return;
+    // A photo only fills the photo slot; it shouldn't wipe the CV being edited.
+    if (importIsPhoto) updateProfilePhoto(pendingImport.document.personalInfo.profilePhoto);
+    else loadImportedDocument(pendingImport.document, pendingImport.templateId);
+    importFlow.dismiss();
+    setViewMode('edit');
+  };
+
   const handleDownloadPdf = async () => {
     const node = window.document.getElementById('resume-preview-root');
     setIsExportingPdf(true);
@@ -132,7 +148,49 @@ export default function BuilderPage() {
         warningCount={warningCount}
         onStartOver={handleStartOver}
         onDownloadJson={() => void handleDownloadJson()}
+        onImport={importFlow.openPicker}
+        isImporting={importFlow.isImporting}
       />
+      {importFlow.fileInput}
+
+      {(pendingImport || importFlow.error || importFlow.status) && (
+        <div className="px-4 pt-2">
+          <div className="mx-auto max-w-[1680px] space-y-2">
+            {importFlow.status && (
+              <p role="status" className="rounded-[1.25rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-900">
+                {importFlow.status}
+              </p>
+            )}
+            {importFlow.error && (
+              <div className="relative">
+                <ImportErrorNotice error={importFlow.error} fileName={importFlow.fileName} />
+                <button type="button" className="absolute right-3 top-3 text-xs font-semibold text-rose-800 underline" onClick={importFlow.dismiss}>
+                  Dismiss
+                </button>
+              </div>
+            )}
+            {pendingImport && (
+              <ImportReview
+                result={pendingImport}
+                headingRef={importFlow.reviewHeadingRef}
+                confirmLabel={importIsPhoto ? 'Use as profile photo' : documentHasContent(cvDocument) ? 'Replace current CV' : 'Use this import'}
+                replaceNotice={
+                  importIsPhoto
+                    ? cvDocument.personalInfo.profilePhoto
+                      ? 'This replaces your current profile photo. The rest of your CV stays as it is.'
+                      : null
+                    : documentHasContent(cvDocument)
+                      ? 'Opening this import replaces the CV you are editing now.'
+                      : null
+                }
+                onDownloadCurrent={() => void handleDownloadJson()}
+                onCancel={importFlow.dismiss}
+                onConfirm={handleConfirmImport}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {saveError && (
         <div className="px-4 pt-2">

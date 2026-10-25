@@ -36,3 +36,10 @@ export const getEssentialProgress = (document: CVDocument) => {
   const remaining = essentialSections.filter((sectionId) => getSectionStatus(document, sectionId) !== 'complete');
   return { done: essentialSections.length - remaining.length, total: essentialSections.length, next: remaining[0] ?? null };
 };
+
+const allSections: SectionId[] = ['personalInfo', 'summary', 'experience', 'education', 'projects', 'languages', 'skills', 'certifications', 'volunteer', 'awards', 'interests', 'references'];
+
+/** True when replacing this document would lose something the user typed. */
+export const documentHasContent = (document: CVDocument) =>
+  Object.values(document.personalInfo).some((value) => typeof value === 'string' && hasText(value)) ||
+  allSections.some((sectionId) => getSectionStatus(document, sectionId) === 'complete');

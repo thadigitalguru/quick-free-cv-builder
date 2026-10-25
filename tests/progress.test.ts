@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeImportedDocument } from '../src/utils/importDocument';
-import { getEssentialProgress, getSectionStatus } from '../src/utils/progress';
+import { documentHasContent, getEssentialProgress, getSectionStatus } from '../src/utils/progress';
 import { validateDocument } from '../src/utils/validation';
 
 const doc = (raw: Record<string, unknown>) => normalizeImportedDocument(raw)!;
@@ -31,5 +31,12 @@ describe('export checks', () => {
   it('does not require the optional interests section', () => {
     const issues = validateDocument(doc({ personalInfo: { fullName: 'Jane' } }));
     expect(issues.map((issue) => issue.field)).not.toContain('interests');
+  });
+
+  it('only treats a CV as having content when something was typed', () => {
+    expect(documentHasContent(doc({}))).toBe(false);
+    expect(documentHasContent(doc({ experience: [{ role: '', company: '' }] }))).toBe(false);
+    expect(documentHasContent(doc({ personalInfo: { location: 'Nairobi' } }))).toBe(true);
+    expect(documentHasContent(doc({ awards: [{ title: 'Dean’s list' }] }))).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, Upload } from 'lucide-react';
 import { Button } from '../shared/controls';
 
 export default function TopBar({
@@ -13,6 +13,8 @@ export default function TopBar({
   warningCount,
   onStartOver,
   onDownloadJson,
+  onImport,
+  isImporting,
 }: {
   activeView: 'edit' | 'preview';
   onChangeView: (view: 'edit' | 'preview') => void;
@@ -23,6 +25,8 @@ export default function TopBar({
   warningCount: number;
   onStartOver: () => void;
   onDownloadJson: () => void;
+  onImport: () => void;
+  isImporting: boolean;
 }) {
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
 
@@ -101,15 +105,25 @@ export default function TopBar({
             </span>
           </div>
           <div className="relative flex flex-wrap justify-end gap-2">
-            {/* The landing page is where imports and the saved-draft summary live. */}
             <Link
               to="/"
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#d9e2ef] bg-white px-3.5 text-xs font-semibold leading-none text-[#374151] transition hover:bg-slate-50"
-              title="Home: import a CV or resume your draft"
+              title="Home"
             >
               <Home className="h-3.5 w-3.5" aria-hidden="true" />
               Home
             </Link>
+            <Button
+              variant="secondary"
+              className="h-9 rounded-full border-[#d9e2ef] bg-white px-3.5 text-xs font-semibold text-[#374151] leading-none"
+              onClick={onImport}
+              disabled={isImporting}
+              aria-busy={isImporting}
+              title="Import a CV file or add a photo"
+            >
+              <Upload className={`h-3.5 w-3.5 ${isImporting ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {isImporting ? 'Importing…' : 'Import'}
+            </Button>
             <Button
               variant="secondary"
               className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none"
