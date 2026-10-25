@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus } from 'lucide-react';
-import { useCVStore } from '../../store/cvStore';
+import { isUndoAvailable, useCVStore } from '../../store/cvStore';
 import TopBar from './TopBar';
 import SectionSidebar from './SectionSidebar';
 import EditorPanel from './EditorPanel';
@@ -213,6 +213,8 @@ export default function BuilderPage() {
         </div>
       )}
 
+      <UndoBar />
+
       <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
         <div className={viewMode === 'edit' ? 'grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]' : 'block'}>
           <aside className={`${viewMode === 'preview' ? 'hidden' : 'block'} min-w-0`}>
@@ -330,6 +332,46 @@ export default function BuilderPage() {
 
       </section>
     </main>
+  );
+}
+
+/** One tap deletes a role or clears a section, and autosave makes that stick, so offer a way back. */
+function UndoBar() {
+  const message = useCVStore((state) => (isUndoAvailable(state) ? state.undo!.message : null));
+  const undoRemoval = useCVStore((state) => state.undoRemoval);
+  const dismissUndo = useCVStore((state) => state.dismissUndo);
+
+  useEffect(() => {
+    if (!message) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      // Text fields keep their own undo.
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        undoRemoval();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [message, undoRemoval]);
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+      <div role="status" aria-live="polite" className="w-full max-w-lg">
+        {message && (
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl bg-[#111827] px-4 py-3 text-sm text-white shadow-[0_18px_40px_rgba(15,23,42,0.35)]">
+            <p className="min-w-0 flex-1">{message}.</p>
+            <button type="button" className="shrink-0 rounded-xl bg-white px-3 py-1.5 font-semibold text-[#111827] hover:bg-slate-100" onClick={undoRemoval}>
+              Undo
+            </button>
+            <button type="button" className="shrink-0 rounded-xl px-2 py-1.5 text-white/70 hover:text-white" onClick={dismissUndo} aria-label="Dismiss">
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

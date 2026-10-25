@@ -146,3 +146,61 @@ describe('profile photo', () => {
     expect([info.profilePhoto, info.photoZoom, info.photoX, info.photoY]).toEqual(['data:image/jpeg;base64,second', 1, 50, 50]);
   });
 });
+
+describe('undo for deletes and clears', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  const setup = async () => {
+    installMockWindow(createMockStorage().storage);
+    const module = await import('../src/store/cvStore');
+    const { useCVStore } = module;
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().addExperience();
+    useCVStore.getState().addExperience();
+    const [first, second] = useCVStore.getState().document.experience;
+    useCVStore.getState().updateExperience(first.id, { role: 'Data Analyst' });
+    useCVStore.getState().updateExperience(second.id, { role: 'Junior Analyst' });
+    return { ...module, first, second };
+  };
+
+  it('restores a deleted role in its original place', async () => {
+    const { useCVStore, isUndoAvailable, first } = await setup();
+    useCVStore.getState().deleteExperience(first.id);
+    expect(useCVStore.getState().document.experience.map((item) => item.role)).toEqual(['Junior Analyst']);
+    expect(isUndoAvailable(useCVStore.getState())).toBe(true);
+    expect(useCVStore.getState().undo?.message).toBe('Deleted “Data Analyst” from Experience');
+    useCVStore.getState().undoRemoval();
+    expect(useCVStore.getState().document.experience.map((item) => item.role)).toEqual(['Data Analyst', 'Junior Analyst']);
+    expect(isUndoAvailable(useCVStore.getState())).toBe(false);
+  });
+
+  it('restores a cleared section and a removed photo', async () => {
+    const { useCVStore } = await setup();
+    useCVStore.getState().clearSection('experience');
+    expect(useCVStore.getState().document.experience).toHaveLength(0);
+    expect(useCVStore.getState().undo?.message).toBe('Cleared Experience');
+    useCVStore.getState().undoRemoval();
+    expect(useCVStore.getState().document.experience).toHaveLength(2);
+
+    useCVStore.getState().updateProfilePhoto('data:image/jpeg;base64,abc');
+    useCVStore.getState().removeProfilePhoto();
+    useCVStore.getState().undoRemoval();
+    expect(useCVStore.getState().document.personalInfo.profilePhoto).toBe('data:image/jpeg;base64,abc');
+  });
+
+  it('never undoes over a newer edit, and offers nothing when nothing was removed', async () => {
+    const { useCVStore, isUndoAvailable, first } = await setup();
+    useCVStore.getState().deleteExperience(first.id);
+    useCVStore.getState().updatePersonalInfo('fullName', 'Typed after delete');
+    expect(isUndoAvailable(useCVStore.getState())).toBe(false);
+    useCVStore.getState().undoRemoval();
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('Typed after delete');
+    expect(useCVStore.getState().document.experience).toHaveLength(1);
+
+    useCVStore.getState().dismissUndo();
+    useCVStore.getState().clearSection('awards');
+    expect(useCVStore.getState().undo).toBeNull();
+  });
+});

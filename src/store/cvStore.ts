@@ -13,7 +13,7 @@ import type {
 } from '../types/cv';
 import { clearSavedCV, loadSavedCV, saveCV } from '../utils/storage';
 import { createId } from '../utils/cvUtils';
-import { defaultOrder, sectionDefaults } from '../data/sectionMeta';
+import { defaultOrder, sectionDefaults, sectionLabelMap } from '../data/sectionMeta';
 import { normalizeImportedDocument } from '../utils/importDocument';
 
 const nowIso = () => new Date().toISOString();
@@ -155,7 +155,24 @@ interface CVState {
   loadImportedDocument: (document: CVDocument, templateId?: ResumeTemplateId) => void;
   clearSection: (sectionId: SectionId) => void;
   persist: () => void;
+  /** The last delete or clear, undoable until the CV changes again. */
+  undo: UndoEntry | null;
+  undoRemoval: () => void;
+  dismissUndo: () => void;
 }
+
+type EditorPosition = Pick<CVState, 'document' | 'activeSection' | 'activeExperienceId' | 'activeEducationId' | 'activeProjectId' | 'activeLanguageId' | 'activeSimpleSection'>;
+
+export interface UndoEntry {
+  message: string;
+  before: EditorPosition;
+  /** The document the removal produced; once the CV moves on from it, undo would discard newer work. */
+  after: CVDocument;
+}
+
+export const isUndoAvailable = (state: Pick<CVState, 'undo' | 'document'>) => Boolean(state.undo && state.undo.after === state.document);
+
+const quoted = (value: string | undefined) => (value?.trim() ? `“${value.trim()}”` : '');
 
 const updateItem = <T extends { id: string }>(items: T[], id: string, patch: Partial<T>) =>
   items.map((item) => (item.id === id ? { ...item, ...patch } : item));
@@ -228,7 +245,27 @@ const resolveSimpleSection = (document: CVDocument, candidate: CVState['activeSi
           : null;
 };
 
-export const useCVStore = create<CVState>((set, get) => ({
+export const useCVStore = create<CVState>((set, get) => {
+  /** Runs a delete or clear and keeps what it removed, so one mis-tap can't cost a whole section. */
+  const removeWithUndo = (message: string, apply: () => void) => {
+    const state = get();
+    const before: EditorPosition = {
+      document: state.document,
+      activeSection: state.activeSection,
+      activeExperienceId: state.activeExperienceId,
+      activeEducationId: state.activeEducationId,
+      activeProjectId: state.activeProjectId,
+      activeLanguageId: state.activeLanguageId,
+      activeSimpleSection: state.activeSimpleSection,
+    };
+    apply();
+    const after = get().document;
+    // Clearing an already-empty section only bumps the timestamp; there is nothing to undo.
+    const content = (document: CVDocument) => JSON.stringify({ ...document, lastUpdatedAt: '' });
+    if (content(after) !== content(before.document)) set({ undo: { message, before, after } });
+  };
+
+  return {
   document: createEmptyDocument(),
   activeSection: 'personalInfo',
   activeExperienceId: null,
@@ -304,13 +341,15 @@ export const useCVStore = create<CVState>((set, get) => ({
       saveStatus: 'saving',
     })),
   removeProfilePhoto: () =>
-    set((state) => ({
-      document: withUpdatedTimestamp({
-        ...state.document,
-        personalInfo: { ...state.document.personalInfo, profilePhoto: '' },
-      }),
-      saveStatus: 'saving',
-    })),
+    removeWithUndo('Removed your profile photo', () =>
+      set((state) => ({
+        document: withUpdatedTimestamp({
+          ...state.document,
+          personalInfo: { ...state.document.personalInfo, profilePhoto: '' },
+        }),
+        saveStatus: 'saving',
+      })),
+    ),
   setSkills: (skills) =>
     set((state) => ({
       document: withUpdatedTimestamp({ ...state.document, skills }),
@@ -331,7 +370,10 @@ export const useCVStore = create<CVState>((set, get) => ({
     return { document: withUpdatedTimestamp({ ...state.document, experience: items }), activeSection: 'experience', activeExperienceId: insertedId, saveStatus: 'saving' };
   }),
   updateExperience: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: updateItem(state.document.experience, id, patch) }), activeExperienceId: id, activeSection: 'experience', saveStatus: 'saving' })),
-  deleteExperience: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: state.document.experience.filter((item) => item.id !== id) }), activeExperienceId: state.activeExperienceId === id ? null : state.activeExperienceId, saveStatus: 'saving' })),
+  deleteExperience: (id) => {
+    const item = get().document.experience.find((entry) => entry.id === id);
+    removeWithUndo(`Deleted ${quoted(item?.role) || 'an entry'} from Experience`, () => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: state.document.experience.filter((item) => item.id !== id) }), activeExperienceId: state.activeExperienceId === id ? null : state.activeExperienceId, saveStatus: 'saving' })));
+  },
   moveExperience: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, experience: moveItems(state.document.experience, id, direction) }), saveStatus: 'saving' })),
   addEducation: () => set((state) => {
     const item = createEducationItem();
@@ -343,7 +385,10 @@ export const useCVStore = create<CVState>((set, get) => ({
     return { document: withUpdatedTimestamp({ ...state.document, education: items }), activeSection: 'education', activeEducationId: insertedId, saveStatus: 'saving' };
   }),
   updateEducation: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: updateItem(state.document.education, id, patch) }), activeEducationId: id, activeSection: 'education', saveStatus: 'saving' })),
-  deleteEducation: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: state.document.education.filter((item) => item.id !== id) }), activeEducationId: state.activeEducationId === id ? null : state.activeEducationId, saveStatus: 'saving' })),
+  deleteEducation: (id) => {
+    const item = get().document.education.find((entry) => entry.id === id);
+    removeWithUndo(`Deleted ${quoted(item?.qualification) || 'an entry'} from Education`, () => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: state.document.education.filter((item) => item.id !== id) }), activeEducationId: state.activeEducationId === id ? null : state.activeEducationId, saveStatus: 'saving' })));
+  },
   moveEducation: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, education: moveItems(state.document.education, id, direction) }), saveStatus: 'saving' })),
   addProject: () => set((state) => {
     const item = createProjectItem();
@@ -355,7 +400,10 @@ export const useCVStore = create<CVState>((set, get) => ({
     return { document: withUpdatedTimestamp({ ...state.document, projects: items }), activeSection: 'projects', activeProjectId: insertedId, saveStatus: 'saving' };
   }),
   updateProject: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: updateItem(state.document.projects, id, patch) }), activeProjectId: id, activeSection: 'projects', saveStatus: 'saving' })),
-  deleteProject: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: state.document.projects.filter((item) => item.id !== id) }), activeProjectId: state.activeProjectId === id ? null : state.activeProjectId, saveStatus: 'saving' })),
+  deleteProject: (id) => {
+    const item = get().document.projects.find((entry) => entry.id === id);
+    removeWithUndo(`Deleted ${quoted(item?.name) || 'an entry'} from Projects`, () => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: state.document.projects.filter((item) => item.id !== id) }), activeProjectId: state.activeProjectId === id ? null : state.activeProjectId, saveStatus: 'saving' })));
+  },
   moveProject: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, projects: moveItems(state.document.projects, id, direction) }), saveStatus: 'saving' })),
   addLanguage: () => set((state) => {
     const item = createLanguageItem();
@@ -367,7 +415,10 @@ export const useCVStore = create<CVState>((set, get) => ({
     return { document: withUpdatedTimestamp({ ...state.document, languages: items }), activeSection: 'languages', activeLanguageId: insertedId, saveStatus: 'saving' };
   }),
   updateLanguage: (id, patch) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: updateItem(state.document.languages, id, patch) }), activeLanguageId: id, activeSection: 'languages', saveStatus: 'saving' })),
-  deleteLanguage: (id) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: state.document.languages.filter((item) => item.id !== id) }), activeLanguageId: state.activeLanguageId === id ? null : state.activeLanguageId, saveStatus: 'saving' })),
+  deleteLanguage: (id) => {
+    const item = get().document.languages.find((entry) => entry.id === id);
+    removeWithUndo(`Deleted ${quoted(item?.name) || 'an entry'} from Languages`, () => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: state.document.languages.filter((item) => item.id !== id) }), activeLanguageId: state.activeLanguageId === id ? null : state.activeLanguageId, saveStatus: 'saving' })));
+  },
   moveLanguage: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: moveItems(state.document.languages, id, direction) }), saveStatus: 'saving' })),
   addSimpleItem: (section) => set((state) => {
     const key = sectionKeyMap[section] as keyof CVDocument;
@@ -386,11 +437,16 @@ export const useCVStore = create<CVState>((set, get) => ({
     const items = state.document[key] as SimpleSectionItem[];
     return { document: withUpdatedTimestamp({ ...state.document, [key]: updateItem(items, id, patch) }), activeSection: section, activeSimpleSection: section, saveStatus: 'saving' };
   }),
-  deleteSimpleItem: (section, id) => set((state) => {
-    const key = sectionKeyMap[section] as keyof CVDocument;
-    const items = state.document[key] as SimpleSectionItem[];
-    return { document: withUpdatedTimestamp({ ...state.document, [key]: items.filter((item) => item.id !== id) }), activeSimpleSection: state.activeSimpleSection === section ? null : state.activeSimpleSection, saveStatus: 'saving' };
-  }),
+  deleteSimpleItem: (section, id) => {
+    const item = (get().document[sectionKeyMap[section]] as SimpleSectionItem[]).find((entry) => entry.id === id);
+    removeWithUndo(`Deleted ${quoted(item?.title) || 'an entry'} from ${sectionLabelMap[section]}`, () =>
+      set((state) => {
+        const key = sectionKeyMap[section] as keyof CVDocument;
+        const items = state.document[key] as SimpleSectionItem[];
+        return { document: withUpdatedTimestamp({ ...state.document, [key]: items.filter((entry) => entry.id !== id) }), activeSimpleSection: state.activeSimpleSection === section ? null : state.activeSimpleSection, saveStatus: 'saving' };
+      }),
+    );
+  },
   moveSection: (sectionId, direction) => set((state) => {
     const currentIndex = state.document.sectionOrder.indexOf(sectionId);
     const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
@@ -436,7 +492,8 @@ export const useCVStore = create<CVState>((set, get) => ({
     });
     get().persist();
   },
-  clearSection: (sectionId) => set((state) => {
+  clearSection: (sectionId) =>
+    removeWithUndo(sectionId === 'summary' ? 'Cleared your summary' : `Cleared ${sectionLabelMap[sectionId]}`, () => set((state) => {
     const next: CVDocument = { ...state.document };
     const nextState: Partial<CVState> = { saveStatus: 'saving' };
 
@@ -476,7 +533,7 @@ export const useCVStore = create<CVState>((set, get) => ({
     }
 
     return { ...nextState, document: withUpdatedTimestamp(next) };
-  }),
+  })),
   persist: () => {
     const state = get();
     const payload: SavedCVPayload = {
@@ -499,7 +556,15 @@ export const useCVStore = create<CVState>((set, get) => ({
     }
     set({ saveStatus: 'saved', savedAt: new Date().toISOString(), saveError: null });
   },
-}));
+  undo: null,
+  undoRemoval: () => {
+    const state = get();
+    if (!state.undo || !isUndoAvailable(state)) return;
+    set({ ...state.undo.before, document: withUpdatedTimestamp(state.undo.before.document), undo: null, saveStatus: 'saving' });
+  },
+  dismissUndo: () => set({ undo: null }),
+  };
+});
 
 function getInitialActiveSection(document: CVDocument): SectionId {
   if (document.experience.length > 0) return 'experience';

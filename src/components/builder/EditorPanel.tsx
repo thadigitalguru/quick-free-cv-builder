@@ -292,8 +292,8 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'down')} disabled={index === document.experience.length - 1}>Down</Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateExperience(item.id)}><Copy className="h-4 w-4" /></Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteExperience(item.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this role" title="Duplicate this role" onClick={() => duplicateExperience(item.id)}><Copy className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this role" title="Delete this role" onClick={() => deleteExperience(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
           <div className="mt-3 flex justify-end">
@@ -367,8 +367,8 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'down')} disabled={index === document.education.length - 1}>Down</Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateEducation(item.id)}><Copy className="h-4 w-4" /></Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteEducation(item.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this education entry" title="Duplicate this education entry" onClick={() => duplicateEducation(item.id)}><Copy className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this education entry" title="Delete this education entry" onClick={() => deleteEducation(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
           <div className="mt-3 flex justify-end">
@@ -485,8 +485,8 @@ function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'down')} disabled={index === document.projects.length - 1}>Down</Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateProject(item.id)}><Copy className="h-4 w-4" /></Button>
-              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteProject(item.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this project" title="Duplicate this project" onClick={() => duplicateProject(item.id)}><Copy className="h-4 w-4" /></Button>
+              <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this project" title="Delete this project" onClick={() => deleteProject(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
           <div className="mt-3 flex justify-end">
@@ -537,8 +537,8 @@ function LanguagesForm() {
           <div className="flex gap-2">
             <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveLanguage(item.id, 'up')} disabled={index === 0}>Up</Button>
             <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveLanguage(item.id, 'down')} disabled={index === document.languages.length - 1}>Down</Button>
-            <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateLanguage(item.id)}><Copy className="h-4 w-4" /></Button>
-            <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteLanguage(item.id)}><Trash2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this language" title="Duplicate this language" onClick={() => duplicateLanguage(item.id)}><Copy className="h-4 w-4" /></Button>
+            <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this language" title="Delete this language" onClick={() => deleteLanguage(item.id)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
       ))}
@@ -604,8 +604,8 @@ function SimpleSectionForm({ section, title }: { section: 'certifications' | 'vo
             <Field label="Details"><Input value={item.details} onChange={(e) => updateSimpleItem(section, item.id, { details: e.target.value })} placeholder={simpleSectionExamples[section].details} /></Field>
           </div>
           <div className="mt-3 flex justify-end gap-2">
-            <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateSimpleItem(section, item.id)}><Copy className="h-4 w-4" /></Button>
-            <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" onClick={() => deleteSimpleItem(section, item.id)}><Trash2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this entry" title="Duplicate this entry" onClick={() => duplicateSimpleItem(section, item.id)}><Copy className="h-4 w-4" /></Button>
+            <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this entry" title="Delete this entry" onClick={() => deleteSimpleItem(section, item.id)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
       ))}
