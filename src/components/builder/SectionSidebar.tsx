@@ -80,7 +80,7 @@ export default function SectionSidebar() {
   return (
     <aside className="relative rounded-[2rem] border border-[#d9e2ef] bg-transparent p-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <div className="px-2 pb-3 pt-6 lg:pt-8">
-        <h3 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">SECTIONS</h3>
+        <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">SECTIONS</h2>
         <div className="mt-3 rounded-[14px] border border-[#d9e2ef] bg-white px-3.5 py-3">
           <div className="flex items-center justify-between text-sm font-semibold text-[#34425c]">
             <span id="essentials-label">Essentials</span>
@@ -110,7 +110,7 @@ export default function SectionSidebar() {
             <p className="mt-2.5 text-sm text-emerald-700">Ready to preview and export.</p>
           )}
         </div>
-        <p className="mt-2 hidden text-xs text-[#8a97ac] lg:block">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
+        <p className="mt-2 hidden text-xs text-[#5d6b84] lg:block">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
       </div>
 
       <nav aria-label="CV sections" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:hidden">
@@ -304,7 +304,7 @@ export default function SectionSidebar() {
               >
                 <span>
                   {section.label}
-                  {getSectionStatus(document, section.id) === 'complete' && <span className="ml-2 text-xs font-normal text-[#8a97ac]">hidden, has content</span>}
+                  {getSectionStatus(document, section.id) === 'complete' && <span className="ml-2 text-xs font-normal text-[#5d6b84]">hidden, has content</span>}
                 </span>
                 <Plus className="h-4 w-4 shrink-0 text-[#8aa0be]" />
               </button>

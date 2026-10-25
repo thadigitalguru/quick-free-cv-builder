@@ -1,5 +1,13 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import { createContext, useContext, type ButtonHTMLAttributes, type InputHTMLAttributes, type TextareaHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 import { cn } from '../../utils/dom';
+
+/** Set by a form field so its control is tied to the visible label and hint without wiring ids by hand. */
+export const FieldContext = createContext<{ id: string; describedBy?: string } | null>(null);
+
+const useFieldProps = (props: { id?: string; 'aria-describedby'?: string }) => {
+  const field = useContext(FieldContext);
+  return { id: props.id ?? field?.id, 'aria-describedby': props['aria-describedby'] ?? field?.describedBy };
+};
 
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' }) {
   const styles = {
@@ -12,19 +20,23 @@ export function Button({ className = '', variant = 'primary', ...props }: Button
 }
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} />;
+  return <input className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} {...useFieldProps(props)} />;
 }
 
 export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} />;
+  return <textarea className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} {...useFieldProps(props)} />;
 }
 
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} />;
+  return <select className={cn('w-full rounded-2xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100', className)} {...props} {...useFieldProps(props)} />;
 }
 
-export function Label({ children }: { children: ReactNode }) {
-  return <label className="mb-1.5 block text-sm font-medium text-slate-700">{children}</label>;
+export function Label({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-slate-700">
+      {children}
+    </label>
+  );
 }
 
 export function Pill({ children }: { children: ReactNode }) {

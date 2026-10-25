@@ -162,6 +162,7 @@ export default function BuilderPage() {
 
   return (
     <main className="min-h-screen bg-[#f5f7fc] text-ink">
+      <h1 className="sr-only">CV builder</h1>
       <TopBar
         activeView={viewMode}
         onChangeView={setViewMode}
@@ -258,8 +259,8 @@ export default function BuilderPage() {
                 </div>
               )}
               <div>
-                <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">LIVE PREVIEW</h2>
-                <p className="text-[15px] text-[#8b97aa]">This preview matches the PDF export.</p>
+                <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">LIVE PREVIEW</h2>
+                <p className="text-[15px] text-[#5d6b84]">This preview matches the PDF export.</p>
                 {hasContent && pageCount !== null && (
                   <p className="mt-1 text-sm text-[#5d6b84]" aria-live="polite">
                     <span className="font-semibold text-[#374151]">
@@ -270,11 +271,9 @@ export default function BuilderPage() {
                 )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-                <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1" role="tablist" aria-label="Preview mode">
+                <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1" role="group" aria-label="Preview mode">
                   <button
                     type="button"
-                    role="tab"
-                    aria-selected={previewMode === 'standard'}
                     aria-pressed={previewMode === 'standard'}
                     aria-controls="resume-preview-root"
                     className={[
@@ -287,8 +286,6 @@ export default function BuilderPage() {
                   </button>
                   <button
                     type="button"
-                    role="tab"
-                    aria-selected={previewMode === 'ats'}
                     aria-pressed={previewMode === 'ats'}
                     aria-controls="resume-preview-root"
                     className={[
@@ -480,33 +477,21 @@ function AdvancedOptionsCard({
 }) {
   return (
     <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white px-4 py-3 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:px-5 lg:py-4">
-      <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={onToggle} aria-expanded={open}>
-        <div className="flex items-start gap-2.5">
-          <ChevronDown className={`mt-0.5 h-4.5 w-4.5 shrink-0 text-[#6c7a92] transition ${open ? 'rotate-180' : ''}`} />
-          <div>
-            <h2 className="text-[16px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">Advanced options</h2>
-            <p className="mt-0.5 text-[14px] text-[#7f8da4]">Template and font sizes. The defaults work for most CVs.</p>
-          </div>
-        </div>
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(event) => {
-            event.stopPropagation();
-            onReset();
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              event.stopPropagation();
-              onReset();
-            }
-          }}
-          className="pt-1 text-[15px] font-semibold text-[#2f5ee2]"
-        >
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 flex-1">
+          <button type="button" className="flex w-full items-start gap-2.5 text-left" onClick={onToggle} aria-expanded={open}>
+            <ChevronDown className={`mt-0.5 h-4.5 w-4.5 shrink-0 text-[#5d6b84] transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+            <span>
+              <span className="block text-[16px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">Advanced options</span>
+              <span className="mt-0.5 block text-[14px] font-normal normal-case tracking-normal text-[#5d6b84]">Template and font sizes. The defaults work for most CVs.</span>
+            </span>
+          </button>
+        </h2>
+        {/* A separate button: a control nested inside the toggle can't be reached reliably. */}
+        <button type="button" onClick={onReset} className="shrink-0 pt-1 text-[15px] font-semibold text-[#2f5ee2]">
           Restore defaults
-        </span>
-      </button>
+        </button>
+      </div>
 
       {open && (
         <div className="mt-4 space-y-6">
@@ -514,14 +499,14 @@ function AdvancedOptionsCard({
             <h3 className="text-[16px] font-semibold text-[#374151]">Template</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Preview style</label>
-                <Select value={templateId} onChange={(event) => onChangeTemplate(event.target.value as 'classic' | 'modern' | 'compact')}>
+                <label htmlFor="template-select" className="mb-1.5 block text-sm font-medium text-slate-700">Preview style</label>
+                <Select id="template-select" value={templateId} onChange={(event) => onChangeTemplate(event.target.value as 'classic' | 'modern' | 'compact')}>
                   {Object.entries(templateLabelMap).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </Select>
               </div>
-              <p className="text-sm text-[#6f7c90]">
+              <p className="text-sm text-[#5d6b84]">
                 {templateId === 'compact'
                   ? 'Compact tightens spacing in the editor and export.'
                   : 'Switch between the available preview styles.'}
@@ -628,9 +613,9 @@ function TypographyField({
   return (
     <div>
       <h4 className="text-[16px] font-semibold text-[#374151]">{label}</h4>
-      <p className="mt-1 text-[14px] text-[#6f7c90]">{description}</p>
+      <p className="mt-1 text-[14px] text-[#5d6b84]">{description}</p>
       <div className="mt-3 flex items-center gap-2.5">
-        <button type="button" onClick={onMinus} className="grid h-[44px] w-[44px] place-items-center rounded-[12px] border border-[#cfd9e8] bg-white text-[28px] leading-none text-[#6f7c90] shadow-[0_1px_0_rgba(15,23,42,0.03)]">
+        <button type="button" onClick={onMinus} aria-label={`Decrease ${label.toLowerCase()}`} className="grid h-[44px] w-[44px] place-items-center rounded-[12px] border border-[#cfd9e8] bg-white text-[28px] leading-none text-[#5d6b84] shadow-[0_1px_0_rgba(15,23,42,0.03)]">
           <Minus className="h-5 w-5" />
         </button>
         <input
@@ -638,11 +623,12 @@ function TypographyField({
           value={value}
           min={min}
           max={max}
+          aria-label={`${label} in pixels`}
           onChange={(event) => onInput(Number(event.target.value) || min)}
           className="h-[44px] w-full rounded-[12px] border border-[#cfd9e8] bg-white px-3.5 text-[15px] text-[#334155] outline-none focus:border-brand-500"
         />
-        <span className="text-[14px] font-medium text-[#6f7c90]">px</span>
-        <button type="button" onClick={onPlus} className="grid h-[44px] w-[44px] place-items-center rounded-[12px] border border-[#cfd9e8] bg-white text-[#6f7c90] shadow-[0_1px_0_rgba(15,23,42,0.03)]">
+        <span className="text-[14px] font-medium text-[#5d6b84]">px</span>
+        <button type="button" onClick={onPlus} aria-label={`Increase ${label.toLowerCase()}`} className="grid h-[44px] w-[44px] place-items-center rounded-[12px] border border-[#cfd9e8] bg-white text-[#5d6b84] shadow-[0_1px_0_rgba(15,23,42,0.03)]">
           <Plus className="h-5 w-5" />
         </button>
       </div>

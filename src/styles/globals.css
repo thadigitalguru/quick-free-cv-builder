@@ -10,6 +10,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Keyboard users must see where focus is; mouse and touch focus stay unstyled. */
+:where(button, a[href], summary, [role='button'], [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -63,8 +69,15 @@ select {
 
 /* Hints for empty fields: visible while editing, never exported. */
 .cv-placeholder {
-  opacity: 0.45;
+  /* Readable (4.5:1+) but clearly a hint: muted, italic, dashed underline. */
+  color: #5d6b84 !important;
   font-style: italic;
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 4px;
+}
+
+[data-template='modern'][data-preview-mode='standard'] .cv-placeholder {
+  color: rgba(255, 255, 255, 0.72) !important;
 }
 
 .pdf-export .cv-placeholder,

@@ -64,7 +64,7 @@ export default function TopBar({
       : 'border-amber-200 bg-amber-50 text-amber-800';
 
   return (
-    <header className="sticky top-0 z-30 bg-[#f5f7fc]/90 px-4 pb-3 pt-4 backdrop-blur md:pt-6">
+    <header className="z-30 bg-[#f5f7fc] px-4 pb-3 pt-4 md:sticky md:top-0 md:pt-6">
       <div className="mx-auto flex max-w-[1750px] flex-col gap-3 md:flex-row md:items-center md:justify-center">
         <div className="flex w-full max-w-[1680px] rounded-full border border-[#d9e2ef] bg-white p-1 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
           <button
@@ -74,7 +74,7 @@ export default function TopBar({
             aria-controls="builder-workspace"
             className={[
               'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
-              activeView === 'edit' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#66768f] hover:text-[#111827]',
+              activeView === 'edit' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#5d6b84] hover:text-[#111827]',
             ].join(' ')}
           >
             <span className="hidden sm:inline">CV Builder</span>
@@ -87,7 +87,7 @@ export default function TopBar({
             aria-controls="builder-workspace"
             className={[
               'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
-              activeView === 'preview' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#66768f] hover:text-[#111827]',
+              activeView === 'preview' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#5d6b84] hover:text-[#111827]',
             ].join(' ')}
           >
             <span className="hidden sm:inline">Live preview</span>

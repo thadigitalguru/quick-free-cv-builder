@@ -356,7 +356,8 @@ function ContactLine({
   // Empty contact rows guide editing on screen but are left out of PDFs and print.
   return (
     <div className={value ? undefined : 'cv-placeholder-line'}>
-      <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>{label}</span>{' '}
+      {/* Modern's dark header needs light labels; slate-700 there was almost invisible (1.9:1), in the PDF too. */}
+      <span className={mode === 'ats' ? 'font-semibold text-black' : isModern ? 'font-semibold text-white' : 'font-semibold text-slate-700'}>{label}</span>{' '}
       {href && value ? (
         <a className={linkClass} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined}>
           {text}

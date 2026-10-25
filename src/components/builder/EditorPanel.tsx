@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Copy, Info, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
-import { Button, Input, Label, Select, Textarea } from '../shared/controls';
+import { Button, FieldContext, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 import { prepareProfilePhoto } from '../../utils/files';
 import { PHOTO_ZOOM_MAX, PHOTO_ZOOM_MIN, useCroppedPhoto } from '../../utils/photoCrop';
@@ -120,7 +120,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
             placeholder="2–4 lines summarizing your experience and goals. Markdown supported."
             className="min-h-[108px] rounded-[12px] border-[#cbd6e4] px-4 py-3 text-[15px] placeholder:text-[#a1aab8]"
           />
-          <p className="mt-2 flex items-center gap-2 text-[13px] text-[#8390a6]">
+          <p className="mt-2 flex items-center gap-2 text-[13px] text-[#5d6b84]">
             Tip: use <strong className="font-semibold text-[#5b6780]">**bold**</strong> for emphasis and <strong className="font-semibold text-[#5b6780]">*bullets*</strong> if needed.
             <Info className="h-4 w-4 shrink-0" />
           </p>
@@ -199,7 +199,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
               {croppedPhoto && <img src={croppedPhoto} alt="Profile photo as it appears on your CV" className="h-full w-full" />}
             </div>
           ) : (
-            <div className="grid h-[142px] w-[142px] place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc] text-[14px] font-medium text-[#96a3bb]">
+            <div className="grid h-[142px] w-[142px] place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc] text-[14px] font-medium text-[#5d6b84]">
               No photo
             </div>
           )}
@@ -225,7 +225,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
             >
               Upload photo
             </Button>
-            <p className="mt-4 text-center text-[13px] leading-5 text-[#8a97ac]">Recommended: use a square image, at least 400×400px.</p>
+            <p className="mt-4 text-center text-[13px] leading-5 text-[#5d6b84]">Recommended: use a square image, at least 400×400px.</p>
           </div>
 
           {info.profilePhoto && (
@@ -257,7 +257,7 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
                 format={(value) => `${Math.round(value)}%`}
                 onChange={(value) => updatePersonalInfo('photoY', value)}
               />
-              <p className="text-xs leading-5 text-[#7f8da4]">Position moves the frame once the photo is zoomed in or isn't square. The photo appears in Standard exports only. ATS exports leave it out.</p>
+              <p className="text-xs leading-5 text-[#5d6b84]">Position moves the frame once the photo is zoomed in or isn't square. The photo appears in Standard exports only. ATS exports leave it out.</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" className="h-10 flex-1 rounded-[12px] border-[#c3cde0] bg-white px-3 text-xs font-semibold text-[#374151]" onClick={() => {
                   updatePersonalInfo('photoZoom', 1);
@@ -287,17 +287,14 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
     <div className="space-y-4">
       {document.experience.map((item, index) => (
         <div key={item.id} className="rounded-2xl border border-border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="font-semibold">Experience {index + 1}</h4>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="min-w-0 font-semibold">Experience {index + 1}</h4>
+            <div className="flex flex-wrap items-center gap-1">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveExperience(item.id, 'down')} disabled={index === document.experience.length - 1}>Down</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this role" title="Duplicate this role" onClick={() => duplicateExperience(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this role" title="Delete this role" onClick={() => deleteExperience(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('experience')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Role" hint="Your job title in this role."><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} placeholder="e.g. Customer Success Manager" /></Field>
@@ -327,7 +324,7 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
               <Field label="Current role">
                 <label className="inline-flex items-center gap-2 text-sm text-slate-600">
                   <input type="checkbox" checked={item.isCurrent} onChange={(e) => updateExperience(item.id, { isCurrent: e.target.checked })} />
-                  Yes
+                  I currently work here
                 </label>
               </Field>
               {item.isCurrent && <p className="mt-1 text-xs text-slate-500">Shown as Present in the CV preview.</p>}
@@ -348,7 +345,12 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
           </div>
         </div>
       ))}
-      <Button onClick={addExperience} variant="secondary"><Plus className="h-4 w-4" /> Add experience</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button onClick={addExperience} variant="secondary"><Plus className="h-4 w-4" /> Add experience</Button>
+        {document.experience.length > 0 && (
+          <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('experience')}>Clear section</Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -362,17 +364,14 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
     <div className="space-y-4">
       {document.education.map((item, index) => (
         <div key={item.id} className="rounded-2xl border border-border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="font-semibold">Education {index + 1}</h4>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="min-w-0 font-semibold">Education {index + 1}</h4>
+            <div className="flex flex-wrap items-center gap-1">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveEducation(item.id, 'down')} disabled={index === document.education.length - 1}>Down</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this education entry" title="Duplicate this education entry" onClick={() => duplicateEducation(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this education entry" title="Delete this education entry" onClick={() => deleteEducation(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('education')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Institution" hint="School, college, or university."><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} placeholder="e.g. University of Nairobi" /></Field>
@@ -402,7 +401,12 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
           </div>
         </div>
       ))}
-      <Button onClick={addEducation} variant="secondary"><Plus className="h-4 w-4" /> Add education</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button onClick={addEducation} variant="secondary"><Plus className="h-4 w-4" /> Add education</Button>
+        {document.education.length > 0 && (
+          <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('education')}>Clear section</Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -480,17 +484,14 @@ function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[
     <div className="space-y-4">
       {document.projects.map((item, index) => (
         <div key={item.id} className="rounded-2xl border border-border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="font-semibold">Project {index + 1}</h4>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="min-w-0 font-semibold">Project {index + 1}</h4>
+            <div className="flex flex-wrap items-center gap-1">
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'up')} disabled={index === 0}>Up</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => moveProject(item.id, 'down')} disabled={index === document.projects.length - 1}>Down</Button>
               <Button variant="ghost" className="px-3 py-2 text-xs" aria-label="Duplicate this project" title="Duplicate this project" onClick={() => duplicateProject(item.id)}><Copy className="h-4 w-4" /></Button>
               <Button variant="ghost" className="px-3 py-2 text-xs text-rose-600" aria-label="Delete this project" title="Delete this project" onClick={() => deleteProject(item.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('projects')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Name"><Input value={item.name} onChange={(e) => updateProject(item.id, { name: e.target.value })} placeholder="e.g. Online booking app" /></Field>
@@ -511,7 +512,12 @@ function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[
           </div>
         </div>
       ))}
-      <Button onClick={addProject} variant="secondary"><Plus className="h-4 w-4" /> Add project</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button onClick={addProject} variant="secondary"><Plus className="h-4 w-4" /> Add project</Button>
+        {document.projects.length > 0 && (
+          <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('projects')}>Clear section</Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -665,13 +671,18 @@ const simpleSectionExamples: Record<'certifications' | 'volunteer' | 'awards' | 
 };
 
 function Field({ label, children, error, hint }: { label: string; children: ReactNode; error?: string | null; hint?: string }) {
+  const id = useId();
+  const noteId = `${id}-note`;
+  const note = error || hint;
   return (
-    <div>
-      <Label>{label}</Label>
-      {children}
-      {hint && !error && <p className="mt-1.5 text-xs text-slate-500">{hint}</p>}
-      {error && <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
-    </div>
+    <FieldContext.Provider value={{ id, describedBy: note ? noteId : undefined }}>
+      <div>
+        <Label htmlFor={id}>{label}</Label>
+        {children}
+        {hint && !error && <p id={noteId} className="mt-1.5 text-xs text-slate-500">{hint}</p>}
+        {error && <p id={noteId} className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
+      </div>
+    </FieldContext.Provider>
   );
 }
 
