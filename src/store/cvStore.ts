@@ -298,7 +298,8 @@ export const useCVStore = create<CVState>((set, get) => ({
     set((state) => ({
       document: withUpdatedTimestamp({
         ...state.document,
-        personalInfo: { ...state.document.personalInfo, profilePhoto: value },
+        // A new photo starts centred; the previous photo's crop wouldn't fit it.
+        personalInfo: { ...state.document.personalInfo, profilePhoto: value, photoZoom: 1, photoX: 50, photoY: 50 },
       }),
       saveStatus: 'saving',
     })),

@@ -128,3 +128,21 @@ describe('section visibility', () => {
     expect(state.document.sectionVisibility[state.activeSection]).toBe(true);
   });
 });
+
+describe('profile photo', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('starts a newly uploaded photo centred instead of reusing the old crop', async () => {
+    installMockWindow(createMockStorage().storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updateProfilePhoto('data:image/jpeg;base64,first');
+    useCVStore.getState().updatePersonalInfo('photoZoom', 2.5);
+    useCVStore.getState().updatePersonalInfo('photoX', 10);
+    useCVStore.getState().updateProfilePhoto('data:image/jpeg;base64,second');
+    const info = useCVStore.getState().document.personalInfo;
+    expect([info.profilePhoto, info.photoZoom, info.photoX, info.photoY]).toEqual(['data:image/jpeg;base64,second', 1, 50, 50]);
+  });
+});

@@ -4,6 +4,7 @@ import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
 import { joinCsvList, parseCsvList } from '../../utils/cvUtils';
 import { prepareProfilePhoto } from '../../utils/files';
+import { PHOTO_ZOOM_MAX, PHOTO_ZOOM_MIN, useCroppedPhoto } from '../../utils/photoCrop';
 import { cn } from '../../utils/dom';
 import { fieldKey, groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 
@@ -78,6 +79,7 @@ const buildIssueLookup = (issues: ValidationIssue[]) => new Map(issues.map((issu
 function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIssue[] }) {
   const { document, updatePersonalInfo, updateProfilePhoto, removeProfilePhoto } = useCVStore();
   const info = document.personalInfo;
+  const croppedPhoto = useCroppedPhoto(info.profilePhoto, { zoom: info.photoZoom, x: info.photoX, y: info.photoY });
   const issueMap = useMemo(() => buildIssueLookup(validationIssues), [validationIssues]);
   const fieldError = (field: string) => issueMap.get(field);
 
@@ -193,16 +195,8 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
         <div className="mt-6 flex flex-col items-center lg:items-start">
           {info.profilePhoto ? (
             <div className="relative h-[142px] w-[142px] overflow-hidden rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc]">
-              <img
-                src={info.profilePhoto}
-                alt="Profile preview"
-                className="h-full w-full object-cover"
-                style={{
-                  transform: `translate(${info.photoX - 50}%, ${info.photoY - 50}%) scale(${info.photoZoom})`,
-                  transformOrigin: 'center center',
-                  objectPosition: '50% 50%',
-                }}
-              />
+              {/* The same baked crop the CV and PDF use, so what you frame here is what exports. */}
+              {croppedPhoto && <img src={croppedPhoto} alt="Profile photo as it appears on your CV" className="h-full w-full" />}
             </div>
           ) : (
             <div className="grid h-[142px] w-[142px] place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc] text-[14px] font-medium text-[#96a3bb]">
@@ -238,28 +232,32 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
             <div className="mt-6 w-full max-w-[260px] space-y-4 rounded-[16px] border border-[#e3eaf4] bg-[#f8fbff] p-4">
               <PhotoControl
                 label="Zoom"
-                value={info.photoZoom}
-                min={0.8}
-                max={2.4}
+                value={Math.min(PHOTO_ZOOM_MAX, Math.max(PHOTO_ZOOM_MIN, info.photoZoom))}
+                min={PHOTO_ZOOM_MIN}
+                max={PHOTO_ZOOM_MAX}
                 step={0.05}
+                format={(value) => `${value.toFixed(2)}×`}
                 onChange={(value) => updatePersonalInfo('photoZoom', value)}
               />
               <PhotoControl
-                label="X position"
+                label="Left ↔ right"
                 value={info.photoX}
                 min={0}
                 max={100}
                 step={1}
+                format={(value) => `${Math.round(value)}%`}
                 onChange={(value) => updatePersonalInfo('photoX', value)}
               />
               <PhotoControl
-                label="Y position"
+                label="Up ↕ down"
                 value={info.photoY}
                 min={0}
                 max={100}
                 step={1}
+                format={(value) => `${Math.round(value)}%`}
                 onChange={(value) => updatePersonalInfo('photoY', value)}
               />
+              <p className="text-xs leading-5 text-[#7f8da4]">Position moves the frame once the photo is zoomed in or isn't square. The photo appears in Standard exports only. ATS exports leave it out.</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" className="h-10 flex-1 rounded-[12px] border-[#c3cde0] bg-white px-3 text-xs font-semibold text-[#374151]" onClick={() => {
                   updatePersonalInfo('photoZoom', 1);
@@ -683,6 +681,7 @@ function PhotoControl({
   min,
   max,
   step,
+  format,
   onChange,
 }: {
   label: string;
@@ -690,15 +689,16 @@ function PhotoControl({
   min: number;
   max: number;
   step: number;
+  format: (value: number) => string;
   onChange: (value: number) => void;
 }) {
-  const valueText = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  const valueText = format(value);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3 text-sm font-medium text-[#425067]">
         <span>{label}</span>
-        <span className="tabular-nums text-[#6e7f99]" aria-live="polite">
+        <span className="tabular-nums text-[#6e7f99]" aria-hidden="true">
           {valueText}
         </span>
       </div>
@@ -709,10 +709,7 @@ function PhotoControl({
         step={step}
         value={value}
         aria-label={label}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        aria-valuetext={`${label} ${valueText}`}
+        aria-valuetext={valueText}
         onChange={(event) => onChange(Number(event.target.value))}
         className="mt-2 w-full accent-brand-600"
       />

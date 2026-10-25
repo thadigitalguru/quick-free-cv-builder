@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCVStore } from '../../store/cvStore';
 import { formatRange, getVisibleOrder, experienceSummary, projectSummary } from '../../utils/cvUtils';
 import { sectionLabelMap } from '../../data/sectionMeta';
+import { useCroppedPhoto } from '../../utils/photoCrop';
 
 type PreviewTypography = {
   fullName: number;
@@ -72,6 +73,11 @@ export default function ResumePreview({
   const source = isBlank ? samplePreview ?? cvDocument : cvDocument;
   const visibleOrder = isBlank ? (['summary', 'experience'] as const) : getVisibleOrder(cvDocument);
   const isDemoPreview = isBlank;
+  const { profilePhoto, photoZoom, photoX, photoY } = cvDocument.personalInfo;
+  const croppedPhoto = useCroppedPhoto(profilePhoto, { zoom: photoZoom, x: photoX, y: photoY });
+  // ATS parsers can't read photos and some reject CVs with images, so ATS mode leaves it out.
+  const showPhoto = mode !== 'ats' && !isBlank && Boolean(croppedPhoto);
+  const photoSize = isCompact ? 76 : 92;
 
   return (
     <div className="h-full overflow-auto bg-transparent">
@@ -89,7 +95,17 @@ export default function ResumePreview({
 
         <header className={`pb-5 ${mode === 'ats' ? 'border-b border-black' : isModern ? 'border-b border-white/20' : 'border-b border-slate-200'}`}>
           <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
-            <div className="flex min-w-0 gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              {showPhoto && (
+                <img
+                  src={croppedPhoto!}
+                  alt={source.personalInfo.fullName ? `Photo of ${source.personalInfo.fullName}` : 'Profile photo'}
+                  width={photoSize}
+                  height={photoSize}
+                  className="shrink-0"
+                  style={{ width: photoSize, height: photoSize }}
+                />
+              )}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <h1
                   className={`font-extrabold leading-none tracking-[-0.03em] ${mode === 'ats' || !isModern ? 'text-inherit' : 'text-white'}`}
