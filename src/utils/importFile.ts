@@ -100,10 +100,14 @@ export const orderPdfColumns = (items: PdfTextItem[]): PdfTextItem[] => {
   return [...readingOrder(header), breakItem, ...readingOrder(columns[0]), breakItem, ...readingOrder(columns[1])];
 };
 
+const itemFontSize = (item: PdfTextItem) => (item.transform ? Math.hypot(item.transform[2], item.transform[3]) || Math.abs(item.transform[3]) : 0);
+
 /** Rebuilds line breaks from pdf.js text items so section headings and bullets survive extraction. */
 export const pdfItemsToText = (rawItems: PdfTextItem[]) => {
   const items = orderPdfColumns(rawItems);
-  let output = '';
+  const lines: { text: string; size: number }[] = [{ text: '', size: 0 }];
+  const currentLine = () => lines[lines.length - 1];
+  const breakLine = () => lines.push({ text: '', size: 0 });
   let lastY: number | null = null;
   let lastRight: number | null = null;
   items.forEach((item) => {
@@ -111,17 +115,32 @@ export const pdfItemsToText = (rawItems: PdfTextItem[]) => {
     if (typeof item.str !== 'string') return;
     const x = item.transform?.[4];
     const y = item.transform?.[5];
-    if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 2 && !output.endsWith('\n')) {
-      output += '\n';
-    } else if (lastRight !== null && x !== undefined && x - lastRight > 1 && output && !/\s$/.test(output) && !/^\s/.test(item.str)) {
-      output += ' ';
+    if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 2 && currentLine().text !== '') {
+      breakLine();
+    } else if (lastRight !== null && x !== undefined && x - lastRight > 1 && currentLine().text && !/\s$/.test(currentLine().text) && !/^\s/.test(item.str)) {
+      currentLine().text += ' ';
     }
-    output += item.str;
-    if (item.hasEOL) output += '\n';
+    currentLine().text += item.str;
+    if (item.str.trim()) currentLine().size = Math.max(currentLine().size, itemFontSize(item));
+    if (item.hasEOL) breakLine();
     if (y !== undefined) lastY = y;
     lastRight = x !== undefined && item.width !== undefined ? x + item.width : null;
   });
-  return output;
+
+  // A long name in a narrow sidebar wraps ("Amina" / "Wanjiru"). Rejoin consecutive short lines set in
+  // the page's largest type when that is clearly bigger than the body text.
+  const filled = lines.filter((line) => line.text.trim());
+  const sizes = filled.map((line) => line.size).sort((a, b) => a - b);
+  const largest = sizes[sizes.length - 1] ?? 0;
+  const median = sizes[Math.floor(sizes.length / 2)] ?? 0;
+  const isNamePart = (line: { text: string; size: number }) =>
+    largest >= median * 1.4 && line.size >= largest - 0.5 && line.text.trim().length <= 30 && !/[\d@]/.test(line.text);
+  const merged: string[] = [];
+  filled.forEach((line, index) => {
+    if (index > 0 && isNamePart(line) && isNamePart(filled[index - 1])) merged[merged.length - 1] += ` ${line.text.trim()}`;
+    else merged.push(line.text);
+  });
+  return merged.join('\n');
 };
 
 const detectKind = (file: File): ImportSourceKind => {

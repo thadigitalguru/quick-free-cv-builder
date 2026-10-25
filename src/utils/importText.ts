@@ -66,6 +66,16 @@ const contactHeadings = new Set(['contact', 'contacts', 'contact details', 'cont
 const headingLookup = new Map<string, SectionKey>(
   (Object.entries(headingAliases) as [SectionKey, string[]][]).flatMap(([key, aliases]) => aliases.map((alias) => [alias, key] as const)),
 );
+// Letter-spaced headings lose their word gaps in extraction ("W O R K E X P E R I E N C E").
+const compactHeadingLookup = new Map<string, SectionKey>([...headingLookup].map(([alias, key]) => [alias.replace(/\s+/g, ''), key]));
+
+/** "C O N T A C T" → "CONTACT": letter-spaced headings come out of PDFs one letter at a time. */
+export const collapseLetterSpacing = (line: string) => {
+  const tokens = line.trim().split(/\s+/);
+  if (tokens.length < 4 || !tokens.every((token) => /^[A-Za-z&]$/.test(token))) return line;
+  // A wider gap, when the PDF kept one, still separates words.
+  return line.trim().split(/\s{2,}/).map((word) => word.replace(/\s+/g, '')).join(' ');
+};
 
 const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/;
@@ -110,7 +120,7 @@ const detectHeading = (line: string): SectionKey | 'unknown' | 'contact' | null 
   if (line.length > 40) return null;
   const key = toHeadingKey(line);
   if (contactHeadings.has(key)) return 'contact';
-  const known = headingLookup.get(key);
+  const known = headingLookup.get(key) ?? compactHeadingLookup.get(key.replace(/\s+/g, ''));
   if (known) return known;
   if (unsupportedHeadings.has(key)) return 'unknown';
   // ALL-CAPS short lines with no contact data read as headings we don't support; keep their content visible.
@@ -161,6 +171,19 @@ const groupEntries = (lines: string[], allowSingleYear: boolean): { entries: Raw
     return { entries: lines.length ? [{ header: [], dateStart: '', dateEnd: '', body: lines }] : [], anchored: false };
   }
 
+  const textBesideDate = (line: string) => {
+    const range = line.match(dateRangeRegex);
+    return line
+      .replace(range ? range[0] : (line.match(singleYearRegex)?.[0] ?? ''), '')
+      .replace(/[|,–—-]\s*$/, '')
+      .replace(/^\s*[|,–—-]/, '')
+      .replace(/\(\s*\)/, '')
+      .trim();
+  };
+  // "Role, Company    Mar 2021 – Present" on one line from the very first entry: every entry starts
+  // at its dated line. Lookahead would otherwise take unbulleted achievements for the next header.
+  const oneLineHeaders = !isBullet(lines[0] ?? '') && hasDate(lines[0] ?? '') && textBesideDate(lines[0]) !== '';
+
   const entries: RawEntry[] = [];
   let current: RawEntry | null = null;
   let currentHasDate = false;
@@ -180,7 +203,13 @@ const groupEntries = (lines: string[], allowSingleYear: boolean): { entries: Raw
       return;
     }
 
-    if (currentHasDate) {
+    if (currentHasDate && oneLineHeaders) {
+      if (hasDate(line)) startEntry();
+      else {
+        entry.body.push(line);
+        return;
+      }
+    } else if (currentHasDate) {
       // A plain line after a dated entry starts a new entry only if a date line follows before any bullet.
       const upcoming = lines.slice(index, index + 3);
       const nextBullet = upcoming.findIndex(isBullet);
@@ -202,12 +231,7 @@ const groupEntries = (lines: string[], allowSingleYear: boolean): { entries: Raw
       } else {
         target.dateEnd = line.match(singleYearRegex)?.[0] ?? '';
       }
-      const rest = line
-        .replace(range ? range[0] : (line.match(singleYearRegex)?.[0] ?? ''), '')
-        .replace(/[|,–—-]\s*$/, '')
-        .replace(/^\s*[|,–—-]/, '')
-        .replace(/\(\s*\)/, '')
-        .trim();
+      const rest = textBesideDate(line);
       if (rest) target.header.push(rest);
       currentHasDate = true;
     } else {
@@ -390,7 +414,7 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
   const text = normalizeExtractedText(rawText);
   const lines = text
     .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .map((line) => collapseLetterSpacing(line).replace(/\s+/g, ' ').trim())
     // Some PDFs emit list markers as their own line.
     .filter((line) => line && !/^[•●▪◦‣∙·*–—-]$/.test(line));
 
