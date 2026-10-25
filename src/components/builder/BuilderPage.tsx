@@ -250,7 +250,6 @@ export default function BuilderPage() {
           </div>
         </div>
 
-        {blockingIssue && viewMode === 'edit' && <p className="mt-4 text-sm text-rose-600">Please add your full name before exporting the CV.</p>}
       </section>
     </main>
   );

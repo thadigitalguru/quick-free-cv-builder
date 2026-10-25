@@ -48,7 +48,7 @@ export default function TopBar({
   const exportLabel = exportReady
     ? 'Export ready'
     : blockingCount > 0
-      ? `${blockingCount} blocker${blockingCount === 1 ? '' : 's'}`
+      ? 'Name needed to export'
       : `${warningCount} warning${warningCount === 1 ? '' : 's'}`;
 
   const exportStyles = exportReady

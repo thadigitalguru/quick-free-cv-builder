@@ -11,6 +11,19 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
   const { activeSection } = useCVStore();
   const issuesBySection = groupIssuesBySection(validationIssues);
   const sectionIssues = issuesBySection[activeSection] ?? [];
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const previousSection = useRef(activeSection);
+
+  // On stacked (mobile) layouts the editor sits below the section list; bring it into view when the section changes.
+  useEffect(() => {
+    if (previousSection.current === activeSection) return;
+    previousSection.current = activeSection;
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    const heading = headingRef.current;
+    if (!heading) return;
+    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    heading.focus({ preventScroll: true });
+  }, [activeSection]);
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
@@ -31,7 +44,7 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
 
   return (
     <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white p-6 shadow-none">
-      <h3 className="mb-6 text-[22px] font-semibold tracking-[-0.02em] text-[#1f2937]">{heading}</h3>
+      <h3 ref={headingRef} tabIndex={-1} className="mb-6 scroll-mt-32 text-[22px] font-semibold tracking-[-0.02em] text-[#1f2937] outline-none">{heading}</h3>
 
       {/* Only this section's checks; overall progress lives in the sidebar. */}
       {sectionIssues.length > 0 && (
@@ -71,15 +84,15 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
       <div className="grid gap-5">
-        <Field label="Full Name *" error={fieldError('fullName')}>
+        {/* A missing name isn't an error while someone is still filling the form in; the Checks box covers it. */}
+        <Field label="Full Name *" hint="Needed before you can export.">
           <Input
             value={info.fullName}
             onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
             placeholder="Jane Doe"
             autoComplete="name"
-            aria-invalid={Boolean(fieldError('fullName'))}
             required
-            className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError('fullName') && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
+            className="h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]"
           />
         </Field>
 

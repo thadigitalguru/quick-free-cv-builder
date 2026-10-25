@@ -9,6 +9,8 @@ import { getEssentialProgress, getSectionStatus } from '../../utils/progress';
 export default function SectionSidebar() {
   const { document, activeSection, setActiveSection, moveSection, moveSectionToIndex, toggleSectionVisibility } = useCVStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  // On small screens the full reorder list pushes the editor off-screen, so it's tucked behind a toggle.
+  const [manageOpen, setManageOpen] = useState(false);
   const [draggedSectionId, setDraggedSectionId] = useState<SectionId | null>(null);
   const [dropTargetSectionId, setDropTargetSectionId] = useState<SectionId | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
@@ -111,6 +113,39 @@ export default function SectionSidebar() {
         <p className="mt-2 hidden text-xs text-[#8a97ac] lg:block">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
       </div>
 
+      <nav aria-label="CV sections" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:hidden">
+        {orderedSections.map((sectionId) => {
+          const active = activeSection === sectionId;
+          const complete = getSectionStatus(document, sectionId) === 'complete';
+          return (
+            <button
+              key={sectionId}
+              type="button"
+              onClick={() => setActiveSection(sectionId)}
+              aria-current={active ? 'true' : undefined}
+              className={cn(
+                'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition',
+                active ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#d9e2ef] bg-white text-[#34425c]',
+              )}
+            >
+              {complete && <Check className={cn('h-3.5 w-3.5', active ? 'text-emerald-300' : 'text-emerald-600')} aria-hidden="true" />}
+              {sectionLabelMap[sectionId]}
+              <span className="sr-only">{complete ? ', complete' : ', not started'}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <button
+        type="button"
+        className="mb-1 text-sm font-semibold text-[#45546e] underline-offset-2 hover:underline lg:hidden"
+        aria-expanded={manageOpen}
+        aria-controls="section-manager"
+        onClick={() => setManageOpen((value) => !value)}
+      >
+        {manageOpen ? 'Done managing sections' : 'Reorder, hide or add sections'}
+      </button>
+
+      <div id="section-manager" className={cn(manageOpen ? 'block' : 'hidden', 'lg:block')}>
       <div className="space-y-2.5">
         {orderedSections.map((sectionId, index) => {
           const meta = sectionDefaults.find((section) => section.id === sectionId)!;
@@ -272,6 +307,7 @@ export default function SectionSidebar() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </aside>
   );
