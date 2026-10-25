@@ -92,7 +92,7 @@ export default function BuilderPage() {
   const handleDownloadJson = async () => {
     try {
       const { buildCvFileName, downloadCvJson } = await import('../../utils/export');
-      downloadCvJson(cvDocument);
+      downloadCvJson(cvDocument, templateId);
       setExportError(null);
       return buildCvFileName(cvDocument, 'json');
     } catch (error) {

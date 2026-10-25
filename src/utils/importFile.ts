@@ -1,6 +1,6 @@
 import { parseImportedText } from './importText';
 import { normalizeImportedDocument } from './importDocument';
-import type { CVDocument, SectionId } from '../types/cv';
+import type { CVDocument, ResumeTemplateId, SectionId } from '../types/cv';
 import { prepareProfilePhoto } from './files';
 
 export type ImportProgressCallback = (message: string) => void;
@@ -21,7 +21,11 @@ export interface ImportReport {
 export interface ImportResult {
   document: CVDocument;
   report: ImportReport;
+  /** Template saved in a JSON backup, if any. */
+  templateId?: ResumeTemplateId;
 }
+
+const templateIds: ResumeTemplateId[] = ['classic', 'modern', 'compact'];
 
 export const MAX_PDF_PAGES = 20;
 
@@ -145,7 +149,10 @@ const importJson = (text: string, fileName: string): ImportResult | null => {
   }
   const document = normalizeImportedDocument(parsed);
   if (!document) return null;
-  return { document, report: { fileName, sourceKind: 'json', found: countFound(document), warnings: [], unplaced: [] } };
+  const record = parsed as Record<string, unknown>;
+  const rawTemplate = record.templateId ?? (record.document as Record<string, unknown> | undefined)?.templateId;
+  const templateId = templateIds.find((id) => id === rawTemplate);
+  return { document, templateId, report: { fileName, sourceKind: 'json', found: countFound(document), warnings: [], unplaced: [] } };
 };
 
 export const buildImportedDocument = async (file: File, onProgress?: ImportProgressCallback): Promise<ImportResult | null> => {

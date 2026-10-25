@@ -39,12 +39,12 @@ export default function LandingPage() {
     const saved = loadSavedCV();
     if (!saved) return;
     const { downloadCvJson } = await import('../../utils/export');
-    downloadCvJson(saved.document);
+    downloadCvJson(saved.document, saved.templateId);
   };
 
   const handleConfirmImport = () => {
     if (!pendingImport) return;
-    loadImportedDocument(pendingImport.document);
+    loadImportedDocument(pendingImport.document, pendingImport.templateId);
     navigate('/builder');
   };
 

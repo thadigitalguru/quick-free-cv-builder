@@ -152,7 +152,7 @@ interface CVState {
   toggleSectionVisibility: (sectionId: SectionId) => void;
   addOptionalSection: (sectionId: 'certifications' | 'volunteer' | 'awards' | 'references') => void;
   removeOptionalSection: (sectionId: 'certifications' | 'volunteer' | 'awards' | 'references') => void;
-  loadImportedDocument: (document: CVDocument) => void;
+  loadImportedDocument: (document: CVDocument, templateId?: ResumeTemplateId) => void;
   clearSection: (sectionId: SectionId) => void;
   persist: () => void;
 }
@@ -416,7 +416,7 @@ export const useCVStore = create<CVState>((set, get) => ({
     }),
   addOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, true)), activeSection: sectionId, saveStatus: 'saving' })),
   removeOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, false)), saveStatus: 'saving' })),
-  loadImportedDocument: (incomingDocument) => {
+  loadImportedDocument: (incomingDocument, importedTemplateId) => {
     const normalized = normalizeImportedDocument(incomingDocument);
     if (!normalized) return;
     const activeSection = getInitialActiveSection(normalized);
@@ -431,6 +431,7 @@ export const useCVStore = create<CVState>((set, get) => ({
       saveStatus: 'loaded',
       savedAt: normalized.lastUpdatedAt,
       hydrated: true,
+      templateId: importedTemplateId ?? get().templateId,
     });
     get().persist();
   },

@@ -1,4 +1,4 @@
-import type { CVDocument } from '../types/cv';
+import type { CVDocument, ResumeTemplateId } from '../types/cv';
 import { downloadTextFile } from './download';
 
 const invalidFilenameChars = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -15,6 +15,10 @@ export const buildCvFileName = (document: CVDocument, extension: 'json' | 'pdf')
   return `${baseName}.${extension}`;
 };
 
-export const downloadCvJson = (document: CVDocument) => {
-  downloadTextFile(buildCvFileName(document, 'json'), JSON.stringify(document, null, 2), 'application/json;charset=utf-8');
+/** The JSON backup is the document plus the chosen template, so a round trip restores the same look. */
+export const serializeCvJson = (document: CVDocument, templateId?: ResumeTemplateId) =>
+  JSON.stringify(templateId ? { ...document, templateId } : document, null, 2);
+
+export const downloadCvJson = (document: CVDocument, templateId?: ResumeTemplateId) => {
+  downloadTextFile(buildCvFileName(document, 'json'), serializeCvJson(document, templateId), 'application/json;charset=utf-8');
 };
