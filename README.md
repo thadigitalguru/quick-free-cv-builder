@@ -20,7 +20,7 @@ Quick Free CV Builder lets you create, edit, preview, import, and export CVs ent
 ## Suggested final builds
 If you want to ship a clean final release, the best build targets are:
 1. **Classic Standard** — safest default for general users and printed CVs.
-2. **ATS Mode** — monochrome, keyword-friendly export for recruiter systems.
+2. **ATS Mode** — monochrome, single-column layout with selectable text and plain headings. It's tested for text extraction, not certified against any specific applicant tracking system.
 3. **Compact Template** — best for longer CVs that need tighter spacing.
 4. **Modern Template** — polished showcase view for portfolio-style presentation.
 

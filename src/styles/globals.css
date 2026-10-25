@@ -33,7 +33,8 @@ select {
   display: none;
 }
 
-.pdf-export {
+/* The Modern template's standard view is light text on a dark shell; forcing white here made it invisible. */
+.pdf-export:not([data-template='modern'][data-preview-mode='standard']) {
   background: #fff !important;
   color: #000 !important;
 }
@@ -58,6 +59,13 @@ select {
 
 .pdf-export [class*='shadow'] {
   box-shadow: none !important;
+}
+
+/* Letter-spaced headings are written as separate glyph runs, so text extraction reads
+   "P R O F E S S I O N A L". ATS exports keep words intact for parsers. */
+.pdf-export-ats,
+.pdf-export-ats * {
+  letter-spacing: normal !important;
 }
 
 .pdf-export[data-template='compact'] .pdf-section-group {

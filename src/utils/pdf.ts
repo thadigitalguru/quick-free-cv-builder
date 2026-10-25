@@ -17,18 +17,18 @@ export const exportPreviewAsPdf = async (
   }
 
   const isCompact = options?.templateId === 'compact' && options?.mode !== 'ats';
-  const isModern = options?.templateId === 'modern' && options?.mode !== 'ats';
   const exportMargin: [number, number, number, number] = isCompact ? [5, 4, 5, 4] : [8, 6, 8, 6];
-  const canvasScale = isCompact ? 2.1 : isModern ? 2.2 : 2.25;
   const exportWindowWidth = isCompact ? 1120 : 1280;
 
-  const autoPaging: 'slice' | 'text' = isCompact ? 'text' : 'slice';
+  // 'text' moves a line that would straddle a page break onto the next page; 'slice' cuts it in half.
+  const autoPaging = 'text' as const;
   const pdfOptions: import('jspdf').HTMLOptions = {
     margin: exportMargin,
     filename,
     image: { type: 'jpeg', quality: 0.98 },
+    // Don't pass html2canvas.scale: jsPDF.html() uses it in place of its own mm-per-px scale
+    // (width / windowWidth), which blows the layout up ~14x and leaves every page blank.
     html2canvas: {
-      scale: canvasScale,
       useCORS: true,
       backgroundColor: '#ffffff',
       scrollX: 0,
@@ -42,7 +42,8 @@ export const exportPreviewAsPdf = async (
     windowWidth: exportWindowWidth,
   };
 
-  element.classList.add('pdf-export');
+  const exportClasses = options?.mode === 'ats' ? ['pdf-export', 'pdf-export-ats'] : ['pdf-export'];
+  element.classList.add(...exportClasses);
   try {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
     await new Promise<void>((resolve, reject) => {
@@ -60,6 +61,6 @@ export const exportPreviewAsPdf = async (
       }
     });
   } finally {
-    element.classList.remove('pdf-export');
+    element.classList.remove(...exportClasses);
   }
 };
