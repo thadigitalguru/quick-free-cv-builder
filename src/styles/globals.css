@@ -80,9 +80,9 @@ select {
 }
 
 /* Letter-spaced headings are written as separate glyph runs, so text extraction reads
-   "P R O F E S S I O N A L". ATS exports keep words intact for parsers. */
-.pdf-export-ats,
-.pdf-export-ats * {
+   "P R O F E S S I O N A L". Every export keeps words intact so the PDF is searchable. */
+.pdf-export,
+.pdf-export * {
   letter-spacing: normal !important;
 }
 

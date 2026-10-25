@@ -3,7 +3,7 @@
 A free, privacy-first CV builder with no login, no paywall, no watermark, autosave, live preview, and PDF/JSON export.
 
 ## Overview
-Quick Free CV Builder lets you create, edit, preview, import, and export CVs entirely in the browser. All data stays local in the browser storage unless you choose to download a file.
+Quick Free CV Builder lets you create, edit, preview, import, and export CVs entirely in the browser. All data stays local in the browser storage unless you choose to download a file. Imports are parsed on your device; nothing is uploaded and there is no OCR or AI service.
 
 ## What it includes
 - Landing page with trust-first messaging
@@ -28,6 +28,11 @@ If you want to ship a clean final release, the best build targets are:
 ```bash
 npm install
 npm run dev
+```
+
+## Run the tests
+```bash
+npm test
 ```
 
 ## Validate the production build
