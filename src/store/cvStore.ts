@@ -177,6 +177,13 @@ const applyVisibility = (document: CVDocument, sectionId: SectionId, visible: bo
   },
 });
 
+const nearestVisibleSection = (document: CVDocument, fromSectionId: SectionId): SectionId => {
+  const order = document.sectionOrder.filter((sectionId) => sectionId !== 'summary');
+  const index = (order as SectionId[]).indexOf(fromSectionId);
+  const candidates = [...order.slice(index + 1), ...order.slice(0, Math.max(index, 0)).reverse()];
+  return candidates.find((sectionId) => document.sectionVisibility[sectionId]) ?? 'personalInfo';
+};
+
 const withUpdatedTimestamp = (document: CVDocument): CVDocument => ({
   ...document,
   lastUpdatedAt: nowIso(),
@@ -399,7 +406,14 @@ export const useCVStore = create<CVState>((set, get) => ({
     nextOrder.splice(targetIndex, 0, sectionId);
     return { document: withUpdatedTimestamp({ ...state.document, sectionOrder: nextOrder }), saveStatus: 'saving' };
   }),
-  toggleSectionVisibility: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, !state.document.sectionVisibility[sectionId])), saveStatus: 'saving' })),
+  toggleSectionVisibility: (sectionId) =>
+    set((state) => {
+      const visible = !state.document.sectionVisibility[sectionId];
+      const document = withUpdatedTimestamp(applyVisibility(state.document, sectionId, visible));
+      // Showing a section opens it; hiding the one being edited moves to the nearest visible section.
+      const activeSection = visible ? sectionId : state.activeSection === sectionId ? nearestVisibleSection(document, sectionId) : state.activeSection;
+      return { document, activeSection, saveStatus: 'saving' };
+    }),
   addOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, true)), activeSection: sectionId, saveStatus: 'saving' })),
   removeOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, false)), saveStatus: 'saving' })),
   loadImportedDocument: (incomingDocument) => {

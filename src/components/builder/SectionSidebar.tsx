@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, EyeOff, GripVertical, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sectionDefaults, sectionLabelMap } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
@@ -251,8 +251,9 @@ export default function SectionSidebar() {
                   }}
                   disabled={!canToggle}
                   aria-label={canToggle ? `Hide ${meta.label}` : `${meta.label} cannot be hidden`}
+                  title={canToggle ? 'Hide from CV. Your content is kept; add it back from "Add section".' : undefined}
                 >
-                  <Trash2 className="h-5 w-5" />
+                  <EyeOff className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -301,7 +302,10 @@ export default function SectionSidebar() {
                   setMenuOpen(false);
                 }}
               >
-                <span>{section.label}</span>
+                <span>
+                  {section.label}
+                  {getSectionStatus(document, section.id) === 'complete' && <span className="ml-2 text-xs font-normal text-[#8a97ac]">hidden, has content</span>}
+                </span>
                 <Plus className="h-4 w-4 shrink-0 text-[#8aa0be]" />
               </button>
             ))}

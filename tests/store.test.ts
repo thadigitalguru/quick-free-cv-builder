@@ -104,3 +104,27 @@ describe('CV store smoke tests', () => {
     expect(useCVStore.getState().document.sectionOrder.slice(0, 4)).toEqual(['personalInfo', 'skills', 'projects', 'experience']);
   });
 });
+
+describe('section visibility', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('opens a section when it is shown and leaves it when it is hidden', async () => {
+    installMockWindow(createMockStorage().storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    const store = useCVStore.getState();
+    store.initFromStorage();
+
+    store.toggleSectionVisibility('awards');
+    expect(useCVStore.getState().activeSection).toBe('awards');
+    expect(useCVStore.getState().document.sectionVisibility.awards).toBe(true);
+
+    useCVStore.getState().setActiveSection('languages');
+    useCVStore.getState().toggleSectionVisibility('languages');
+    const state = useCVStore.getState();
+    expect(state.document.sectionVisibility.languages).toBe(false);
+    expect(state.activeSection).not.toBe('languages');
+    expect(state.document.sectionVisibility[state.activeSection]).toBe(true);
+  });
+});
