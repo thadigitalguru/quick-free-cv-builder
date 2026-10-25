@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '../shared/controls';
 
 export default function TopBar({
@@ -8,8 +9,8 @@ export default function TopBar({
   exportReady,
   blockingCount,
   warningCount,
-  onCreateNewCV,
-  onResetDraft,
+  onStartOver,
+  onDownloadJson,
 }: {
   activeView: 'edit' | 'preview';
   onChangeView: (view: 'edit' | 'preview') => void;
@@ -18,9 +19,11 @@ export default function TopBar({
   exportReady: boolean;
   blockingCount: number;
   warningCount: number;
-  onCreateNewCV: () => void;
-  onResetDraft: () => void;
+  onStartOver: () => void;
+  onDownloadJson: () => void;
 }) {
+  const [confirmingStartOver, setConfirmingStartOver] = useState(false);
+
   const statusLabel =
     saveStatus === 'saving'
       ? 'Saving…'
@@ -95,13 +98,45 @@ export default function TopBar({
               {exportLabel}
             </span>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none" onClick={onCreateNewCV}>
-              Start fresh
+          <div className="relative flex flex-wrap justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none"
+              onClick={() => setConfirmingStartOver((value) => !value)}
+              aria-expanded={confirmingStartOver}
+              aria-controls="start-over-confirm"
+            >
+              Start over
             </Button>
-            <Button variant="secondary" className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none" onClick={onResetDraft}>
-              Clear saved draft
-            </Button>
+            {confirmingStartOver && (
+              <div
+                id="start-over-confirm"
+                role="alertdialog"
+                aria-label="Confirm start over"
+                className="absolute right-0 top-11 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[1rem] border border-amber-200 bg-white p-3 text-left text-sm text-[#374151] shadow-[0_18px_30px_rgba(15,23,42,0.12)]"
+              >
+                <p>This deletes your CV from this browser. It can't be undone.</p>
+                <div className="mt-3 grid gap-2">
+                  <Button variant="secondary" onClick={onDownloadJson}>
+                    Download JSON backup
+                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="secondary" onClick={() => setConfirmingStartOver(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      className="bg-rose-600 hover:bg-rose-700"
+                      onClick={() => {
+                        setConfirmingStartOver(false);
+                        onStartOver();
+                      }}
+                    >
+                      Delete CV
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { sectionDefaults } from '../../data/sectionMeta';
+import { sectionDefaults, sectionLabelMap } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { cn } from '../../utils/dom';
 import type { SectionId } from '../../types/cv';
+import { getEssentialProgress, getSectionStatus } from '../../utils/progress';
 
 export default function SectionSidebar() {
   const { document, activeSection, setActiveSection, moveSection, moveSectionToIndex, toggleSectionVisibility } = useCVStore();
@@ -11,6 +12,7 @@ export default function SectionSidebar() {
   const [draggedSectionId, setDraggedSectionId] = useState<SectionId | null>(null);
   const [dropTargetSectionId, setDropTargetSectionId] = useState<SectionId | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
+  const progress = useMemo(() => getEssentialProgress(document), [document]);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const orderedSections = useMemo(
@@ -77,7 +79,36 @@ export default function SectionSidebar() {
     <aside className="relative rounded-[2rem] border border-[#d9e2ef] bg-transparent p-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <div className="px-2 pb-3 pt-6 lg:pt-8">
         <h3 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">SECTIONS</h3>
-        <p className="mt-1 text-xs text-[#8a97ac]">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
+        <div className="mt-3 rounded-[14px] border border-[#d9e2ef] bg-white px-3.5 py-3">
+          <div className="flex items-center justify-between text-sm font-semibold text-[#34425c]">
+            <span id="essentials-label">Essentials</span>
+            <span>
+              {progress.done} of {progress.total} done
+            </span>
+          </div>
+          <div
+            className="mt-2 h-2 overflow-hidden rounded-full bg-[#e6ecf4]"
+            role="progressbar"
+            aria-labelledby="essentials-label"
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.done}
+          >
+            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          </div>
+          {progress.next ? (
+            <button
+              type="button"
+              className="mt-2.5 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+              onClick={() => setActiveSection(progress.next!)}
+            >
+              Next: {sectionLabelMap[progress.next]} →
+            </button>
+          ) : (
+            <p className="mt-2.5 text-sm text-emerald-700">Ready to preview and export.</p>
+          )}
+        </div>
+        <p className="mt-2 hidden text-xs text-[#8a97ac] lg:block">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
       </div>
 
       <div className="space-y-2.5">
@@ -87,6 +118,7 @@ export default function SectionSidebar() {
           const canToggle = sectionId !== 'personalInfo';
           const isDragged = draggedSectionId === sectionId;
           const isDropTarget = dropTargetSectionId === sectionId;
+          const complete = getSectionStatus(document, sectionId) === 'complete';
 
           return (
             <div
@@ -142,9 +174,14 @@ export default function SectionSidebar() {
                     : 'border-[#d9e2ef] bg-white text-[#34425c] shadow-none hover:border-[#bfcce0]',
                 )}
               >
-                <span className={cn('h-3.5 w-3.5 rounded-full', active ? 'bg-[#f5c44e]' : 'bg-[#d4dbe6]')} />
+                {complete ? (
+                  <Check className={cn('h-4 w-4 shrink-0', active ? 'text-emerald-300' : 'text-emerald-600')} aria-hidden="true" />
+                ) : (
+                  <span className={cn('h-3.5 w-3.5 shrink-0 rounded-full', active ? 'bg-[#f5c44e]' : 'bg-[#d4dbe6]')} aria-hidden="true" />
+                )}
                 <span className="ml-3 min-w-0 flex-1 truncate text-[15px] font-medium tracking-[-0.01em] sm:ml-4 sm:text-[17px]">
                   {meta.label}
+                  <span className="sr-only">{complete ? ', complete' : ', not started'}</span>
                 </span>
               </button>
 

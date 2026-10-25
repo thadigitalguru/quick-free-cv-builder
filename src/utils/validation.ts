@@ -62,7 +62,6 @@ export const validateDocument = (document: CVDocument): ValidationIssue[] => {
   if (document.experience.length === 0) issues.push({ field: 'experience', sectionId: 'experience', message: 'Add at least one experience entry to export.' });
   if (document.education.length === 0) issues.push({ field: 'education', sectionId: 'education', message: 'Add at least one education entry to export.' });
   if (document.skills.length === 0) issues.push({ field: 'skills', sectionId: 'skills', message: 'Add at least one skill to export.' });
-  if (document.interests.length === 0) issues.push({ field: 'interests', sectionId: 'interests', message: 'Add at least one interest to export.' });
 
   return issues;
 };

@@ -56,7 +56,7 @@ describe('validateDocument', () => {
       interests: [],
     });
 
-    expect(issues.map((issue) => issue.field)).toEqual(expect.arrayContaining(['fullName', 'experience', 'education', 'skills', 'interests']));
+    expect(issues.map((issue) => issue.field)).toEqual(expect.arrayContaining(['fullName', 'experience', 'education', 'skills']));
     expect(hasBlockingIssues(issues)).toBe(true);
   });
 

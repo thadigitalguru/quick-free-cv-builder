@@ -39,7 +39,7 @@ const typographyMinMax: Record<keyof PreviewTypography, { min: number; max: numb
 export default function BuilderPage() {
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [previewMode, setPreviewMode] = useState<'standard' | 'ats'>('standard');
-  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [typography, setTypography] = useState<PreviewTypography>(defaultTypography);
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -53,7 +53,6 @@ export default function BuilderPage() {
     saveError,
     templateId,
     setTemplateId,
-    createNewCV,
     resetCV,
   } = useCVStore();
 
@@ -82,17 +81,7 @@ export default function BuilderPage() {
 
   const resetTypography = () => setTypography(defaultTypography);
 
-  const handleCreateNewCV = () => {
-    createNewCV();
-    resetTypography();
-    setPreviewMode('standard');
-    setViewMode('edit');
-    setExportError(null);
-  };
-
-  const handleResetDraft = () => {
-    const confirmReset = window.confirm('Clear the saved draft from this browser and start over?');
-    if (!confirmReset) return;
+  const handleStartOver = () => {
     resetCV();
     resetTypography();
     setPreviewMode('standard');
@@ -141,8 +130,8 @@ export default function BuilderPage() {
         exportReady={exportReady}
         blockingCount={blockingCount}
         warningCount={warningCount}
-        onCreateNewCV={handleCreateNewCV}
-        onResetDraft={handleResetDraft}
+        onStartOver={handleStartOver}
+        onDownloadJson={() => void handleDownloadJson()}
       />
 
       {saveError && (
@@ -286,12 +275,12 @@ function AdvancedOptionsCard({
 }) {
   return (
     <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white px-4 py-3 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:px-5 lg:py-4">
-      <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={onToggle}>
+      <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={onToggle} aria-expanded={open}>
         <div className="flex items-start gap-2.5">
           <ChevronDown className={`mt-0.5 h-4.5 w-4.5 shrink-0 text-[#6c7a92] transition ${open ? 'rotate-180' : ''}`} />
           <div>
             <h2 className="text-[16px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">Advanced options</h2>
-            <p className="mt-0.5 text-[14px] text-[#7f8da4]">Adjust the preview typography used in PDF export.</p>
+            <p className="mt-0.5 text-[14px] text-[#7f8da4]">Template and font sizes. The defaults work for most CVs.</p>
           </div>
         </div>
         <span

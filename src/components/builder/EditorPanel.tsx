@@ -10,6 +10,7 @@ import { fieldKey, groupIssuesBySection, type ValidationIssue } from '../../util
 export default function EditorPanel({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
   const { activeSection } = useCVStore();
   const issuesBySection = groupIssuesBySection(validationIssues);
+  const sectionIssues = issuesBySection[activeSection] ?? [];
 
   const heading = useMemo(() => {
     const map: Record<string, string> = {
@@ -32,11 +33,12 @@ export default function EditorPanel({ validationIssues = [] }: { validationIssue
     <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white p-6 shadow-none">
       <h3 className="mb-6 text-[22px] font-semibold tracking-[-0.02em] text-[#1f2937]">{heading}</h3>
 
-      {validationIssues.length > 0 && (
+      {/* Only this section's checks; overall progress lives in the sidebar. */}
+      {sectionIssues.length > 0 && (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-semibold">Checks</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            {(issuesBySection[activeSection] ?? validationIssues).map((issue) => (
+            {sectionIssues.map((issue) => (
               <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
             ))}
           </ul>
