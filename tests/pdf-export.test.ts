@@ -72,3 +72,22 @@ describe('PDF hand-off', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('downloadBlob', () => {
+  it('relabels the file as binary when forced, so iOS downloads a PDF instead of opening it', async () => {
+    const created: Blob[] = [];
+    const click = vi.fn();
+    vi.stubGlobal('window', { setTimeout: vi.fn() });
+    vi.stubGlobal('URL', { createObjectURL: (blob: Blob) => (created.push(blob), 'blob:x'), revokeObjectURL: vi.fn() });
+    const link = { click, remove: vi.fn() } as Record<string, unknown>;
+    vi.stubGlobal('document', { createElement: () => link, body: { appendChild: vi.fn() } });
+    const { downloadBlob } = await import('../src/utils/download');
+    const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
+    downloadBlob('cv.pdf', pdf);
+    downloadBlob('cv.pdf', pdf, { forceDownload: true });
+    expect(created.map((blob) => blob.type)).toEqual(['application/pdf', 'application/octet-stream']);
+    expect(link.download).toBe('cv.pdf');
+    expect(click).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+});

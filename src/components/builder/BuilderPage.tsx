@@ -338,7 +338,7 @@ function ReadyPdfPanel({ file, onDone, onError }: { file: File; onDone: () => vo
 
   // Both handlers reach the browser API synchronously inside the tap; an await first would lose it.
   const save = () => {
-    downloadBlob(file.name, file);
+    downloadBlob(file.name, file, { forceDownload: true });
     onDone();
   };
   const share = async () => {

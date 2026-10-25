@@ -1,8 +1,12 @@
-/** Saves a file through a link click; must run inside the user's tap or click on iOS to download. */
-export const downloadBlob = (filename: string, blob: Blob) => {
+/**
+ * Saves a file through a link click; must run inside the user's tap or click on iOS to download.
+ * `forceDownload` labels the data as generic binary: iOS Safari ignores `download` for types it can
+ * display (PDF, images) and opens them in a tab instead. The file name keeps its real extension.
+ */
+export const downloadBlob = (filename: string, blob: Blob, { forceDownload = false } = {}) => {
   if (typeof window === 'undefined') return;
 
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(forceDownload ? new Blob([blob], { type: 'application/octet-stream' }) : blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
