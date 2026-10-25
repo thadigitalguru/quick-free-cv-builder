@@ -48,8 +48,9 @@ export const exportPreviewAsPdf = async (
   let jsPDF: typeof import('jspdf').jsPDF;
   try {
     ({ jsPDF } = await import('jspdf'));
-  } catch {
-    throw new Error('PDF export is temporarily unavailable. Please refresh and try again.');
+  } catch (error) {
+    // Usually a deploy replaced the chunk; describeError turns that into "reload to continue".
+    throw error instanceof Error ? error : new Error('PDF export is temporarily unavailable. Please refresh and try again.');
   }
 
   const { margin: exportMargin, windowWidth: exportWindowWidth, contentWidthMm } = getExportGeometry(options);

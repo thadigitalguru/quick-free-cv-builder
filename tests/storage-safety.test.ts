@@ -71,3 +71,31 @@ describe('storage safety', () => {
     expect(JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('Imported Person');
   });
 });
+
+describe('draft recovery', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('opens a draft that only lacks the editor position instead of setting it aside', async () => {
+    const { storage } = createMockStorage();
+    storage.setItem('quick-free-cv-builder:v3', JSON.stringify({ version: 3, document: { personalInfo: { fullName: 'Kept Name' }, skills: 'SQL, Excel' } }));
+    installMockWindow(storage);
+    const { loadSavedCV, getUnreadableDraft } = await import('../src/utils/storage');
+    const saved = loadSavedCV();
+    expect(saved?.document.personalInfo.fullName).toBe('Kept Name');
+    expect(saved?.activeSection).toBe('personalInfo');
+    expect(getUnreadableDraft()).toBeNull();
+  });
+
+  it('sets a garbled draft aside where it can still be read and discarded', async () => {
+    const { storage } = createMockStorage();
+    storage.setItem('quick-free-cv-builder:v3', '{"document": {"personalInfo": {"fullName": "Half');
+    installMockWindow(storage);
+    const { loadSavedCV, getUnreadableDraft, discardUnreadableDraft } = await import('../src/utils/storage');
+    expect(loadSavedCV()).toBeNull();
+    expect(getUnreadableDraft()).toContain('"fullName": "Half');
+    discardUnreadableDraft();
+    expect(getUnreadableDraft()).toBeNull();
+  });
+});

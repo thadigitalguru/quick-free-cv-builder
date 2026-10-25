@@ -11,6 +11,7 @@ import { templateLabelMap } from '../../utils/templateConfig';
 import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
 import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
+import { describeError } from '../../utils/appUpdate';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
@@ -110,7 +111,7 @@ export default function BuilderPage() {
       setExportError(null);
       return buildCvFileName(cvDocument, 'json');
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : 'JSON export failed.');
+      setExportError(describeError(error, 'JSON export failed.'));
       return null;
     }
   };
@@ -136,7 +137,7 @@ export default function BuilderPage() {
       else downloadBlob(fileName, blob);
       setExportError(null);
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : 'PDF export failed.');
+      setExportError(describeError(error, 'PDF export failed.'));
     } finally {
       setIsExportingPdf(false);
     }

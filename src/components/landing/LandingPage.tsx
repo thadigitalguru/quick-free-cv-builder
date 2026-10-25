@@ -3,8 +3,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
-import { getSavedDraftMeta, loadSavedCV } from '../../utils/storage';
+import { discardUnreadableDraft, getSavedDraftMeta, getUnreadableDraft, loadSavedCV } from '../../utils/storage';
+import { downloadBlob } from '../../utils/download';
+import { downloadCvJson } from '../../utils/export';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
+import type { ImportResult } from '../../utils/importFile';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -13,6 +16,9 @@ export default function LandingPage() {
   const createNewCV = useCVStore((state) => state.createNewCV);
   const draftMeta = getSavedDraftMeta();
   const [confirmingFresh, setConfirmingFresh] = useState(false);
+  const [unreadableDraft, setUnreadableDraft] = useState(() => getUnreadableDraft());
+  // The review result produced from the set-aside draft; only confirming that one replaces the backup.
+  const [restoredResult, setRestoredResult] = useState<ImportResult | null>(null);
   const savedDraftLabel = draftMeta ? new Date(draftMeta.savedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
 
   const handleStartFresh = () => {
@@ -25,16 +31,16 @@ export default function LandingPage() {
     navigate('/builder');
   };
 
-  const handleDownloadSavedDraft = async () => {
+  const handleDownloadSavedDraft = () => {
     const saved = loadSavedCV();
-    if (!saved) return;
-    const { downloadCvJson } = await import('../../utils/export');
-    downloadCvJson(saved.document, saved.templateId);
+    if (saved) downloadCvJson(saved.document, saved.templateId);
   };
 
   const handleConfirmImport = () => {
     if (!importFlow.pending) return;
     loadImportedDocument(importFlow.pending.document, importFlow.pending.templateId);
+    // The set-aside copy is now the live draft again.
+    if (importFlow.pending === restoredResult) discardUnreadableDraft();
     navigate('/builder');
   };
 
@@ -99,7 +105,7 @@ export default function LandingPage() {
               <div role="alert" className="mt-5 rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
                 <p>Starting a new CV deletes your saved draft from {savedDraftLabel}. This can't be undone.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <Button variant="secondary" onClick={() => void handleDownloadSavedDraft()}>
+                  <Button variant="secondary" onClick={handleDownloadSavedDraft}>
                     Download draft as JSON
                   </Button>
                   <Button variant="secondary" onClick={() => setConfirmingFresh(false)}>
@@ -112,13 +118,26 @@ export default function LandingPage() {
               </div>
             )}
 
+            {unreadableDraft && !importFlow.pending && (
+              <UnreadableDraftNotice
+                onDownload={() => downloadBlob('Quick-Free-CV-recovered-draft.json', new Blob([unreadableDraft], { type: 'application/json' }))}
+                onRestore={() => {
+                  void importFlow.importFile(new File([unreadableDraft], 'Recovered draft.json', { type: 'application/json' })).then(setRestoredResult);
+                }}
+                onDiscard={() => {
+                  discardUnreadableDraft();
+                  setUnreadableDraft(null);
+                }}
+              />
+            )}
+
             {importFlow.pending && (
               <div className="mt-5">
                 <ImportReview
                   result={importFlow.pending}
                   headingRef={importFlow.reviewHeadingRef}
                   replaceNotice={draftMeta ? `Opening this import replaces your saved draft from ${savedDraftLabel}.` : null}
-                  onDownloadCurrent={() => void handleDownloadSavedDraft()}
+                  onDownloadCurrent={handleDownloadSavedDraft}
                   onCancel={importFlow.dismiss}
                   onConfirm={handleConfirmImport}
                 />
@@ -158,5 +177,31 @@ export default function LandingPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+/** A draft the app couldn't open is set aside, not deleted; make that copy reachable. */
+function UnreadableDraftNotice({ onDownload, onRestore, onDiscard }: { onDownload: () => void; onRestore: () => void; onDiscard: () => void }) {
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  return (
+    <div role="alert" className="mt-5 rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+      <p className="font-semibold">An earlier draft couldn't be opened</p>
+      <p className="mt-1">It was set aside, not deleted. Try restoring it (you'll review what was recovered first), or download it to keep a copy.</p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <Button onClick={onRestore}>Try to restore</Button>
+        <Button variant="secondary" onClick={onDownload}>
+          Download it
+        </Button>
+        {confirmingDiscard ? (
+          <Button className="bg-rose-600 hover:bg-rose-700" onClick={onDiscard}>
+            Delete it permanently
+          </Button>
+        ) : (
+          <Button variant="ghost" onClick={() => setConfirmingDiscard(true)}>
+            Discard
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }

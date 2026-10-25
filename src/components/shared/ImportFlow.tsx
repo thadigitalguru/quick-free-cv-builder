@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './controls';
 import type { ImportResult } from '../../utils/importFile';
+import { describeError } from '../../utils/appUpdate';
 
 export const IMPORT_ACCEPT = 'application/json,.json,.txt,.pdf,.docx,image/*';
 
@@ -19,7 +20,7 @@ export function useCvImport() {
     if (pending) reviewHeadingRef.current?.focus();
   }, [pending]);
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File): Promise<ImportResult | null> => {
     setError(null);
     setPending(null);
     setStatus('Starting import…');
@@ -30,11 +31,13 @@ export function useCvImport() {
       const result = await buildImportedDocument(file, setStatus);
       if (!result) {
         setError(`We couldn't detect CV content in ${file.name}. Try a JSON export for the cleanest import, or open the original source file and export again.`);
-        return;
+        return null;
       }
       setPending(result);
+      return result;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Import failed. Please try again.');
+      setError(describeError(caught, 'Import failed. Please try again.'));
+      return null;
     } finally {
       setIsImporting(false);
       setStatus(null);
@@ -58,6 +61,8 @@ export function useCvImport() {
   return {
     fileInput,
     openPicker: () => inputRef.current?.click(),
+    /** Runs a file that didn't come from the picker (e.g. a recovered draft) through the same review. */
+    importFile: (file: File) => handleFile(file),
     reviewHeadingRef,
     isImporting,
     status,

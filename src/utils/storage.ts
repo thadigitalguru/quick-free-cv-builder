@@ -1,16 +1,16 @@
 import { normalizeImportedDocument } from './importDocument';
 import type { SavedCVPayload } from '../types/cv';
+import { CORRUPT_BACKUP_KEY, STORAGE_KEY } from './storageKeys';
 
-const STORAGE_KEY = 'quick-free-cv-builder:v3';
+export { CORRUPT_BACKUP_KEY };
 const STORAGE_VERSION = 3;
 
+// Only the CV itself is required; the editor's position (active section and items) has safe defaults,
+// so a draft missing it is still opened rather than set aside.
 const isSavedCVPayload = (value: unknown): value is SavedCVPayload => {
   if (typeof value !== 'object' || value === null) return false;
   const payload = value as Record<string, unknown>;
-  const document = payload.document as Record<string, unknown> | undefined;
-  const activeItemIds = payload.activeItemIds as Record<string, unknown> | undefined;
-  const version = payload.version;
-  return !!document && !!activeItemIds && typeof payload.activeSection === 'string' && (typeof version === 'number' || typeof version === 'undefined');
+  return typeof payload.document === 'object' && payload.document !== null && !Array.isArray(payload.document);
 };
 
 const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null => {
@@ -20,7 +20,7 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
   return {
     version: STORAGE_VERSION,
     document,
-    activeSection: payload.activeSection,
+    activeSection: typeof payload.activeSection === 'string' ? payload.activeSection : 'personalInfo',
     activeItemIds: {
       experience: payload.activeItemIds?.experience ?? null,
       education: payload.activeItemIds?.education ?? null,
@@ -31,8 +31,6 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
     templateId: payload.templateId ?? 'classic',
   };
 };
-
-export const CORRUPT_BACKUP_KEY = `${STORAGE_KEY}:unreadable-backup`;
 
 /** Keeps an unreadable draft under a backup key instead of deleting the only copy of someone's CV. */
 const quarantineDraft = (raw: string) => {
@@ -63,10 +61,10 @@ export const loadSavedCV = (): SavedCVPayload | null => {
     }
 
     const normalized = normalizeSavedPayload({
-      version: parsed.version ?? STORAGE_VERSION,
+      version: typeof parsed.version === 'number' ? parsed.version : STORAGE_VERSION,
       document: parsed.document,
       activeSection: parsed.activeSection,
-      activeItemIds: parsed.activeItemIds,
+      activeItemIds: typeof parsed.activeItemIds === 'object' && parsed.activeItemIds !== null ? parsed.activeItemIds : ({} as SavedCVPayload['activeItemIds']),
       templateId: parsed.templateId,
     });
 
@@ -125,4 +123,22 @@ export const getSavedDraftMeta = () => {
     savedAt: saved.document.lastUpdatedAt,
     activeSection: saved.activeSection,
   };
+};
+
+/** The raw text of a draft that was set aside because it couldn't be opened, if there is one. */
+export const getUnreadableDraft = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(CORRUPT_BACKUP_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const discardUnreadableDraft = () => {
+  try {
+    window.localStorage.removeItem(CORRUPT_BACKUP_KEY);
+  } catch {
+    // Nothing we can reach.
+  }
 };
