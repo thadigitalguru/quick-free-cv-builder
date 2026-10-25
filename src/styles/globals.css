@@ -61,6 +61,24 @@ select {
   box-shadow: none !important;
 }
 
+/* Hints for empty fields: visible while editing, never exported. */
+.cv-placeholder {
+  opacity: 0.45;
+  font-style: italic;
+}
+
+.pdf-export .cv-placeholder,
+.pdf-export .cv-placeholder-line {
+  display: none !important;
+}
+
+@media print {
+  .cv-placeholder,
+  .cv-placeholder-line {
+    display: none !important;
+  }
+}
+
 /* Letter-spaced headings are written as separate glyph runs, so text extraction reads
    "P R O F E S S I O N A L". ATS exports keep words intact for parsers. */
 .pdf-export-ats,

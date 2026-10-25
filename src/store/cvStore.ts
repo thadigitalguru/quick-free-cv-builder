@@ -32,34 +32,34 @@ const createExperienceItem = (): ExperienceItem => ({
 
 const createEducationItem = (): EducationItem => ({
   id: createId(),
-  institution: 'University Name',
-  qualification: 'BSc',
-  fieldOfStudy: 'Computer Science',
-  startDate: '2018-09',
-  endDate: '2022-06',
-  description: 'Relevant coursework, honors, or achievements.',
+  institution: '',
+  qualification: '',
+  fieldOfStudy: '',
+  startDate: '',
+  endDate: '',
+  description: '',
 });
 
 const createProjectItem = (): ProjectItem => ({
   id: createId(),
-  name: 'Portfolio Project',
-  role: 'Builder',
-  date: '2024',
-  description: 'A concise description of the project impact and scope.',
-  link: 'https://example.com',
-  technologies: ['React', 'TypeScript'],
+  name: '',
+  role: '',
+  date: '',
+  description: '',
+  link: '',
+  technologies: [],
 });
 
 const createLanguageItem = (): LanguageItem => ({
   id: createId(),
-  name: 'English',
+  name: '',
   proficiency: 'Fluent',
 });
 
-const createSimpleItem = (title: string, details = 'Add a concise description here.'): SimpleSectionItem => ({
+const createSimpleItem = (): SimpleSectionItem => ({
   id: createId(),
-  title,
-  details,
+  title: '',
+  details: '',
 });
 
 const createEmptyDocument = (): CVDocument => ({
@@ -200,15 +200,10 @@ const sectionKeyMap: Record<string, keyof CVDocument> = {
   references: 'references',
 };
 
-const optionalSectionInitialTitles: Record<'certifications' | 'volunteer' | 'awards' | 'references', string> = {
-  certifications: 'New Certification',
-  volunteer: 'Volunteer Experience',
-  awards: 'New Award',
-  references: 'Reference',
-};
+const simpleSectionIds = new Set(['certifications', 'volunteer', 'awards', 'references']);
 
 const isOptionalSection = (sectionId: string): sectionId is 'certifications' | 'volunteer' | 'awards' | 'references' =>
-  sectionId in optionalSectionInitialTitles;
+  simpleSectionIds.has(sectionId);
 
 const firstMatchingId = <T extends { id: string }>(items: T[], candidate: string | null | undefined) =>
   candidate && items.some((item) => item.id === candidate) ? candidate : items[0]?.id ?? null;
@@ -368,8 +363,7 @@ export const useCVStore = create<CVState>((set, get) => ({
   moveLanguage: (id, direction) => set((state) => ({ document: withUpdatedTimestamp({ ...state.document, languages: moveItems(state.document.languages, id, direction) }), saveStatus: 'saving' })),
   addSimpleItem: (section) => set((state) => {
     const key = sectionKeyMap[section] as keyof CVDocument;
-    const title = optionalSectionInitialTitles[section];
-    const nextValue = [...(state.document[key] as SimpleSectionItem[]), createSimpleItem(title)];
+    const nextValue = [...(state.document[key] as SimpleSectionItem[]), createSimpleItem()];
     return { document: withUpdatedTimestamp({ ...state.document, [key]: nextValue }), activeSection: section, activeSimpleSection: section, saveStatus: 'saving' };
   }),
   duplicateSimpleItem: (section, id) => set((state) => {

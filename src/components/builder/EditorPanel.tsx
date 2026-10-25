@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Copy, Info, Plus, Trash2 } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import { Button, Input, Label, Select, Textarea } from '../shared/controls';
@@ -283,9 +283,9 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
             <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('experience')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Role" hint="Your job title in this role."><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} /></Field>
-            <Field label="Company" hint="Employer or client name."><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} /></Field>
-            <Field label="Location" hint="City, country or remote."><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} /></Field>
+            <Field label="Role" hint="Your job title in this role."><Input value={item.role} onChange={(e) => updateExperience(item.id, { role: e.target.value })} placeholder="e.g. Customer Success Manager" /></Field>
+            <Field label="Company" hint="Employer or client name."><Input value={item.company} onChange={(e) => updateExperience(item.id, { company: e.target.value })} placeholder="e.g. Safaricom" /></Field>
+            <Field label="Location" hint="City, country or remote."><Input value={item.location} onChange={(e) => updateExperience(item.id, { location: e.target.value })} placeholder="e.g. Nairobi, Kenya" /></Field>
             <Field label="Start date" error={fieldError(fieldKey('experience', item.id, 'startDate'))} hint="Use YYYY or YYYY-MM, e.g. 2022 or 2022-09.">
               <Input
                 value={item.startDate}
@@ -318,9 +318,16 @@ function ExperienceForm({ validationIssues }: { validationIssues: ValidationIssu
           </div>
           <div className="mt-4 grid gap-3">
             <Field label="Achievements (one per line)" hint="Start each line with an action + outcome.">
-              <Textarea rows={6} value={item.achievements.join('\n')} onChange={(e) => updateExperience(item.id, { achievements: e.target.value.split('\n').filter(Boolean) })} />
+              <Textarea
+                rows={6}
+                value={item.achievements.join('\n')}
+                // Keep blank lines while typing so Enter starts a new bullet; they're tidied on blur and skipped in the preview.
+                onChange={(e) => updateExperience(item.id, { achievements: e.target.value.split('\n') })}
+                onBlur={(e) => updateExperience(item.id, { achievements: e.target.value.split('\n').map((line) => line.trim()).filter(Boolean) })}
+                placeholder={'One achievement per line, e.g.\nResolved 40+ customer issues a week with 95% satisfaction'}
+              />
             </Field>
-            <Field label="Technologies (comma separated)" hint="Use short keywords recruiters search for."><Input value={joinCsvList(item.technologies)} onChange={(e) => updateExperience(item.id, { technologies: parseCsvList(e.target.value) })} /></Field>
+            <Field label="Technologies (comma separated)" hint="Use short keywords recruiters search for."><CsvInput value={item.technologies} onCommit={(technologies) => updateExperience(item.id, { technologies })} placeholder="e.g. Zendesk, Excel" /></Field>
           </div>
         </div>
       ))}
@@ -351,9 +358,9 @@ function EducationForm({ validationIssues }: { validationIssues: ValidationIssue
             <Button variant="ghost" className="px-3 py-2 text-xs leading-none text-slate-500" onClick={() => clearSection('education')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Institution" hint="School, college, or university."><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} /></Field>
-            <Field label="Qualification" hint="e.g. BSc, Diploma, MBA."><Input value={item.qualification} onChange={(e) => updateEducation(item.id, { qualification: e.target.value })} /></Field>
-            <Field label="Field of study" hint="Optional, but useful for recruiter context."><Input value={item.fieldOfStudy} onChange={(e) => updateEducation(item.id, { fieldOfStudy: e.target.value })} /></Field>
+            <Field label="Institution" hint="School, college, or university."><Input value={item.institution} onChange={(e) => updateEducation(item.id, { institution: e.target.value })} placeholder="e.g. University of Nairobi" /></Field>
+            <Field label="Qualification" hint="e.g. BSc, Diploma, MBA."><Input value={item.qualification} onChange={(e) => updateEducation(item.id, { qualification: e.target.value })} placeholder="e.g. BSc" /></Field>
+            <Field label="Field of study" hint="Optional, but useful for recruiter context."><Input value={item.fieldOfStudy} onChange={(e) => updateEducation(item.id, { fieldOfStudy: e.target.value })} placeholder="e.g. Computer Science" /></Field>
             <Field label="Start date" error={fieldError(fieldKey('education', item.id, 'startDate'))} hint="Use YYYY or YYYY-MM.">
               <Input
                 value={item.startDate}
@@ -387,11 +394,13 @@ function SkillsForm() {
   const { document, setSkills, clearSection } = useCVStore();
   const [draft, setDraft] = useState('');
 
-  const addSkill = (skill: string) => {
-    const next = skill.trim();
-    if (!next) return;
-    if (document.skills.some((item) => item.toLowerCase() === next.toLowerCase())) return;
-    setSkills([...document.skills, next]);
+  const addSkill = (input: string) => {
+    // Accepts one skill or a pasted comma-separated list, skipping duplicates.
+    const next = [...document.skills];
+    parseCsvList(input).forEach((skill) => {
+      if (!next.some((item) => item.toLowerCase() === skill.toLowerCase())) next.push(skill);
+    });
+    if (next.length !== document.skills.length) setSkills(next);
     setDraft('');
   };
 
@@ -439,7 +448,7 @@ function SkillsForm() {
       </div>
 
       <Field label="Skills (comma separated)" hint="Comma-separated list is best for ATS parsing.">
-        <Textarea rows={6} value={document.skills.join(', ')} onChange={(e) => setSkills(parseCsvList(e.target.value))} placeholder="React, TypeScript, Accessibility" />
+        <CsvInput multiline rows={6} value={document.skills} onCommit={setSkills} placeholder="React, TypeScript, Accessibility" />
       </Field>
     </div>
   );
@@ -467,8 +476,8 @@ function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[
             <Button variant="ghost" className="px-3 py-2 text-xs text-slate-500" onClick={() => clearSection('projects')}>Clear section</Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Name"><Input value={item.name} onChange={(e) => updateProject(item.id, { name: e.target.value })} /></Field>
-            <Field label="Role"><Input value={item.role} onChange={(e) => updateProject(item.id, { role: e.target.value })} /></Field>
+            <Field label="Name"><Input value={item.name} onChange={(e) => updateProject(item.id, { name: e.target.value })} placeholder="e.g. Online booking app" /></Field>
+            <Field label="Role"><Input value={item.role} onChange={(e) => updateProject(item.id, { role: e.target.value })} placeholder="e.g. Lead developer" /></Field>
             <Field label="Date" error={fieldError(fieldKey('projects', item.id, 'date'))}>
               <Input
                 value={item.date}
@@ -479,9 +488,9 @@ function ProjectsForm({ validationIssues }: { validationIssues: ValidationIssue[
                 className={cn('h-[52px] rounded-[12px] border-[#cbd6e4] px-4 text-[15px] placeholder:text-[#a1aab8]', fieldError(fieldKey('projects', item.id, 'date')) && 'border-rose-300 focus:border-rose-500 focus:ring-rose-100')}
               />
             </Field>
-            <Field label="Link"><Input value={item.link} onChange={(e) => updateProject(item.id, { link: e.target.value })} /></Field>
-            <Field label="Description"><Textarea rows={4} value={item.description} onChange={(e) => updateProject(item.id, { description: e.target.value })} /></Field>
-            <Field label="Technologies"><Input value={joinCsvList(item.technologies)} onChange={(e) => updateProject(item.id, { technologies: parseCsvList(e.target.value) })} /></Field>
+            <Field label="Link"><Input value={item.link} onChange={(e) => updateProject(item.id, { link: e.target.value })} placeholder="https://…" /></Field>
+            <Field label="Description"><Textarea rows={4} value={item.description} onChange={(e) => updateProject(item.id, { description: e.target.value })} placeholder="What it does and the result, e.g. Cut booking time from 10 to 2 minutes." /></Field>
+            <Field label="Technologies"><CsvInput value={item.technologies} onCommit={(technologies) => updateProject(item.id, { technologies })} placeholder="e.g. React, Firebase" /></Field>
           </div>
         </div>
       ))}
@@ -500,7 +509,7 @@ function LanguagesForm() {
       </div>
       {document.languages.map((item, index) => (
         <div key={item.id} className="grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <Field label="Language"><Input value={item.name} onChange={(e) => updateLanguage(item.id, { name: e.target.value })} /></Field>
+          <Field label="Language"><Input value={item.name} onChange={(e) => updateLanguage(item.id, { name: e.target.value })} placeholder="e.g. Swahili" /></Field>
           <Field label="Proficiency">
             <Select value={item.proficiency} onChange={(e) => updateLanguage(item.id, { proficiency: e.target.value as any })}>
               {['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'].map((level) => (
@@ -556,7 +565,7 @@ function InterestsForm() {
         ))}
       </div>
       <Field label="Interests (comma separated)" hint="Use short words or phrases, comma separated.">
-        <Textarea rows={4} value={cvDocument.interests.join(', ')} onChange={(e) => updateInterests(parseCsvList(e.target.value))} />
+        <CsvInput multiline rows={4} value={cvDocument.interests} onCommit={updateInterests} placeholder="e.g. Hiking, Chess" />
       </Field>
     </div>
   );
@@ -574,8 +583,8 @@ function SimpleSectionForm({ section, title }: { section: 'certifications' | 'vo
       {items.map((item) => (
         <div key={item.id} className="rounded-2xl border border-border p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={`${title} title`}><Input value={item.title} onChange={(e) => updateSimpleItem(section, item.id, { title: e.target.value })} /></Field>
-            <Field label="Details"><Input value={item.details} onChange={(e) => updateSimpleItem(section, item.id, { details: e.target.value })} /></Field>
+            <Field label={`${title} title`}><Input value={item.title} onChange={(e) => updateSimpleItem(section, item.id, { title: e.target.value })} placeholder={simpleSectionExamples[section].title} /></Field>
+            <Field label="Details"><Input value={item.details} onChange={(e) => updateSimpleItem(section, item.id, { details: e.target.value })} placeholder={simpleSectionExamples[section].details} /></Field>
           </div>
           <div className="mt-3 flex justify-end gap-2">
             <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => duplicateSimpleItem(section, item.id)}><Copy className="h-4 w-4" /></Button>
@@ -587,6 +596,56 @@ function SimpleSectionForm({ section, title }: { section: 'certifications' | 'vo
     </div>
   );
 }
+
+/**
+ * Comma-separated list field. Keeps the raw text while focused so typing ", " isn't swallowed
+ * by re-parsing on every keystroke, and still commits the parsed list as the user types.
+ */
+function CsvInput({
+  value,
+  onCommit,
+  multiline = false,
+  rows,
+  placeholder,
+}: {
+  value: string[];
+  onCommit: (items: string[]) => void;
+  multiline?: boolean;
+  rows?: number;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState(() => joinCsvList(value));
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setText(joinCsvList(value));
+  }, [value]);
+
+  const handlers = {
+    value: text,
+    placeholder,
+    onFocus: () => {
+      focused.current = true;
+    },
+    onBlur: () => {
+      focused.current = false;
+      setText(joinCsvList(value));
+    },
+    onChange: (event: { target: { value: string } }) => {
+      setText(event.target.value);
+      onCommit(parseCsvList(event.target.value));
+    },
+  };
+
+  return multiline ? <Textarea rows={rows} {...handlers} /> : <Input {...handlers} />;
+}
+
+const simpleSectionExamples: Record<'certifications' | 'volunteer' | 'awards' | 'references', { title: string; details: string }> = {
+  certifications: { title: 'e.g. Google Analytics Certification', details: 'e.g. Google, 2024' },
+  volunteer: { title: 'e.g. Mentor, Code Club', details: 'e.g. Weekly sessions teaching 20 students' },
+  awards: { title: 'e.g. Employee of the Year', details: 'e.g. Acme Corp, 2023' },
+  references: { title: 'e.g. Available on request', details: 'Name, role, and contact details' },
+};
 
 function Field({ label, children, error, hint }: { label: string; children: ReactNode; error?: string | null; hint?: string }) {
   return (

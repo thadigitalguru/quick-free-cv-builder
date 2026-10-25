@@ -95,13 +95,13 @@ export default function ResumePreview({
                   className={`font-extrabold leading-none tracking-[-0.03em] ${mode === 'ats' || !isModern ? 'text-inherit' : 'text-white'}`}
                   style={{ fontSize: `${renderedTypography.fullName}px` }}
                 >
-                  {source.personalInfo.fullName || 'Your full name'}
+                  {source.personalInfo.fullName || <Placeholder>Your full name</Placeholder>}
                 </h1>
                 <p
                   className={`font-medium ${mode === 'ats' ? 'text-black' : isModern ? 'text-brand-100' : 'text-brand-700'}`}
                   style={{ fontSize: `${renderedTypography.jobTitle}px` }}
                 >
-                  {source.personalInfo.jobTitle || 'Job title or professional headline'}
+                  {source.personalInfo.jobTitle || <Placeholder>Job title or professional headline</Placeholder>}
                 </p>
               </div>
             </div>
@@ -121,7 +121,7 @@ export default function ResumePreview({
 
           {(source.personalInfo.summary || source.skills.length > 0 || isBlank) && (
             <div className={`mt-5 grid gap-3 text-sm ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`}>
-              <div>
+              <div className={source.personalInfo.summary ? undefined : 'cv-placeholder-line'}>
                 <h2
                   className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-700'}`}
                   style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
@@ -129,7 +129,7 @@ export default function ResumePreview({
                   Professional Summary
                 </h2>
                 <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                  {source.personalInfo.summary}
+                  {source.personalInfo.summary || <Placeholder>Add a 2–4 line summary in Personal Info</Placeholder>}
                 </p>
               </div>
               {source.skills.length > 0 && (
@@ -211,23 +211,23 @@ function PreviewSection({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <h3 className={`font-semibold ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: `${renderedTypography.sectionItemTitle}px` }}>
-                      {item.role || 'Role title'}
+                      {item.role || <Placeholder>Role title</Placeholder>}
                     </h3>
                     <p className={`mt-1 ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-600'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                      {experienceSummary(item) || 'Company'}
+                      {experienceSummary(item) || <Placeholder>Company</Placeholder>}
                     </p>
                   </div>
                   <p className={`${mode === 'ats' ? 'text-black' : isModern ? 'text-white/70' : 'text-slate-500'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                    {formatRange(item.startDate, item.endDate, item.isCurrent)}
+                    {formatRange(item.startDate, item.endDate, item.isCurrent) || <Placeholder>Dates</Placeholder>}
                   </p>
                 </div>
-                {(item.technologies.length > 0 || item.achievements.length > 0) && (
+                {(item.technologies.length > 0 || item.achievements.some((bullet) => bullet.trim())) && (
                   <div className={isCompact ? 'mt-2.5 space-y-1.5' : 'mt-3 space-y-1.5'}>
                     {item.technologies.length > 0 && (
                       <p className={`text-xs uppercase tracking-wider ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/60' : 'text-slate-400'}`}>{item.technologies.join(' • ')}</p>
                     )}
                     <ul className={`list-disc ${isCompact ? 'space-y-1 pl-4' : 'space-y-2 pl-6'} ${mode === 'ats' ? 'text-black marker:text-black' : isModern ? 'text-white/90 marker:text-white/90' : 'text-slate-700 marker:text-brand-600'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px`, lineHeight: isCompact ? 1.5 : 2 }}>
-                      {item.achievements.map((bullet, index) => (
+                      {item.achievements.filter((bullet) => bullet.trim()).map((bullet, index) => (
                         <li key={index} className={isCompact ? 'break-inside-avoid pdf-avoid-break hyphens-auto break-words' : undefined}>
                           {bullet}
                         </li>
@@ -246,14 +246,14 @@ function PreviewSection({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <h3 className={`font-semibold ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: `${renderedTypography.sectionItemTitle}px` }}>
-                      {item.qualification || 'Qualification'}
+                      {item.qualification || <Placeholder>Qualification</Placeholder>}
                     </h3>
                     <p className={`mt-1 ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-600'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                      {item.institution || 'Institution'}{item.fieldOfStudy ? ` • ${item.fieldOfStudy}` : ''}
+                      {item.institution || <Placeholder>Institution</Placeholder>}{item.fieldOfStudy ? ` • ${item.fieldOfStudy}` : ''}
                     </p>
                   </div>
                   <p className={`${mode === 'ats' ? 'text-black' : isModern ? 'text-white/70' : 'text-slate-500'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                    {formatRange(item.startDate, item.endDate)}
+                    {formatRange(item.startDate, item.endDate) || <Placeholder>Dates</Placeholder>}
                   </p>
                 </div>
                 {item.description && <p className={`mt-2.5 ${isCompact ? 'leading-7' : 'leading-8'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>{item.description}</p>}
@@ -269,10 +269,10 @@ function PreviewSection({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <h3 className={`font-semibold ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: `${renderedTypography.sectionItemTitle}px` }}>
-                      {item.name || 'Project name'}
+                      {item.name || <Placeholder>Project name</Placeholder>}
                     </h3>
                     <p className={`mt-1 ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-600'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                      {projectSummary(item) || 'Project role'}
+                      {projectSummary(item) || <Placeholder>Project role</Placeholder>}
                     </p>
                   </div>
                   <p className={`${mode === 'ats' ? 'text-black' : isModern ? 'text-white/70' : 'text-slate-500'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
@@ -297,7 +297,7 @@ function PreviewSection({
           <div className={`flex flex-wrap ${isCompact ? 'gap-1.5' : 'gap-2'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
             {source.languages.map((item) => (
               <span key={item.id} className={`rounded-full ${isCompact ? 'px-2.5 py-1' : 'px-3 py-1.5'} ${mode === 'ats' ? 'border border-black bg-white' : isModern ? 'border border-white/20 bg-white/5' : 'bg-slate-100'}`}>
-                {item.name} — {item.proficiency}
+                {item.name || <Placeholder>Language</Placeholder>} — {item.proficiency}
               </span>
             ))}
           </div>
@@ -337,8 +337,9 @@ function ContactLine({
   const linkClass = `${valueClass} resume-link underline-offset-2 hover:underline`;
   const text = value || '—';
 
+  // Empty contact rows guide editing on screen but are left out of PDFs and print.
   return (
-    <div>
+    <div className={value ? undefined : 'cv-placeholder-line'}>
       <span className={mode === 'ats' ? 'font-semibold text-black' : 'font-semibold text-slate-700'}>{label}</span>{' '}
       {href && value ? (
         <a className={linkClass} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined}>
@@ -349,6 +350,11 @@ function ContactLine({
       )}
     </div>
   );
+}
+
+/** On-screen hint for a missing field; hidden in PDF export and print so it never reaches the CV. */
+function Placeholder({ children }: { children: string }) {
+  return <span className="cv-placeholder">{children}</span>;
 }
 
 function normalizeWebUrl(value: string) {
@@ -369,11 +375,13 @@ function renderSimpleItems(
       {items.map((item) => (
         <div key={item.id} className="break-inside-avoid pdf-avoid-break">
           <h3 className={`font-semibold ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: `${renderedTypography.sectionItemTitle}px` }}>
-            {item.title}
+            {item.title || <Placeholder>Title</Placeholder>}
           </h3>
-          <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-            {item.details}
-          </p>
+          {item.details && (
+            <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
+              {item.details}
+            </p>
+          )}
         </div>
       ))}
     </div>

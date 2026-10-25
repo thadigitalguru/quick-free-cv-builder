@@ -2,10 +2,11 @@ import type { CVDocument, ExperienceItem, ProjectItem } from '../types/cv';
 
 export const createId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+/** Formats only the dates the user entered; returns '' when there are none so nothing is invented. */
 export const formatRange = (startDate: string, endDate: string, isCurrent?: boolean) => {
-  const start = startDate || 'Start';
-  const end = isCurrent ? 'Present' : endDate || 'End';
-  return `${start} — ${end}`;
+  const start = startDate.trim();
+  const end = isCurrent ? 'Present' : endDate.trim();
+  return [start, end].filter(Boolean).join(' — ');
 };
 
 export const splitBullets = (value: string) =>
