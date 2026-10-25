@@ -14,10 +14,13 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        manualChunks(id) {
-          for (const [match, chunkName] of heavyPdfChunks) {
-            if (id.includes(`node_modules/${match}`)) return chunkName;
-          }
+        advancedChunks: {
+          groups: [
+            // Vite's tiny dynamic-import helper is shared by every chunk. Grouped with jsPDF (as
+            // manualChunks did), it made each first visit download the 400 kB PDF library up front.
+            { name: 'preload-helper', test: /vite\/preload-helper/, priority: 20 },
+            ...[...heavyPdfChunks].map(([match, name]) => ({ name, test: new RegExp(`node_modules[\\\\/]${match.replace('.', '\\.')}[\\\\/]`), priority: 10 })),
+          ],
         },
       },
     },

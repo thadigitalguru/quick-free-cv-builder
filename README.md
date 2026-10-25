@@ -43,9 +43,10 @@ npm run preview
 ```
 
 ## Deploy
-This app is already configured for SPA deployment:
-- `vercel.json`
-- `public/_redirects`
+This app is configured for Vercel (`vercel.json`) and Netlify (`public/_headers`, `public/_redirects`). Keep those files: they carry the guarantees below.
+- **Privacy is enforced, not just promised.** A Content Security Policy (`connect-src 'self'`) makes the browser block any request to another server, so CV content can't be sent anywhere, even by a bug or a compromised dependency.
+- **Safe updates.** `index.html` is always revalidated and hashed assets are cached for a year. A missing asset returns 404 (never `index.html`), so a tab opened before a deploy reloads once into the new version instead of breaking.
+- Also sent: `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Permissions-Policy` (no camera, microphone or location), and `frame-ancestors 'none'`.
 
 Hosting settings:
 - Build command: `npm run build`

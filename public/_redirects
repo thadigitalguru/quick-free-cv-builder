@@ -1,1 +1,4 @@
-/* /index.html 200
+# A missing hashed file (an old tab after a deploy) must 404, not get index.html as JavaScript;
+# the app then reloads once to pick up the new version.
+/assets/*  /404.html  404
+/*  /index.html  200
