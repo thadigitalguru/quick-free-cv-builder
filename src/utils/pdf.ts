@@ -35,6 +35,7 @@ export const removeTrailingBlankPages = (pdf: PagedPdf) => {
   }
 };
 
+/** Renders the preview as a PDF and returns it; the caller decides how to hand it to the user. */
 export const exportPreviewAsPdf = async (
   element: HTMLElement | null,
   filename = 'Quick-Free-CV.pdf',
@@ -79,15 +80,15 @@ export const exportPreviewAsPdf = async (
   element.classList.add(...exportClasses);
   try {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    await new Promise<void>((resolve, reject) => {
+    return await new Promise<Blob>((resolve, reject) => {
       try {
         pdf.html(element, {
           ...pdfOptions,
           jsPDF: pdf,
           callback: (doc) => {
             removeTrailingBlankPages(doc as unknown as PagedPdf);
-            doc.save(filename);
-            resolve();
+            // Not doc.save(): its Safari path opens the PDF in a new tab instead of downloading it.
+            resolve(doc.output('blob'));
           },
         });
       } catch (error) {

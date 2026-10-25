@@ -10,6 +10,7 @@ import { Button, Select } from '../shared/controls';
 import { templateLabelMap } from '../../utils/templateConfig';
 import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
+import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
@@ -46,6 +47,8 @@ export default function BuilderPage() {
   const [typography, setTypography] = useState<PreviewTypography>(defaultTypography);
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  // On iPhone/iPad the finished PDF waits here for a tap, because Safari only downloads inside one.
+  const [readyPdf, setReadyPdf] = useState<File | null>(null);
   const {
     document: cvDocument,
     hydrated,
@@ -127,7 +130,10 @@ export default function BuilderPage() {
     try {
       const { buildCvFileName } = await import('../../utils/export');
       const { exportPreviewAsPdf } = await import('../../utils/pdf');
-      await exportPreviewAsPdf(node, buildCvFileName(cvDocument, 'pdf'), { templateId, mode: previewMode });
+      const fileName = buildCvFileName(cvDocument, 'pdf');
+      const blob = await exportPreviewAsPdf(node, fileName, { templateId, mode: previewMode });
+      if (needsTapToSave()) setReadyPdf(new File([blob], fileName, { type: 'application/pdf' }));
+      else downloadBlob(fileName, blob);
       setExportError(null);
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'PDF export failed.');
@@ -312,6 +318,8 @@ export default function BuilderPage() {
 
             {exportError && <p className="mt-3 text-sm text-rose-600">{exportError}</p>}
 
+            {readyPdf && <ReadyPdfPanel file={readyPdf} onDone={() => setReadyPdf(null)} onError={setExportError} />}
+
             <div className="mt-3 rounded-[1.5rem] border border-[#d9e2ef] bg-[#dfe5ee] p-2 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:p-4">
               <div className="rounded-[1.25rem] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.05)]">
                 <ResumePreview mode={previewMode} typography={typography} />
@@ -322,6 +330,41 @@ export default function BuilderPage() {
 
       </section>
     </main>
+  );
+}
+
+function ReadyPdfPanel({ file, onDone, onError }: { file: File; onDone: () => void; onError: (message: string) => void }) {
+  const canShare = useMemo(() => canShareFile(file), [file]);
+
+  // Both handlers reach the browser API synchronously inside the tap; an await first would lose it.
+  const save = () => {
+    downloadBlob(file.name, file);
+    onDone();
+  };
+  const share = async () => {
+    try {
+      await navigator.share({ files: [file], title: file.name });
+      onDone();
+    } catch (error) {
+      // Closing the share sheet isn't an error worth showing.
+      if (!(error instanceof DOMException && error.name === 'AbortError')) onError('Sharing failed. Use Save PDF instead.');
+    }
+  };
+
+  return (
+    <div role="status" className="mt-3 flex flex-col gap-3 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        <span className="font-semibold">Your PDF is ready.</span> Tap Save PDF to download {file.name}.
+      </p>
+      <div className="flex shrink-0 gap-2">
+        {canShare && (
+          <Button variant="secondary" onClick={() => void share()}>
+            Share…
+          </Button>
+        )}
+        <Button onClick={save}>Save PDF</Button>
+      </div>
+    </div>
   );
 }
 
