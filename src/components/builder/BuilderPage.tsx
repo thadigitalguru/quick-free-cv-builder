@@ -9,6 +9,7 @@ import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 import { Button, Select } from '../shared/controls';
 import { templateLabelMap } from '../../utils/templateConfig';
 import { documentHasContent } from '../../utils/progress';
+import { usePageCount } from '../../utils/pageCount';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
@@ -72,6 +73,9 @@ export default function BuilderPage() {
     const timer = window.setTimeout(() => persist(), 450);
     return () => window.clearTimeout(timer);
   }, [cvDocument, hydrated, persist, templateId]);
+
+  const hasContent = documentHasContent(cvDocument);
+  const pageCount = usePageCount('resume-preview-root', { templateId, mode: previewMode, enabled: viewMode === 'preview' && hasContent }, [cvDocument, typography]);
 
   const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
   const blockingIssue = hasBlockingIssues(validationIssues);
@@ -173,13 +177,13 @@ export default function BuilderPage() {
               <ImportReview
                 result={pendingImport}
                 headingRef={importFlow.reviewHeadingRef}
-                confirmLabel={importIsPhoto ? 'Use as profile photo' : documentHasContent(cvDocument) ? 'Replace current CV' : 'Use this import'}
+                confirmLabel={importIsPhoto ? 'Use as profile photo' : hasContent ? 'Replace current CV' : 'Use this import'}
                 replaceNotice={
                   importIsPhoto
                     ? cvDocument.personalInfo.profilePhoto
                       ? 'This replaces your current profile photo. The rest of your CV stays as it is.'
                       : null
-                    : documentHasContent(cvDocument)
+                    : hasContent
                       ? 'Opening this import replaces the CV you are editing now.'
                       : null
                 }
@@ -233,6 +237,14 @@ export default function BuilderPage() {
               <div>
                 <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#6c7a92]">LIVE PREVIEW</h2>
                 <p className="text-[15px] text-[#8b97aa]">This preview matches the PDF export.</p>
+                {hasContent && pageCount !== null && (
+                  <p className="mt-1 text-sm text-[#5d6b84]" aria-live="polite">
+                    <span className="font-semibold text-[#374151]">
+                      PDF: {pageCount} A4 page{pageCount === 1 ? '' : 's'}
+                    </span>
+                    {pageCount > 2 && templateId !== 'compact' && ' · Most CVs fit on 1–2 pages. The Compact template in Advanced options packs more onto each page.'}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
                 <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1" role="tablist" aria-label="Preview mode">

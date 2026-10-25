@@ -5,7 +5,7 @@ vi.mock('jspdf', () => ({
   jsPDF: class {
     html(_element: unknown, options: any) {
       htmlCalls.push(options);
-      options.callback({ save: vi.fn() });
+      options.callback({ save: vi.fn(), getNumberOfPages: () => 1, deletePage: vi.fn(), internal: { pages: [] } });
     }
   },
 }));
