@@ -159,6 +159,12 @@ interface CVState {
   undo: UndoEntry | null;
   undoRemoval: () => void;
   dismissUndo: () => void;
+  /** Another tab saved ('changed') or deleted ('deleted') this CV; autosave pauses until resolved. */
+  conflict: 'changed' | 'deleted' | null;
+  /** Call when another tab wrote the saved CV; syncs quietly when safe, otherwise flags a conflict. */
+  syncFromOtherTab: () => void;
+  /** 'theirs' loads what the other tab saved; 'mine' saves this tab's CV over it. */
+  resolveConflict: (keep: 'theirs' | 'mine') => void;
 }
 
 type EditorPosition = Pick<CVState, 'document' | 'activeSection' | 'activeExperienceId' | 'activeEducationId' | 'activeProjectId' | 'activeLanguageId' | 'activeSimpleSection'>;
@@ -265,22 +271,13 @@ export const useCVStore = create<CVState>((set, get) => {
     if (content(after) !== content(before.document)) set({ undo: { message, before, after } });
   };
 
-  return {
-  document: createEmptyDocument(),
-  activeSection: 'personalInfo',
-  activeExperienceId: null,
-  activeEducationId: null,
-  activeProjectId: null,
-  activeLanguageId: null,
-  activeSimpleSection: null,
-  saveStatus: 'idle',
-  savedAt: null,
-  saveError: null,
-  hydrated: false,
-  templateId: 'classic',
-  initFromStorage: () => {
-    // Already holding a document (e.g. just imported on the landing page): don't overwrite it with the old draft.
-    if (get().hydrated) return;
+  // The document and save id this tab last loaded from or wrote to storage. The document reference
+  // changes as soon as the user edits here; the id says which save this tab has seen.
+  let lastSyncedDocument: CVDocument | null = null;
+  let lastSyncedRev: string | null = null;
+  const contentKey = (document: CVDocument) => JSON.stringify({ ...document, lastUpdatedAt: '' });
+
+  const loadFromStorage = () => {
     const saved = loadSavedCV();
     if (saved?.document) {
       const document = hydrateDocument(saved);
@@ -300,6 +297,30 @@ export const useCVStore = create<CVState>((set, get) => {
       return;
     }
     set({ document: createEmptyDocument(), hydrated: true, saveStatus: 'idle', templateId: 'classic' });
+  };
+  const loadAndSync = () => {
+    lastSyncedRev = loadSavedCV()?.rev ?? null;
+    loadFromStorage();
+    lastSyncedDocument = get().document;
+  };
+
+  return {
+  document: createEmptyDocument(),
+  activeSection: 'personalInfo',
+  activeExperienceId: null,
+  activeEducationId: null,
+  activeProjectId: null,
+  activeLanguageId: null,
+  activeSimpleSection: null,
+  saveStatus: 'idle',
+  savedAt: null,
+  saveError: null,
+  hydrated: false,
+  templateId: 'classic',
+  initFromStorage: () => {
+    // Already holding a document (e.g. just imported on the landing page): don't overwrite it with the old draft.
+    if (get().hydrated) return;
+    loadAndSync();
   },
   createNewCV: () => {
     clearSavedCV();
@@ -536,8 +557,13 @@ export const useCVStore = create<CVState>((set, get) => {
   })),
   persist: () => {
     const state = get();
+    // Saving now would silently overwrite what another tab just saved.
+    if (state.conflict) return;
+    const rev = createId();
     const payload: SavedCVPayload = {
       version: 2,
+      rev,
+      parentRev: lastSyncedRev,
       document: state.document,
       activeSection: state.activeSection,
       activeItemIds: {
@@ -554,6 +580,8 @@ export const useCVStore = create<CVState>((set, get) => {
       set({ saveStatus: 'error', saveError: result.message });
       return;
     }
+    lastSyncedDocument = state.document;
+    lastSyncedRev = rev;
     set({ saveStatus: 'saved', savedAt: new Date().toISOString(), saveError: null });
   },
   undo: null,
@@ -563,6 +591,43 @@ export const useCVStore = create<CVState>((set, get) => {
     set({ ...state.undo.before, document: withUpdatedTimestamp(state.undo.before.document), undo: null, saveStatus: 'saving' });
   },
   dismissUndo: () => set({ undo: null }),
+  conflict: null,
+  syncFromOtherTab: () => {
+    // The user is choosing between versions: this tab's copy must stay exactly as it is meanwhile
+    // (e.g. after Start over elsewhere, that tab's new empty CV must not replace the one shown here).
+    if (get().conflict) return;
+    // Read what is stored now, not the event's value: events from two near-simultaneous saves can
+    // arrive after this tab has already written its own.
+    const saved = loadSavedCV();
+    if (!saved) {
+      set({ conflict: 'deleted', saveStatus: 'error' });
+      return;
+    }
+    if (saved.rev && saved.rev === lastSyncedRev) return;
+    // Another tab re-saved what this tab already has (e.g. it was just opened): nothing changed.
+    if (lastSyncedDocument && contentKey(hydrateDocument(saved)) === contentKey(lastSyncedDocument)) {
+      lastSyncedRev = saved.rev ?? null;
+      return;
+    }
+    const editedHere = get().document !== lastSyncedDocument;
+    const builtOnOurs = (saved.parentRev ?? null) === lastSyncedRev;
+    // Only take the other version silently if it saw our latest save and we've changed nothing since.
+    if (!editedHere && builtOnOurs) {
+      loadAndSync();
+      return;
+    }
+    set({ conflict: 'changed', saveStatus: 'error' });
+  },
+  resolveConflict: (keep) => {
+    set({ conflict: null });
+    if (keep === 'theirs') {
+      loadAndSync();
+      return;
+    }
+    // Build on the version we chose to replace, so the other tab sees an informed save and syncs quietly.
+    lastSyncedRev = loadSavedCV()?.rev ?? null;
+    get().persist();
+  },
   };
 });
 

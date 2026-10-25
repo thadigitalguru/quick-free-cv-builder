@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Minus, Plus } from 'lucide-react';
 import { isUndoAvailable, useCVStore } from '../../store/cvStore';
 import TopBar from './TopBar';
@@ -12,6 +13,7 @@ import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
 import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
 import { describeError } from '../../utils/appUpdate';
+import { STORAGE_KEY } from '../../utils/storageKeys';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
@@ -71,6 +73,17 @@ export default function BuilderPage() {
   useEffect(() => {
     initFromStorage();
   }, [initFromStorage]);
+
+  // Another tab saving this CV fires a storage event here (never for this tab's own saves).
+  useEffect(() => {
+    if (!hydrated) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage || (event.key !== STORAGE_KEY && event.key !== null)) return;
+      useCVStore.getState().syncFromOtherTab();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -215,6 +228,7 @@ export default function BuilderPage() {
       )}
 
       <UndoBar />
+      <TabConflictBanner />
 
       <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
         <div className={viewMode === 'edit' ? 'grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]' : 'block'}>
@@ -333,6 +347,42 @@ export default function BuilderPage() {
 
       </section>
     </main>
+  );
+}
+
+/** Two tabs editing one CV would otherwise overwrite each other silently on every autosave. */
+function TabConflictBanner() {
+  const conflict = useCVStore((state) => state.conflict);
+  const resolveConflict = useCVStore((state) => state.resolveConflict);
+  const navigate = useNavigate();
+  if (!conflict) return null;
+  return (
+    <div className="px-4 pt-2">
+      <div role="alert" className="mx-auto flex max-w-[1680px] flex-col gap-3 rounded-[1.25rem] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          <span className="font-semibold">{conflict === 'changed' ? 'This CV was changed in another tab.' : 'This CV was deleted in another tab.'}</span>{' '}
+          Changes in this tab aren't being saved until you choose.
+        </p>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          {conflict === 'changed' ? (
+            <Button variant="secondary" onClick={() => resolveConflict('theirs')}>
+              Load the other tab's version
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                resolveConflict('theirs');
+                navigate('/');
+              }}
+            >
+              Go to home
+            </Button>
+          )}
+          <Button onClick={() => resolveConflict('mine')}>Keep this tab's version</Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

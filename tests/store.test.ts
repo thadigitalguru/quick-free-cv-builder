@@ -204,3 +204,112 @@ describe('undo for deletes and clears', () => {
     expect(useCVStore.getState().undo).toBeNull();
   });
 });
+
+describe('another tab saving the same CV', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  // What another tab's save looks like: a new revision built on the one it last saw.
+  const otherTabSaves = (storage: Storage, fullName: string, parentRev?: string | null) => {
+    const saved = JSON.parse(storage.getItem('quick-free-cv-builder:v3')!);
+    saved.document.personalInfo.fullName = fullName;
+    saved.parentRev = parentRev === undefined ? saved.rev : parentRev;
+    saved.rev = `other-${fullName}`;
+    storage.setItem('quick-free-cv-builder:v3', JSON.stringify(saved));
+  };
+
+  it('quietly takes the newer version when this tab has no unsaved edits', async () => {
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'First');
+    useCVStore.getState().persist();
+    otherTabSaves(storage, 'From other tab');
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().conflict).toBeNull();
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('From other tab');
+  });
+
+  it('pauses autosave when both tabs have changes, then lets the user choose', async () => {
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'First');
+    useCVStore.getState().persist();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Edited here');
+    otherTabSaves(storage, 'From other tab');
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().conflict).toBe('changed');
+    useCVStore.getState().persist();
+    expect(JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('From other tab');
+
+    useCVStore.getState().resolveConflict('mine');
+    expect(JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('Edited here');
+
+    useCVStore.getState().updatePersonalInfo('fullName', 'Edited again');
+    otherTabSaves(storage, 'Other tab again');
+    useCVStore.getState().syncFromOtherTab();
+    useCVStore.getState().resolveConflict('theirs');
+    expect(useCVStore.getState().conflict).toBeNull();
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('Other tab again');
+  });
+
+  it('flags a save that overwrote ours without seeing it, even with no edits here', async () => {
+    // Both tabs autosaved at nearly the same moment: the other save was built on an older revision.
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Base');
+    useCVStore.getState().persist();
+    const baseRev = JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).rev;
+    useCVStore.getState().updatePersonalInfo('fullName', 'Saved here');
+    useCVStore.getState().persist();
+    otherTabSaves(storage, 'Saved there', baseRev);
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().conflict).toBe('changed');
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('Saved here');
+  });
+
+  it('ignores another tab re-saving the same content and its own stale events', async () => {
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Same');
+    useCVStore.getState().persist();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Unsaved edit');
+    otherTabSaves(storage, 'Same', null);
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().conflict).toBeNull();
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('Unsaved edit');
+  });
+});
+
+describe('Start over in another tab', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('keeps this tab’s CV while the user decides, even when the other tab saves an empty CV', async () => {
+    const { storage } = createMockStorage();
+    installMockWindow(storage);
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Only copy');
+    useCVStore.getState().persist();
+    const rev = JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).rev;
+    storage.removeItem('quick-free-cv-builder:v3');
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().conflict).toBe('deleted');
+    // The other tab's fresh, empty CV autosaves, built on our last revision.
+    storage.setItem('quick-free-cv-builder:v3', JSON.stringify({ version: 3, rev: 'empty', parentRev: rev, activeSection: 'personalInfo', activeItemIds: {}, document: { personalInfo: { fullName: '' } } }));
+    useCVStore.getState().syncFromOtherTab();
+    expect(useCVStore.getState().document.personalInfo.fullName).toBe('Only copy');
+    useCVStore.getState().resolveConflict('mine');
+    expect(JSON.parse(storage.getItem('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('Only copy');
+  });
+});

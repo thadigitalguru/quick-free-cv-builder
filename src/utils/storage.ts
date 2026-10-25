@@ -29,6 +29,8 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
       simpleSection: payload.activeItemIds?.simpleSection ?? null,
     },
     templateId: payload.templateId ?? 'classic',
+    rev: typeof payload.rev === 'string' ? payload.rev : undefined,
+    parentRev: typeof payload.parentRev === 'string' ? payload.parentRev : null,
   };
 };
 
@@ -66,6 +68,8 @@ export const loadSavedCV = (): SavedCVPayload | null => {
       activeSection: parsed.activeSection,
       activeItemIds: typeof parsed.activeItemIds === 'object' && parsed.activeItemIds !== null ? parsed.activeItemIds : ({} as SavedCVPayload['activeItemIds']),
       templateId: parsed.templateId,
+      rev: parsed.rev,
+      parentRev: parsed.parentRev,
     });
 
     if (!normalized) {

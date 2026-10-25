@@ -103,4 +103,7 @@ export interface SavedCVPayload {
   activeSection: SectionId;
   activeItemIds: Record<string, string | null>;
   templateId?: ResumeTemplateId;
+  /** Id of this save, and of the save it was built on; lets open tabs tell who overwrote whom. */
+  rev?: string;
+  parentRev?: string | null;
 }
