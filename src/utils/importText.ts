@@ -60,6 +60,9 @@ const headingAliases: Record<SectionKey, string[]> = {
 // Headings we recognise but have no section for; their text is reported back rather than merged elsewhere.
 const unsupportedHeadings = new Set(['publications', 'achievements', 'key achievements', 'memberships', 'affiliations', 'professional memberships', 'activities', 'extracurricular activities', 'leadership', 'research', 'conferences', 'patents', 'additional information', 'other']);
 
+// Sidebar blocks of contact details; their lines are read like the header (email, phone, location).
+const contactHeadings = new Set(['contact', 'contacts', 'contact details', 'contact information', 'contact info', 'personal details', 'personal information', 'personal info', 'details', 'get in touch']);
+
 const headingLookup = new Map<string, SectionKey>(
   (Object.entries(headingAliases) as [SectionKey, string[]][]).flatMap(([key, aliases]) => aliases.map((alias) => [alias, key] as const)),
 );
@@ -103,9 +106,10 @@ const isBullet = (line: string) => bulletRegex.test(line) && stripBullet(line).l
 
 const toHeadingKey = (line: string) => line.toLowerCase().replace(/[:：]$/, '').replace(/\s+/g, ' ').trim();
 
-const detectHeading = (line: string): SectionKey | 'unknown' | null => {
+const detectHeading = (line: string): SectionKey | 'unknown' | 'contact' | null => {
   if (line.length > 40) return null;
   const key = toHeadingKey(line);
+  if (contactHeadings.has(key)) return 'contact';
   const known = headingLookup.get(key);
   if (known) return known;
   if (unsupportedHeadings.has(key)) return 'unknown';
@@ -232,7 +236,8 @@ const toBulletItems = (lines: string[]) => {
   return items;
 };
 
-const isUpperCaseList = (line: string) => /[•·|,]/.test(line) && line === line.toUpperCase() && /[A-Z]/.test(line);
+// "SQL • POWER BI", or a single "TYPESCRIPT": the upper-cased technologies line our own export prints.
+const isUpperCaseList = (line: string) => line === line.toUpperCase() && /[A-Z]/.test(line) && (/[•·|,]/.test(line) || (line.length <= 40 && !/[.!?]$/.test(line)));
 
 const parseExperience = (lines: string[], notes: string[]): Draft<ExperienceItem>[] => {
   const { entries, anchored } = groupEntries(lines, false);
@@ -402,7 +407,18 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
       contactFields.push(...parseContactLine(line));
       return;
     }
-    const heading = detectHeading(line);
+    const detected = detectHeading(line);
+    // Right under a role's dates, an all-caps line is its technologies ("TYPESCRIPT"), not a new section.
+    const isTechLine =
+      detected === 'unknown' &&
+      (current === 'experience' || current === 'projects' || current === 'volunteer') &&
+      !unsupportedHeadings.has(toHeadingKey(line)) &&
+      dateRangeRegex.test(sections[current]!.at(-1) ?? '');
+    const heading = isTechLine ? null : detected;
+    if (heading === 'contact') {
+      current = 'header';
+      return;
+    }
     if (heading === 'unknown') {
       current = 'unknown';
       unplaced.push(line);

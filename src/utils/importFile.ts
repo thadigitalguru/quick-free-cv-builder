@@ -41,8 +41,68 @@ interface PdfTextItem {
   width?: number;
 }
 
+type PlacedItem = PdfTextItem & { transform: number[]; width: number };
+
+const looksLikeDate = (text: string) => /\b(19|20)\d{2}\b|present|current/i.test(text);
+
+/**
+ * Two-column CVs (a sidebar beside the main column) put sidebar and main text on the same rows,
+ * so reading across merges unrelated lines ("SKILLS Acme Corp"). When a page has a clear vertical
+ * gutter, read each column top to bottom instead. Full-width text above both columns (a header)
+ * stays first, and the column holding the largest text (usually the name) comes next.
+ */
+export const orderPdfColumns = (items: PdfTextItem[]): PdfTextItem[] => {
+  const placed = items.filter((item): item is PlacedItem => typeof item.str === 'string' && item.str.trim() !== '' && Array.isArray(item.transform) && typeof item.width === 'number');
+  if (placed.length < 12 || placed.length !== items.filter((item) => typeof item.str === 'string' && item.str.trim() !== '').length) return items;
+  const left = (item: PlacedItem) => item.transform[4];
+  const right = (item: PlacedItem) => item.transform[4] + item.width;
+  const minX = Math.min(...placed.map(left));
+  const maxX = Math.max(...placed.map(right));
+  const span = maxX - minX;
+  if (span < 200) return items;
+
+  // Pick the gutter crossed by the fewest items, preferring the middle of the widest such band.
+  let best: { x: number; crossing: number; band: number } | null = null;
+  let bandStart = 0;
+  let previousCrossing = -1;
+  for (let x = minX + span * 0.2; x <= minX + span * 0.8; x += 1) {
+    const crossing = placed.filter((item) => left(item) < x && right(item) > x).length;
+    if (crossing !== previousCrossing) bandStart = x;
+    previousCrossing = crossing;
+    const band = x - bandStart;
+    if (!best || crossing < best.crossing || (crossing === best.crossing && band > best.band)) best = { x: bandStart + band / 2, crossing, band };
+  }
+  if (!best || best.band < 6 || best.crossing > placed.length * 0.15) return items;
+
+  const gutter = best.x;
+  const leftColumn = placed.filter((item) => right(item) <= gutter);
+  const rightColumn = placed.filter((item) => left(item) >= gutter);
+  const crossing = placed.filter((item) => left(item) < gutter && right(item) > gutter);
+  const distinctRows = (column: PlacedItem[]) => new Set(column.map((item) => Math.round(item.transform[5]))).size;
+  if (distinctRows(leftColumn) < 4 || distinctRows(rightColumn) < 4) return items;
+  // Right-aligned dates in a one-column CV look like a narrow column; don't split those.
+  if ([leftColumn, rightColumn].some((column) => column.filter((item) => looksLikeDate(item.str)).length >= column.length * 0.6)) return items;
+
+  const top = (column: PlacedItem[]) => Math.max(...column.map((item) => item.transform[5]));
+  const columnsTop = Math.max(top(leftColumn), top(rightColumn));
+  const header = crossing.filter((item) => item.transform[5] > columnsTop);
+  // Full-width lines further down (rare) stay with the column they start in.
+  crossing.filter((item) => !header.includes(item)).forEach((item) => (left(item) < gutter ? leftColumn : rightColumn).push(item));
+
+  const fontSize = (item: PlacedItem) => Math.hypot(item.transform[2], item.transform[3]) || Math.abs(item.transform[3]);
+  const largest = (column: PlacedItem[]) => Math.max(...column.map(fontSize));
+  const textLength = (column: PlacedItem[]) => column.reduce((sum, item) => sum + item.str.length, 0);
+  const columns = [leftColumn, rightColumn].sort((a, b) => largest(b) - largest(a) || textLength(b) - textLength(a));
+  // pdf.js y grows upwards: read top to bottom, then left to right within a row.
+  const readingOrder = (column: PlacedItem[]) => [...column].sort((a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4]);
+  // An empty marker forces a line break between groups even if their rows happen to line up.
+  const breakItem: PdfTextItem = { str: '', hasEOL: true };
+  return [...readingOrder(header), breakItem, ...readingOrder(columns[0]), breakItem, ...readingOrder(columns[1])];
+};
+
 /** Rebuilds line breaks from pdf.js text items so section headings and bullets survive extraction. */
-export const pdfItemsToText = (items: PdfTextItem[]) => {
+export const pdfItemsToText = (rawItems: PdfTextItem[]) => {
+  const items = orderPdfColumns(rawItems);
   let output = '';
   let lastY: number | null = null;
   let lastRight: number | null = null;

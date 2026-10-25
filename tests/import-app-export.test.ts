@@ -49,3 +49,29 @@ describe('normalizeExtractedText', () => {
     );
   });
 });
+
+// A 7-role, 2-page export where each role has a single technology, printed as "TYPESCRIPT".
+const multiRole = fs.readFileSync(new URL('./fixtures/app-export-multi-role.txt', import.meta.url), 'utf8');
+
+describe('re-importing a multi-page export with one technology per role', () => {
+  const parsed = parseImportedText(multiRole);
+
+  it('keeps every role, achievement and technology instead of treating "TYPESCRIPT" as a heading', () => {
+    expect(parsed.experience).toHaveLength(7);
+    parsed.experience.forEach((role, index) => {
+      expect(role).toMatchObject({ role: `Role ${index + 1}`, company: `Company ${index + 1}`, location: 'Nairobi', technologies: ['TYPESCRIPT'] });
+      expect(role.achievements).toHaveLength(5);
+    });
+    expect(parsed.education).toHaveLength(1);
+    expect(parsed.unplaced).toEqual([]);
+  });
+});
+
+describe('all-caps lines inside experience', () => {
+  it('still treats an unknown all-caps heading after a role body as a new, unplaced section', () => {
+    const parsed = parseImportedText(['Jane Doe', 'EXPERIENCE', 'Designer at Acme', '2020 - 2022', '- Shipped the app.', 'SPEAKING', 'Config 2023 keynote'].join('\n'));
+    expect(parsed.experience).toHaveLength(1);
+    expect(parsed.experience[0].achievements).toEqual(['Shipped the app.']);
+    expect(parsed.unplaced).toEqual(['SPEAKING', 'Config 2023 keynote']);
+  });
+});
