@@ -32,14 +32,33 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
   };
 };
 
+export const CORRUPT_BACKUP_KEY = `${STORAGE_KEY}:unreadable-backup`;
+
+/** Keeps an unreadable draft under a backup key instead of deleting the only copy of someone's CV. */
+const quarantineDraft = (raw: string) => {
+  try {
+    window.localStorage.setItem(CORRUPT_BACKUP_KEY, raw);
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // If the backup can't be written, leave the original in place rather than lose it.
+  }
+};
+
 export const loadSavedCV = (): SavedCVPayload | null => {
   if (typeof window === 'undefined') return null;
+  let raw: string | null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    raw = window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Storage is blocked (private mode, site data disabled); there's nothing we can read or safely clear.
+    return null;
+  }
+  if (!raw) return null;
+
+  try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isSavedCVPayload(parsed)) {
-      window.localStorage.removeItem(STORAGE_KEY);
+      quarantineDraft(raw);
       return null;
     }
 
@@ -52,25 +71,51 @@ export const loadSavedCV = (): SavedCVPayload | null => {
     });
 
     if (!normalized) {
-      window.localStorage.removeItem(STORAGE_KEY);
+      quarantineDraft(raw);
       return null;
     }
 
     return normalized;
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    quarantineDraft(raw);
     return null;
   }
 };
 
-export const saveCV = (payload: SavedCVPayload) => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...payload, version: STORAGE_VERSION }));
+export type SaveResult = { ok: true } | { ok: false; reason: 'quota' | 'unavailable'; message: string };
+
+const isQuotaError = (error: unknown) =>
+  error instanceof Error &&
+  (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || (error as { code?: number }).code === 22 || (error as { code?: number }).code === 1014);
+
+export const saveCV = (payload: SavedCVPayload): SaveResult => {
+  if (typeof window === 'undefined') return { ok: true };
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...payload, version: STORAGE_VERSION }));
+    return { ok: true };
+  } catch (error) {
+    if (isQuotaError(error)) {
+      return {
+        ok: false,
+        reason: 'quota',
+        message: 'Browser storage is full, so recent changes are not saved. Download a JSON backup now, or remove the profile photo to free space.',
+      };
+    }
+    return {
+      ok: false,
+      reason: 'unavailable',
+      message: 'This browser is blocking local storage, so changes will be lost when you close the tab. Download a JSON backup to keep your work.',
+    };
+  }
 };
 
 export const clearSavedCV = () => {
   if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(STORAGE_KEY);
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing stored that we can reach.
+  }
 };
 
 export const getSavedDraftMeta = () => {

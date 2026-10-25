@@ -50,6 +50,7 @@ export default function BuilderPage() {
     persist,
     saveStatus,
     savedAt,
+    saveError,
     templateId,
     setTemplateId,
     createNewCV,
@@ -143,6 +144,17 @@ export default function BuilderPage() {
         onCreateNewCV={handleCreateNewCV}
         onResetDraft={handleResetDraft}
       />
+
+      {saveError && (
+        <div className="px-4 pt-2">
+          <div role="alert" className="mx-auto flex max-w-[1680px] flex-col gap-3 rounded-[1.25rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+            <p>{saveError}</p>
+            <Button variant="secondary" className="shrink-0" onClick={() => void handleDownloadJson()}>
+              Download JSON backup
+            </Button>
+          </div>
+        </div>
+      )}
 
       <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
         <div className={viewMode === 'edit' ? 'grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]' : 'block'}>

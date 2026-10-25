@@ -9,7 +9,7 @@ Quick Free CV Builder lets you create, edit, preview, import, and export CVs ent
 - Landing page with trust-first messaging
 - Two-pane builder workspace with live preview
 - Section reordering with drag-and-drop, keyboard shortcuts, and show/hide controls
-- Autosave to localStorage
+- Autosave to localStorage, with a visible warning and JSON backup option if browser storage is full or blocked
 - Profile photo upload and preview
 - Import support for JSON, TXT, PDF, DOCX, and image files
 - Export support for JSON drafts and PDFs

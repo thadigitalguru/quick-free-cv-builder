@@ -95,7 +95,7 @@ const createEmptyDocument = (): CVDocument => ({
   lastUpdatedAt: nowIso(),
 });
 
-type SaveStatus = 'idle' | 'saved' | 'saving' | 'loaded';
+type SaveStatus = 'idle' | 'saved' | 'saving' | 'loaded' | 'error';
 
 interface CVState {
   document: CVDocument;
@@ -106,6 +106,8 @@ interface CVState {
   activeLanguageId: string | null;
   activeSimpleSection: 'certifications' | 'volunteer' | 'awards' | 'references' | null;
   saveStatus: SaveStatus;
+  /** User-facing reason the last autosave failed, if it did. */
+  saveError: string | null;
   savedAt: string | null;
   hydrated: boolean;
   templateId: ResumeTemplateId;
@@ -234,9 +236,12 @@ export const useCVStore = create<CVState>((set, get) => ({
   activeSimpleSection: null,
   saveStatus: 'idle',
   savedAt: null,
+  saveError: null,
   hydrated: false,
   templateId: 'classic',
   initFromStorage: () => {
+    // Already holding a document (e.g. just imported on the landing page): don't overwrite it with the old draft.
+    if (get().hydrated) return;
     const saved = loadSavedCV();
     if (saved?.document) {
       const document = hydrateDocument(saved);
@@ -419,6 +424,7 @@ export const useCVStore = create<CVState>((set, get) => ({
       savedAt: normalized.lastUpdatedAt,
       hydrated: true,
     });
+    get().persist();
   },
   clearSection: (sectionId) => set((state) => {
     const next: CVDocument = { ...state.document };
@@ -476,8 +482,12 @@ export const useCVStore = create<CVState>((set, get) => ({
       },
       templateId: state.templateId,
     };
-    saveCV(payload);
-    set({ saveStatus: 'saved', savedAt: new Date().toISOString() });
+    const result = saveCV(payload);
+    if (!result.ok) {
+      set({ saveStatus: 'error', saveError: result.message });
+      return;
+    }
+    set({ saveStatus: 'saved', savedAt: new Date().toISOString(), saveError: null });
   },
 }));
 

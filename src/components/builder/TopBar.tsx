@@ -13,7 +13,7 @@ export default function TopBar({
 }: {
   activeView: 'edit' | 'preview';
   onChangeView: (view: 'edit' | 'preview') => void;
-  saveStatus: 'idle' | 'saved' | 'saving' | 'loaded';
+  saveStatus: 'idle' | 'saved' | 'saving' | 'loaded' | 'error';
   savedAt: string | null;
   exportReady: boolean;
   blockingCount: number;
@@ -30,13 +30,16 @@ export default function TopBar({
           : 'Saved'
         : saveStatus === 'loaded'
           ? 'Loaded draft'
-          : 'Ready';
+          : saveStatus === 'error'
+            ? 'Not saved'
+            : 'Ready';
 
   const statusStyles = {
     saving: 'border-amber-200 bg-amber-50 text-amber-800',
     saved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     loaded: 'border-sky-200 bg-sky-50 text-sky-800',
     idle: 'border-[#d9e2ef] bg-white text-[#5d6b84]',
+    error: 'border-rose-200 bg-rose-50 text-rose-800',
   }[saveStatus];
 
   const exportLabel = exportReady
