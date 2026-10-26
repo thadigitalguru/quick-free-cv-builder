@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Home, Upload } from 'lucide-react';
 import { Button } from '../shared/controls';
@@ -29,6 +29,18 @@ export default function TopBar({
   isImporting: boolean;
 }) {
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
+  const startOverButtonRef = useRef<HTMLButtonElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Keyboard users land on the safe choice; Escape backs out to where they were.
+  useEffect(() => {
+    if (confirmingStartOver) cancelButtonRef.current?.focus();
+  }, [confirmingStartOver]);
+
+  const closeStartOver = () => {
+    setConfirmingStartOver(false);
+    startOverButtonRef.current?.focus();
+  };
 
   const statusLabel =
     saveStatus === 'saving'
@@ -125,6 +137,7 @@ export default function TopBar({
               {isImporting ? 'Importing…' : 'Import'}
             </Button>
             <Button
+              ref={startOverButtonRef}
               variant="secondary"
               className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none"
               onClick={() => setConfirmingStartOver((value) => !value)}
@@ -138,6 +151,12 @@ export default function TopBar({
                 id="start-over-confirm"
                 role="alertdialog"
                 aria-label="Confirm start over"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    closeStartOver();
+                  }
+                }}
                 className="absolute right-0 top-11 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[1rem] border border-amber-200 bg-white p-3 text-left text-sm text-[#374151] shadow-[0_18px_30px_rgba(15,23,42,0.12)]"
               >
                 <p>This deletes your CV from this browser. It can't be undone.</p>
@@ -146,7 +165,7 @@ export default function TopBar({
                     Download JSON backup
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="secondary" onClick={() => setConfirmingStartOver(false)}>
+                    <Button ref={cancelButtonRef} variant="secondary" onClick={closeStartOver}>
                       Cancel
                     </Button>
                     <Button

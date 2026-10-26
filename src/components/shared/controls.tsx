@@ -1,4 +1,4 @@
-import { createContext, useContext, type ButtonHTMLAttributes, type InputHTMLAttributes, type TextareaHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { createContext, useContext, type ButtonHTMLAttributes, type Ref, type InputHTMLAttributes, type TextareaHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 import { cn } from '../../utils/dom';
 
 /** Set by a form field so its control is tied to the visible label and hint without wiring ids by hand. */
@@ -9,14 +9,14 @@ const useFieldProps = (props: { id?: string; 'aria-describedby'?: string }) => {
   return { id: props.id ?? field?.id, 'aria-describedby': props['aria-describedby'] ?? field?.describedBy };
 };
 
-export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' }) {
+export function Button({ className = '', variant = 'primary', ref, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost'; ref?: Ref<HTMLButtonElement> }) {
   const styles = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm',
     secondary: 'bg-white text-ink border border-border hover:bg-slate-50',
     ghost: 'bg-transparent text-ink hover:bg-slate-100',
   }[variant];
 
-  return <button className={cn('inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50', styles, className)} {...props} />;
+  return <button ref={ref} className={cn('inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50', styles, className)} {...props} />;
 }
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {

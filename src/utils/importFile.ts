@@ -180,7 +180,15 @@ export const readImportedFile = async (file: File, onProgress?: ImportProgressCa
     onProgress?.('Extracting text from DOCX…');
     const { default: mammoth } = await import('mammoth');
     const buffer = await file.arrayBuffer();
-    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    let result: { value: string };
+    try {
+      result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    } catch {
+      // mammoth only reports zip internals ("can't find end of central directory").
+      throw new ImportError(
+        `${file.name} couldn't be opened as a Word document. It may be damaged, or an older .doc file renamed to .docx. Open it in Word or Google Docs, save it as .docx or PDF, and import that.`,
+      );
+    }
     warnings.push('Text in DOCX headers and footers is not read.');
     return { kind, text: result.value, dataUrl: '', warnings };
   }
@@ -316,7 +324,19 @@ async function extractPdfText(file: File) {
   const pdfjsLib = await import('pdfjs-dist');
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let pdf: Awaited<ReturnType<typeof pdfjsLib.getDocument>['promise']>;
+  try {
+    pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  } catch (error) {
+    // pdf.js messages ("Invalid PDF structure.", "No password given") don't tell people what to do.
+    const name = error instanceof Error ? error.name : '';
+    if (name === 'PasswordException') {
+      throw new ImportError(`${file.name} is password-protected, so it can't be read here. Open it, save or print a copy without a password, and import that.`);
+    }
+    // file.size, not buffer.byteLength: pdf.js transfers the buffer to its worker, which empties it.
+    if (file.size === 0) throw new ImportError(`${file.name} is empty (0 bytes). Check you picked the right file.`);
+    throw new ImportError(`${file.name} couldn't be read as a PDF; it may be damaged or not really a PDF. Try exporting it again from the original, or import a DOCX instead.`);
+  }
   const pagesRead = Math.min(pdf.numPages, MAX_PDF_PAGES);
   let text = '';
   for (let index = 1; index <= pagesRead; index += 1) {
