@@ -9,8 +9,9 @@
     "check": "npm run build",
     "deploy": "npm run build",
     "preview": "vite preview",
-    "test": "vitest run --environment node",
-    "test:watch": "vitest --environment node"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +29,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

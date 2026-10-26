@@ -34,8 +34,11 @@ npm run dev
 
 ## Run the tests
 ```bash
-npm test
+npm test            # unit tests (Vitest)
+npx playwright install chromium webkit   # once
+npm run test:e2e    # browser tests: desktop Chrome and WebKit as an iPhone, against the production build
 ```
+The browser suite checks what users actually get: the exported PDF's text, links, images and page count, undo, two-tab conflicts, crash recovery, accessibility (axe), and that no request leaves the app under the production security policy. CI runs both suites on every push (`.github/workflows/ci.yml`).
 
 ## Validate the production build
 ```bash
