@@ -7,8 +7,14 @@ describe('formatRange', () => {
     expect(formatRange('', '')).toBe('');
     expect(formatRange('2020', '')).toBe('2020');
     expect(formatRange('', '2022')).toBe('2022');
-    expect(formatRange('2020', '2022')).toBe('2020 — 2022');
-    expect(formatRange('2020', '2021', true)).toBe('2020 — Present');
+    expect(formatRange('2020', '2022')).toBe('2020 – 2022');
+    expect(formatRange('2020', '2021', true)).toBe('2020 – Present');
+    // Months read as words, and only where the user gave a month.
+    expect(formatRange('2021-03', '', true)).toBe('Mar 2021 – Present');
+    expect(formatRange('2018-01', '2021-12')).toBe('Jan 2018 – Dec 2021');
+    expect(formatRange('2018-01', '2021')).toBe('Jan 2018 – 2021');
+    // Anything that isn't YYYY-MM stays exactly as typed.
+    expect(formatRange('Summer 2020', '2021-13')).toBe('Summer 2020 – 2021-13');
   });
 });
 

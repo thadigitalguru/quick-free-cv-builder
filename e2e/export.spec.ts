@@ -48,3 +48,23 @@ test('characters the PDF font cannot draw are listed before export', async ({ pa
   await showPreview(page);
   await expect(page.getByText("These characters can't be shown in the PDF")).toContainText('→ 🚀');
 });
+
+test('dates read as words in the PDF, and the PDF re-imports with the same dates', async ({ page }, testInfo) => {
+  await seedCv(page, {
+    personalInfo: { fullName: 'Round Trip', email: 'round@example.com' },
+    experience: [
+      { id: 'a', role: 'Senior Data Analyst', company: 'Safaricom', startDate: '2021-03', endDate: '', isCurrent: true, achievements: ['Built churn dashboards'] },
+      { id: 'b', role: 'Data Analyst', company: 'Equity Bank', startDate: '2018-01', endDate: '2021-02', isCurrent: false, achievements: ['Modelled loan risk'] },
+    ],
+  });
+  await openBuilder(page);
+  await showPreview(page);
+  const file = await exportPdf(page, testInfo);
+  const pdf = await readPdf(file);
+  expect(pdf.text).toContain('Mar 2021 – Present');
+  expect(pdf.text).toContain('Jan 2018 – Feb 2021');
+  await page.locator('input[type=file][accept*=pdf]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Replace current CV' }).click();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('quick-free-cv-builder:v3')!).document.experience.map((e: { startDate: string; endDate: string; isCurrent: boolean }) => [e.startDate, e.endDate, e.isCurrent]));
+  expect(stored).toEqual([['2021-03', '', true], ['2018-01', '2021-02', false]]);
+});
