@@ -39,3 +39,14 @@ test('importing inside the builder warns before replacing a CV with content', as
   await page.getByRole('button', { name: 'Cancel import' }).click();
   expect(await savedName(page)).toBe('Existing Person');
 });
+
+test('import details can be copied for a bug report and contain no CV text', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type=file]').setInputFiles(fixture('chrome-printed/C_two_pages_sidebar_ends_early.pdf'));
+  const review = page.locator('section[aria-labelledby="import-review-heading"]');
+  await review.getByText("Import didn't go right? Copy details to report it").click();
+  const details = await review.locator('pre').last().textContent();
+  expect(details).toContain('"twoColumnPages": 1');
+  expect(details).toContain('"pages": 2');
+  for (const word of ['Amina', 'Wanjiru', 'amina.wanjiru', 'Safaricom']) expect(details).not.toContain(word);
+});

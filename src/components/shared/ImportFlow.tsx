@@ -156,6 +156,8 @@ export function ImportReview({
         </details>
       )}
 
+      {report.diagnostics && <ImportDiagnosticsPanel diagnostics={report.diagnostics} />}
+
       {replaceNotice && (
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
           <p>{replaceNotice}</p>
@@ -172,5 +174,35 @@ export function ImportReview({
         <Button onClick={onConfirm}>{confirmLabel}</Button>
       </div>
     </section>
+  );
+}
+
+/**
+ * Opt-in help for bad imports. The app sends nothing anywhere; this only shows, and lets people copy,
+ * how the file was read: structure and rule counts, never any text from the CV.
+ */
+function ImportDiagnosticsPanel({ diagnostics }: { diagnostics: NonNullable<ImportResult['report']['diagnostics']> }) {
+  const [copied, setCopied] = useState(false);
+  const json = JSON.stringify(diagnostics, null, 2);
+  return (
+    <details className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-slate-600">
+      <summary className="cursor-pointer font-medium text-ink">Import didn't go right? Copy details to report it</summary>
+      <p className="mt-2">
+        These details describe how the file was read (which sections were found, how many lines went where, which rules were used). They contain no text from your CV, and nothing is sent unless you paste them somewhere yourself.
+      </p>
+      <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-slate-50 p-2 text-xs">{json}</pre>
+      <Button
+        variant="secondary"
+        className="mt-2"
+        onClick={() => {
+          navigator.clipboard.writeText(json).then(
+            () => setCopied(true),
+            () => setCopied(false),
+          );
+        }}
+      >
+        {copied ? 'Copied' : 'Copy import details'}
+      </Button>
+    </details>
   );
 }

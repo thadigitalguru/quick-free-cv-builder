@@ -5,6 +5,18 @@ import type { EducationItem, ExperienceItem, LanguageItem, ProjectItem, SimpleSe
 
 type Draft<T> = Omit<T, 'id'>;
 
+export interface ImportTextDiagnostics {
+  lines: number;
+  /** Recognised sections in the order met; 'unknown' and 'contact' for headings without a section. */
+  headings: string[];
+  rules: { capitalisedName: number; techLines: number; sinceLines: number; tabSeparated: number; letterSpacedHeadings: number; datedTextBeforeHeadings: boolean };
+  /** Shapes of the date ranges seen, e.g. { 'Mon YYYY': 3, 'present-word': 1 }. */
+  dateStyles: Record<string, number>;
+}
+
+const dateStyle = (point: string) =>
+  /^[a-z]/i.test(point) ? 'Mon YYYY' : /^\d{1,2}\//.test(point) ? 'MM/YYYY' : /^\d{4}-\d{2}$/.test(point) ? 'YYYY-MM' : 'YYYY';
+
 export interface ImportedTextDraft {
   summary: string;
   fullName: string;
@@ -28,6 +40,8 @@ export interface ImportedTextDraft {
   unplaced: string[];
   /** Human-readable notes about guesses the parser had to make. */
   notes: string[];
+  /** How the text was read: structure and rule counts only, never any of the CV's own text. */
+  diagnostics: ImportTextDiagnostics;
 }
 
 type SectionKey =
@@ -424,8 +438,15 @@ export const normalizeExtractedText = (text: string) =>
 
 export const parseImportedText = (rawText: string): ImportedTextDraft => {
   const text = normalizeExtractedText(rawText);
-  const lines = text
-    .split('\n')
+  const rules = { capitalisedName: 0, techLines: 0, sinceLines: 0, tabSeparated: 0, letterSpacedHeadings: 0, datedTextBeforeHeadings: false };
+  const headingsSeen: string[] = [];
+  const rawLines = text.split('\n');
+  rawLines.forEach((line) => {
+    if (/\t/.test(line)) rules.tabSeparated += 1;
+    if (collapseLetterSpacing(line) !== line) rules.letterSpacedHeadings += 1;
+    if (sinceLine.test(line.trim())) rules.sinceLines += 1;
+  });
+  const lines = rawLines
     // Tabs separate fields ("email<TAB>phone"); keep them as separators instead of plain spaces.
     .map((line) => collapseLetterSpacing(line).replace(/\t+/g, ' | ').replace(/\s+/g, ' ').replace(/^\|\s*|\s*\|$/g, '').trim())
     .map((line) => line.replace(sinceLine, '$1 – Present'))
@@ -455,6 +476,9 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
     // The very first line is the name even in capitals ("AMINA WANJIRU"), not an unknown heading.
     const isCapitalisedName = detected === 'unknown' && current === 'header' && header.length === 0 && !unsupportedHeadings.has(toHeadingKey(line));
     const heading = isTechLine || isCapitalisedName ? null : detected;
+    if (isTechLine) rules.techLines += 1;
+    if (isCapitalisedName) rules.capitalisedName += 1;
+    if (heading) headingsSeen.push(heading);
     if (heading === 'contact') {
       current = 'header';
       return;
@@ -519,6 +543,7 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
     summary = joinParagraph(headerLeftovers);
   } else {
     unplaced.unshift(...headerLeftovers);
+    rules.datedTextBeforeHeadings = leftoversLookLikeHistory;
     if (leftoversLookLikeHistory) notes.push("Some text before the first heading has dates in it, so it looks like job history. It wasn't put in your summary; copy it into Experience.");
   }
 
@@ -548,5 +573,18 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
     references: sections.references ? parseSimpleItems(sections.references) : [],
     unplaced,
     notes,
+    diagnostics: {
+      lines: lines.length,
+      headings: headingsSeen,
+      rules,
+      dateStyles: lines.reduce<Record<string, number>>((styles, line) => {
+        const range = line.match(dateRangeRegex);
+        if (range) {
+          const key = isPresent(range[2]) ? `${dateStyle(range[1])} – present-word` : `${dateStyle(range[1])} – ${dateStyle(range[2])}`;
+          styles[key] = (styles[key] ?? 0) + 1;
+        }
+        return styles;
+      }, {}),
+    },
   };
 };

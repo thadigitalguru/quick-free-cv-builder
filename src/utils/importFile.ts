@@ -16,6 +16,22 @@ export interface ImportReport {
   warnings: string[];
   /** Text that was read from the file but not placed into any field. */
   unplaced: string[];
+  /** Structure-only details for the opt-in "Copy import details"; never contains CV text. */
+  diagnostics?: ImportDiagnostics;
+}
+
+export interface ImportDiagnostics {
+  format: 1;
+  source: ImportSourceKind;
+  /** Rounded, so the exact file can't be matched by size. */
+  sizeKb: number;
+  pages?: number;
+  pagesRead?: number;
+  twoColumnPages?: number;
+  found: Record<string, number>;
+  unplacedLines: number;
+  warnings: number;
+  text: import('./importText').ImportTextDiagnostics;
 }
 
 export interface ImportResult {
@@ -163,7 +179,7 @@ export const readImportedFile = async (file: File, onProgress?: ImportProgressCa
 
   if (kind === 'pdf') {
     onProgress?.('Extracting text from PDF…');
-    const { text, pageCount, pagesRead } = await extractPdfText(file);
+    const { text, pageCount, pagesRead, twoColumnPages } = await extractPdfText(file);
     if (pageCount > pagesRead) warnings.push(`Only the first ${pagesRead} of ${pageCount} pages were read.`);
     if (text.replace(/\s/g, '').length < 40 * pagesRead) {
       if (text.replace(/\s/g, '').length < 40) {
@@ -173,7 +189,7 @@ export const readImportedFile = async (file: File, onProgress?: ImportProgressCa
       }
       warnings.push('Very little text was found. Parts of this PDF may be scanned images, which cannot be read.');
     }
-    return { kind, text, dataUrl: '', warnings };
+    return { kind, text, dataUrl: '', warnings, pdf: { pages: pageCount, pagesRead, twoColumnPages } };
   }
 
   if (kind === 'docx') {
@@ -304,18 +320,30 @@ export const buildImportedDocument = async (file: File, onProgress?: ImportProgr
     document.sectionVisibility[sectionId] = true;
   });
 
+  const warnings = [
+    ...imported.warnings,
+    'Fields were filled by matching headings like "Experience" and "Education". Check each section, especially role and company order.',
+    ...parsed.notes,
+  ];
+  const pdf = 'pdf' in imported ? imported.pdf : undefined;
   return {
     document,
     report: {
       fileName: file.name,
       sourceKind: imported.kind,
       found,
-      warnings: [
-        ...imported.warnings,
-        'Fields were filled by matching headings like "Experience" and "Education". Check each section, especially role and company order.',
-        ...parsed.notes,
-      ],
+      warnings,
       unplaced: parsed.unplaced,
+      diagnostics: {
+        format: 1,
+        source: imported.kind,
+        sizeKb: Math.max(1, Math.round(file.size / 1024 / 10) * 10),
+        ...(pdf ? { pages: pdf.pages, pagesRead: pdf.pagesRead, twoColumnPages: pdf.twoColumnPages } : {}),
+        found: Object.fromEntries(found.map((row) => [row.label, row.count])),
+        unplacedLines: parsed.unplaced.length,
+        warnings: warnings.length,
+        text: parsed.diagnostics,
+      },
     },
   };
 };
@@ -339,10 +367,12 @@ async function extractPdfText(file: File) {
   }
   const pagesRead = Math.min(pdf.numPages, MAX_PDF_PAGES);
   let text = '';
+  let twoColumnPages = 0;
   for (let index = 1; index <= pagesRead; index += 1) {
     const page = await pdf.getPage(index);
-    const content = await page.getTextContent();
-    text += `${pdfItemsToText(content.items as PdfTextItem[])}\n`;
+    const items = (await page.getTextContent()).items as PdfTextItem[];
+    if (orderPdfColumns(items) !== items) twoColumnPages += 1;
+    text += `${pdfItemsToText(items)}\n`;
   }
-  return { text, pageCount: pdf.numPages, pagesRead };
+  return { text, pageCount: pdf.numPages, pagesRead, twoColumnPages };
 }

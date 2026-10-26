@@ -26,7 +26,15 @@ test('two tabs editing at once ask instead of silently overwriting each other', 
   await openBuilder(second);
   await Promise.all([first.locator('input[autocomplete="name"]').fill('Typed In First'), second.locator('input[autocomplete="name"]').fill('Typed In Second')]);
   const banner = (page: typeof first) => page.locator('[role=alert]', { hasText: 'changed in another tab' });
-  await expect.poll(async () => (await banner(first).count()) + (await banner(second).count())).toBe(1);
+  const state = async () => ({
+    banners: [await banner(first).count(), await banner(second).count()],
+    fields: [await first.locator('input[autocomplete="name"]').inputValue(), await second.locator('input[autocomplete="name"]').inputValue()],
+    stored: await first.evaluate(() => { const s = JSON.parse(localStorage.getItem('quick-free-cv-builder:v3')!); return [s.document.personalInfo.fullName, s.rev, s.parentRev]; }),
+  });
+  // Under heavy parallel load the two autosaves can take a while; if it never resolves, show why.
+  await expect
+    .poll(async () => (await banner(first).count()) + (await banner(second).count()), { timeout: 15_000, message: `tab state: ${JSON.stringify(await state())}` })
+    .toBe(1);
   const flagged = (await banner(first).count()) ? first : second;
   await flagged.getByRole('button', { name: "Keep this tab's version" }).click();
   const kept = await flagged.locator('input[autocomplete="name"]').inputValue();

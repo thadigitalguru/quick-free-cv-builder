@@ -26,6 +26,11 @@ If you want to ship a clean final release, the best build targets are:
 3. **Compact Template** — best for longer CVs that need tighter spacing.
 4. **Modern Template** — polished showcase view for portfolio-style presentation.
 
+## Privacy by design, and why there is no AI
+- Everything runs in the browser. CVs are parsed, edited and exported on the device, and the Content Security Policy blocks requests to any other server.
+- There is deliberately no cloud AI (writing help, parsing or scoring). Sending a CV to a model provider would break the core promise, and the import parser is better improved with measured heuristics: `tests/import-eval.test.ts` scores it field by field across real-world CV layouts. Any future AI feature should be on-device and explicitly opt-in, and would need a deliberate change to the security policy.
+- No analytics. When an import goes wrong, the review screen can show and copy "import details": structure and rule counts only, never CV text. Nothing is sent unless the user pastes it somewhere.
+
 ## Run locally
 ```bash
 npm install
