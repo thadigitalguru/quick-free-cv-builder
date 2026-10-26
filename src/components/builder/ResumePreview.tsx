@@ -3,6 +3,7 @@ import { useCVStore } from '../../store/cvStore';
 import { formatRange, getVisibleOrder, experienceSummary, projectSummary } from '../../utils/cvUtils';
 import { sectionLabelMap } from '../../data/sectionMeta';
 import { useCroppedPhoto } from '../../utils/photoCrop';
+import { parseRichText, type RichSpan } from '../../utils/richText';
 
 type PreviewTypography = {
   fullName: number;
@@ -144,9 +145,18 @@ export default function ResumePreview({
             >
               Professional Summary
             </h2>
-            <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-              {source.personalInfo.summary || <Placeholder>Add a 2–4 line summary in Personal Info</Placeholder>}
-            </p>
+            {source.personalInfo.summary ? (
+              <SummaryText
+                text={source.personalInfo.summary}
+                className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`}
+                listClassName={`list-disc ${isCompact ? 'pl-4' : 'pl-6'} ${mode === 'ats' ? 'marker:text-black' : isModern ? 'marker:text-white/90' : 'marker:text-brand-600'}`}
+                fontSize={renderedTypography.sectionDetails}
+              />
+            ) : (
+              <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
+                <Placeholder>Add a 2–4 line summary in Personal Info</Placeholder>
+              </p>
+            )}
           </div>
         </header>
 
@@ -318,6 +328,33 @@ function PreviewSection({
         )}
       </div>
     </section>
+  );
+}
+
+const Spans = ({ spans }: { spans: RichSpan[] }) => (
+  <>{spans.map((span, index) => (span.bold ? <strong key={index} className="font-bold">{span.text}</strong> : <span key={index}>{span.text}</span>))}</>
+);
+
+/** The summary with the **bold** and bullet lines the editor hint promises (see utils/richText). */
+function SummaryText({ text, className, listClassName, fontSize }: { text: string; className: string; listClassName: string; fontSize: number }) {
+  return (
+    <div className="space-y-1" style={{ fontSize: `${fontSize}px` }}>
+      {parseRichText(text).map((block, index) =>
+        block.type === 'paragraph' ? (
+          <p key={index} className={className}>
+            <Spans spans={block.spans} />
+          </p>
+        ) : (
+          <ul key={index} className={`${className} ${listClassName}`}>
+            {block.items.map((item, itemIndex) => (
+              <li key={itemIndex}>
+                <Spans spans={item} />
+              </li>
+            ))}
+          </ul>
+        ),
+      )}
+    </div>
   );
 }
 

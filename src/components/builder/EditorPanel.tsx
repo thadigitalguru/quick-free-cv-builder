@@ -110,18 +110,20 @@ function PersonalInfoForm({ validationIssues }: { validationIssues: ValidationIs
 
         <div>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <label className="block text-[15px] font-semibold text-[#374151]">Summary / Objective</label>
+            <label htmlFor="summary-input" className="block text-[15px] font-semibold text-[#374151]">Summary / Objective</label>
             <Button variant="ghost" className="h-auto self-start px-2 py-1 text-xs leading-none text-slate-500" onClick={() => useCVStore.getState().clearSection('summary')}>Clear summary</Button>
           </div>
           <Textarea
+            id="summary-input"
+            aria-describedby="summary-tip"
             value={info.summary}
             onChange={(e) => updatePersonalInfo('summary', e.target.value)}
             rows={4}
-            placeholder="2–4 lines summarizing your experience and goals. Markdown supported."
+            placeholder="2–4 lines summarizing your experience and goals."
             className="min-h-[108px] rounded-[12px] border-[#cbd6e4] px-4 py-3 text-[15px] placeholder:text-[#a1aab8]"
           />
-          <p className="mt-2 flex items-center gap-2 text-[13px] text-[#5d6b84]">
-            Tip: use <strong className="font-semibold text-[#5b6780]">**bold**</strong> for emphasis and <strong className="font-semibold text-[#5b6780]">*bullets*</strong> if needed.
+          <p id="summary-tip" className="mt-2 flex items-center gap-2 text-[13px] text-[#5d6b84]">
+            Tip: wrap words in <strong className="font-semibold text-[#5b6780]">**double asterisks**</strong> for bold, and start a line with <strong className="font-semibold text-[#5b6780]">- </strong> for a bullet.
             <Info className="h-4 w-4 shrink-0" />
           </p>
         </div>
