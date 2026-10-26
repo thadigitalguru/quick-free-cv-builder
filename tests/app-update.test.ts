@@ -34,3 +34,28 @@ describe('stale deploy handling', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('when not to reload for an update', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('never reloads while the page is being left, or offline', async () => {
+    vi.resetModules();
+    const listeners: Record<string, () => void> = {};
+    const reload = vi.fn();
+    const store = new Map<string, string>();
+    vi.stubGlobal('window', {
+      addEventListener: (name: string, listener: () => void) => (listeners[name] = listener),
+      sessionStorage: { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => store.set(key, value) },
+      location: { reload },
+    });
+    vi.stubGlobal('navigator', { onLine: false });
+    const appUpdate = await import('../src/utils/appUpdate');
+    expect(appUpdate.reloadForUpdate()).toBe(false);
+    vi.stubGlobal('navigator', { onLine: true });
+    listeners.beforeunload();
+    expect(appUpdate.reloadForUpdate()).toBe(false);
+    listeners.pageshow();
+    expect(appUpdate.reloadForUpdate()).toBe(true);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+});

@@ -18,8 +18,22 @@ export const describeError = (error: unknown, fallback: string) => {
 
 const RELOAD_FLAG = 'quick-free-cv-builder:reloaded-for-update';
 
+// Leaving the page cancels in-flight downloads, which fail exactly like a chunk removed by a deploy.
+// Reloading then would hijack the navigation the user just asked for.
+let leavingPage = false;
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('beforeunload', () => (leavingPage = true));
+  window.addEventListener('pagehide', () => (leavingPage = true));
+  window.addEventListener('pageshow', () => (leavingPage = false));
+}
+
+/** Whether a failed chunk load should be answered with a reload (not while leaving or offline). */
+export const shouldReloadForUpdate = () => !leavingPage && (typeof navigator === 'undefined' || navigator.onLine !== false);
+
 /** Reloads once to pick up the new version; returns false if we already tried in the last minute. */
 export const reloadForUpdate = () => {
+  // Offline, a reload would only show the browser's offline page; the error screen explains instead.
+  if (!shouldReloadForUpdate()) return false;
   try {
     const last = Number(window.sessionStorage.getItem(RELOAD_FLAG) ?? 0);
     if (Date.now() - last < 60_000) return false;
@@ -36,6 +50,8 @@ export const reloadForUpdate = () => {
 export const lazyWithReload = <T extends ComponentType<object>>(factory: () => Promise<{ default: T }>) =>
   lazy(() =>
     factory().catch((error: unknown) => {
+      // The page is going away anyway (the user navigated): render nothing rather than an error.
+      if (isChunkLoadError(error) && leavingPage) return new Promise<never>(() => {});
       // The reload replaces this page; never settle so nothing renders in the meantime.
       if (isChunkLoadError(error) && reloadForUpdate()) return new Promise<never>(() => {});
       throw error;
