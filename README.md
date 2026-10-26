@@ -12,6 +12,7 @@ Quick Free CV Builder lets you create, edit, preview, import, and export CVs ent
 - Autosave to localStorage, with a visible warning and JSON backup option if browser storage is full or blocked
 - Optional profile photo with zoom and framing; it appears on Standard exports and is left out of ATS exports
 - Live A4 page count that matches the exported PDF
+- PDFs embed Noto Sans (SIL Open Font License, `src/assets/fonts/OFL.txt`), so names with accents and Greek, Cyrillic or Vietnamese text export correctly. Characters the font can't draw (emoji, Arabic, Chinese and other scripts) are listed in the export checklist instead of silently coming out blank.
 - Import support for JSON, TXT, PDF, DOCX, and image files, with a review step that shows what was found and any text that couldn't be placed (no OCR, so scanned PDFs can't be read). Import from the home page or straight from the builder; an image imported in the builder only sets the profile photo
 - Export support for JSON drafts and PDFs
 - Classic, Modern, and Compact templates

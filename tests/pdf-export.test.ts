@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const htmlCalls: any[] = [];
+vi.mock('../src/utils/pdfFonts', () => ({ registerCvFonts: async () => [{ family: 'Noto Sans', weight: 400, ref: { name: 'NotoSans', style: 'normal' } }] }));
 vi.mock('jspdf', () => ({
   jsPDF: class {
     html(_element: unknown, options: any) {
@@ -38,6 +39,8 @@ describe('exportPreviewAsPdf', () => {
     htmlCalls.forEach((options) => {
       expect(options.html2canvas.scale).toBeUndefined();
       expect(options.autoPaging).toBe('text');
+      // Without an embedded Unicode font, names like "Łukasz" export as garbage.
+      expect(options.fontFaces[0]).toMatchObject({ family: 'Noto Sans', ref: { name: 'NotoSans' } });
     });
   });
 

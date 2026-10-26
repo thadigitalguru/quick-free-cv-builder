@@ -67,6 +67,14 @@ select {
   box-shadow: none !important;
 }
 
+/* The CV itself (preview, page count, PDF) uses the font embedded in the PDF; see utils/pdfFonts.ts. */
+#resume-preview-root,
+#resume-preview-root *,
+.pdf-export,
+.pdf-export * {
+  font-family: 'Noto Sans', sans-serif !important;
+}
+
 /* Hints for empty fields: visible while editing, never exported. */
 .cv-placeholder {
   /* Readable (4.5:1+) but clearly a hint: muted, italic, dashed underline. */

@@ -17,6 +17,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fontsource/noto-sans": "5.3.0",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.8.0",
     "mammoth": "^1.12.0",

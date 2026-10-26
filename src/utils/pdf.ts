@@ -81,10 +81,15 @@ export const exportPreviewAsPdf = async (
   element.classList.add(...exportClasses);
   try {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const { registerCvFonts } = await import('./pdfFonts');
+    const fontFaces = await registerCvFonts(pdf);
+    // The preview must have finished loading the same font, or text is measured with a fallback.
+    await globalThis.document?.fonts?.ready;
     return await new Promise<Blob>((resolve, reject) => {
       try {
         pdf.html(element, {
           ...pdfOptions,
+          fontFaces,
           jsPDF: pdf,
           callback: (doc) => {
             removeTrailingBlankPages(doc as unknown as PagedPdf);

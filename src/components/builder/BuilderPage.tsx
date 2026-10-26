@@ -11,6 +11,7 @@ import { Button, Select } from '../shared/controls';
 import { templateLabelMap } from '../../utils/templateConfig';
 import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
+import { findUnsupportedCharacters } from '../../utils/fontCoverage';
 import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
 import { describeError } from '../../utils/appUpdate';
 import { STORAGE_KEY } from '../../utils/storageKeys';
@@ -95,10 +96,17 @@ export default function BuilderPage() {
   const pageCount = usePageCount('resume-preview-root', { templateId, mode: previewMode, enabled: viewMode === 'preview' && hasContent }, [cvDocument, typography]);
 
   const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
+  const unsupportedCharacters = useMemo(() => findUnsupportedCharacters(cvDocument), [cvDocument]);
   const blockingIssue = hasBlockingIssues(validationIssues);
-  const exportReady = validationIssues.length === 0;
+  const exportReady = validationIssues.length === 0 && unsupportedCharacters.length === 0;
   const blockingMessages = validationIssues.filter((issue) => issue.field === 'fullName');
-  const advisoryMessages = validationIssues.filter((issue) => issue.field !== 'fullName');
+  const advisoryMessages = [
+    ...validationIssues.filter((issue) => issue.field !== 'fullName'),
+    // Said before export: the PDF font can't draw these, so they'd silently come out blank.
+    ...(unsupportedCharacters.length
+      ? [{ field: 'unsupportedCharacters', sectionId: 'personalInfo' as const, message: `These characters can't be shown in the PDF and would be left blank: ${unsupportedCharacters.slice(0, 12).join(' ')}${unsupportedCharacters.length > 12 ? ' …' : ''}. The PDF supports Latin (with accents), Greek, Cyrillic and Vietnamese, not emoji, Arabic, Chinese or other scripts. Replace or remove them, e.g. "->" for "→".` }]
+      : []),
+  ];
   const blockingCount = blockingMessages.length;
   const warningCount = advisoryMessages.length;
 

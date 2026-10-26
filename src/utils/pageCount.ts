@@ -51,6 +51,9 @@ export const measurePreviewPages = async (element: HTMLElement, options: Measure
   container.appendChild(clone);
   doc.body.replaceChildren(container);
   await Promise.all([...clone.querySelectorAll('img')].map((img) => img.decode().catch(() => undefined)));
+  // Laying the clone out starts its web-font loads; measuring before they finish uses fallback metrics.
+  void clone.offsetHeight;
+  await doc.fonts?.ready;
   const height = Math.max(clone.scrollHeight, clone.offsetHeight);
   doc.body.replaceChildren();
   return countPages(height, pageContentHeightPx);
