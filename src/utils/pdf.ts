@@ -71,8 +71,10 @@ export const exportPreviewAsPdf = async (
       windowWidth: exportWindowWidth,
     },
     autoPaging,
-    x: exportMargin[3],
-    y: exportMargin[0],
+    // jsPDF adds x/y on top of `margin`, which doubled the left margin (the CV sat 6 mm right of
+    // centre) and the first page's top margin (page 1 held 8 mm less than the rest).
+    x: 0,
+    y: 0,
     width: contentWidthMm,
     windowWidth: exportWindowWidth,
   };

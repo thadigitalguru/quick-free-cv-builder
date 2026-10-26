@@ -135,34 +135,19 @@ export default function ResumePreview({
             </div>
           </div>
 
-          {(source.personalInfo.summary || source.skills.length > 0 || isBlank) && (
-            <div className={`mt-5 grid gap-3 text-sm ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`}>
-              <div className={source.personalInfo.summary ? undefined : 'cv-placeholder-line'}>
-                <h2
-                  className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-700'}`}
-                  style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
-                >
-                  Professional Summary
-                </h2>
-                <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                  {source.personalInfo.summary || <Placeholder>Add a 2–4 line summary in Personal Info</Placeholder>}
-                </p>
-              </div>
-              {source.skills.length > 0 && (
-                <div>
-                  <h2
-                    className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-700'}`}
-                    style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
-                  >
-                    Top Skills
-                  </h2>
-                  <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
-                    {source.skills.slice(0, 8).join(' · ')}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Skills appear once, in the Skills section, where the user can move or hide them.
+              (A header "Top Skills" copy printed them twice and ignored hiding.) */}
+          <div className={`mt-5 text-sm ${source.personalInfo.summary ? '' : 'cv-placeholder-line'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`}>
+            <h2
+              className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-700'}`}
+              style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
+            >
+              Professional Summary
+            </h2>
+            <p className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
+              {source.personalInfo.summary || <Placeholder>Add a 2–4 line summary in Personal Info</Placeholder>}
+            </p>
+          </div>
         </header>
 
         <div className={isCompact ? 'mt-3 space-y-5' : 'mt-6 space-y-8'}>

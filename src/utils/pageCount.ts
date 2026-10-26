@@ -10,6 +10,36 @@ const PAGE_SLACK_PX = 4;
 export const countPages = (contentHeightPx: number, pageContentHeightPx: number) =>
   Math.max(1, Math.ceil((contentHeightPx - PAGE_SLACK_PX) / pageContentHeightPx));
 
+/**
+ * Replays jsPDF's autoPaging 'text' rule: a line that would cross a page bottom is moved to the next
+ * page and everything drawn after it shifts down by the same amount. Returns that total shift, in
+ * the same units as the line boxes. Lines must be in drawing (document) order.
+ */
+export const textPagingShift = (lines: { top: number; bottom: number }[], pageHeight: number) => {
+  let shift = 0;
+  for (const { top, bottom } of lines) {
+    const shiftedTop = top + shift;
+    const pageBottom = (Math.floor(shiftedTop / pageHeight) + 1) * pageHeight;
+    if (bottom + shift > pageBottom) shift += pageBottom - shiftedTop;
+  }
+  return shift;
+};
+
+/** Line boxes of every visible piece of text, relative to the element's top, in document order. */
+const textLineBoxes = (root: HTMLElement) => {
+  const doc = root.ownerDocument;
+  const origin = root.getBoundingClientRect().top;
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const range = doc.createRange();
+  const lines: { top: number; bottom: number }[] = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent?.trim()) continue;
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) if (rect.height > 0) lines.push({ top: rect.top - origin, bottom: rect.bottom - origin });
+  }
+  return lines;
+};
+
 let frame: HTMLIFrameElement | null = null;
 
 /**
@@ -54,7 +84,7 @@ export const measurePreviewPages = async (element: HTMLElement, options: Measure
   // Laying the clone out starts its web-font loads; measuring before they finish uses fallback metrics.
   void clone.offsetHeight;
   await doc.fonts?.ready;
-  const height = Math.max(clone.scrollHeight, clone.offsetHeight);
+  const height = Math.max(clone.scrollHeight, clone.offsetHeight) + textPagingShift(textLineBoxes(clone), pageContentHeightPx);
   doc.body.replaceChildren();
   return countPages(height, pageContentHeightPx);
 };

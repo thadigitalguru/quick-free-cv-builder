@@ -39,6 +39,8 @@ describe('exportPreviewAsPdf', () => {
     htmlCalls.forEach((options) => {
       expect(options.html2canvas.scale).toBeUndefined();
       expect(options.autoPaging).toBe('text');
+      // margin alone positions the content; x/y would be added on top of it.
+      expect([options.x, options.y]).toEqual([0, 0]);
       // Without an embedded Unicode font, names like "Łukasz" export as garbage.
       expect(options.fontFaces[0]).toMatchObject({ family: 'Noto Sans', ref: { name: 'NotoSans' } });
     });
