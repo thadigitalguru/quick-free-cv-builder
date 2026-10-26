@@ -11,7 +11,6 @@ const productionHeaders = Object.fromEntries(
 );
 
 const heavyPdfChunks = new Map([
-  ['html2pdf.js', 'pdf-export'],
   ['html2canvas', 'pdf-canvas'],
   ['jspdf', 'pdf-js'],
   ['pdfjs-dist', 'pdf-import'],
