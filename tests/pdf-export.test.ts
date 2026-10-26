@@ -4,6 +4,10 @@ const htmlCalls: any[] = [];
 vi.mock('../src/utils/pdfFonts', () => ({ registerCvFonts: async () => [{ family: 'Noto Sans', weight: 400, ref: { name: 'NotoSans', style: 'normal' } }] }));
 vi.mock('jspdf', () => ({
   jsPDF: class {
+    text() {}
+    getFontSize() {
+      return 10;
+    }
     html(_element: unknown, options: any) {
       htmlCalls.push(options);
       options.callback({ output: () => new Blob(['%PDF']), getNumberOfPages: () => 1, deletePage: vi.fn(), internal: { pages: [] } });
@@ -18,6 +22,7 @@ const fakeElement = () => {
     seen,
     classes,
     element: {
+      querySelectorAll: () => [],
       classList: {
         add: (...names: string[]) => {
           names.forEach((name) => classes.add(name));
@@ -94,5 +99,54 @@ describe('downloadBlob', () => {
     expect(link.download).toBe('cv.pdf');
     expect(click).toHaveBeenCalledTimes(2);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('addLinkAnnotations', () => {
+  const fakePdf = () => {
+    let page = 1;
+    const links: { page: number; args: unknown[] }[] = [];
+    const pdf = {
+      text: () => undefined,
+      getFontSize: () => 10,
+      getCurrentPageInfo: () => ({ pageNumber: page }),
+      getTextWidth: (value: string) => value.length,
+      setPage: (n: number) => (page = n),
+      link: (...args: unknown[]) => links.push({ page, args }),
+      goTo: (n: number) => (page = n),
+    };
+    return { pdf, links };
+  };
+
+  it('covers each link where its text was actually drawn, across words, lines and pages', async () => {
+    const { addLinkAnnotations, recordTextDraws } = await import('../src/utils/pdf');
+    const { pdf, links } = fakePdf();
+    const drawn = recordTextDraws(pdf as never);
+    const draw = pdf.text as unknown as (text: string, x: number, y: number, options?: { align?: string }) => void;
+    draw('Email:', 100, 20);
+    draw('a@example.com', 108, 20);
+    draw('Phone:', 100, 26);
+    draw('+254', 108, 26);
+    draw('700', 113, 26);
+    draw('000', 117, 26, { align: 'right' });
+    pdf.goTo(2);
+    draw('linkedin.com/in/a-very-long-', 10, 30);
+    draw('handle', 10, 35);
+    addLinkAnnotations(pdf as never, drawn, [
+      { url: 'mailto:a@example.com', text: 'a@example.com' },
+      { url: 'tel:+254700000', text: '+254 700 000' },
+      { url: 'https://linkedin.com/in/a-very-long-handle', text: 'linkedin.com/in/a-very-long-handle' },
+      { url: 'javascript:alert(1)', text: 'Email:' },
+      { url: 'https://not-drawn.example', text: 'not drawn' },
+    ]);
+    const size = (10 * 25.4) / 72;
+    expect(links.map((link) => [link.page, (link.args[4] as { url: string }).url, link.args[0], link.args[2]])).toEqual([
+      [1, 'mailto:a@example.com', 108, 13],
+      // "000" was right-aligned at x=117, so it starts at 114; the line spans 108..117.
+      [1, 'tel:+254700000', 108, 9],
+      [2, 'https://linkedin.com/in/a-very-long-handle', 10, 28],
+      [2, 'https://linkedin.com/in/a-very-long-handle', 10, 6],
+    ]);
+    expect(links[0].args[1]).toBeCloseTo(20 - size * 0.9, 5);
   });
 });

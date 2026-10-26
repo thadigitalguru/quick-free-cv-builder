@@ -19,6 +19,73 @@ export const getExportClasses = (mode?: 'standard' | 'ats') => (mode === 'ats' ?
 
 type PagedPdf = Pick<import('jspdf').jsPDF, 'getNumberOfPages' | 'deletePage'> & { internal: { pages: unknown[] } };
 
+type TextPdf = Pick<import('jspdf').jsPDF, 'getFontSize' | 'getCurrentPageInfo' | 'getTextWidth' | 'setPage' | 'link'> & {
+  text: (...args: never[]) => unknown;
+};
+
+export type DrawnText = { page: number; text: string; x: number; baseline: number; width: number; sizeMm: number };
+
+/**
+ * Records every text fragment jsPDF draws, with its final page and position. Links are placed from
+ * this rather than from a predicted layout: jsPDF's 'text' paging shifts whatever it draws after a
+ * page break, and html2canvas doesn't draw in document order, so predictions drifted off the text.
+ */
+export const recordTextDraws = (pdf: TextPdf) => {
+  const drawn: DrawnText[] = [];
+  const original = pdf.text.bind(pdf) as (text: string | string[], x: number, y: number, options?: { align?: string }, ...rest: unknown[]) => unknown;
+  (pdf as { text: unknown }).text = (text: string | string[], x: number, y: number, options?: { align?: string }, ...rest: unknown[]) => {
+    const value = Array.isArray(text) ? text.join(' ') : String(text);
+    const width = pdf.getTextWidth(value);
+    const left = options?.align === 'right' ? x - width : options?.align === 'center' ? x - width / 2 : x;
+    drawn.push({ page: pdf.getCurrentPageInfo().pageNumber, text: value, x: left, baseline: y, width, sizeMm: (pdf.getFontSize() * 25.4) / 72 });
+    return original(text, x, y, options, ...rest);
+  };
+  return drawn;
+};
+
+const squash = (value: string) => value.replace(/\s+/g, '');
+
+/**
+ * jsPDF draws <a> elements as plain text, so email, phone, LinkedIn and portfolio links weren't
+ * clickable. Finds each link's text among the drawn fragments and covers each of its lines.
+ */
+export const addLinkAnnotations = (pdf: TextPdf, drawn: DrawnText[], links: { url: string; text: string }[]) => {
+  const used = new Set<number>();
+  for (const { url, text } of links) {
+    const target = squash(text);
+    if (!target || !/^(https?:|mailto:|tel:)/i.test(url)) continue;
+    let match: number[] | null = null;
+    for (let start = 0; start < drawn.length && !match; start += 1) {
+      if (used.has(start)) continue;
+      let joined = '';
+      for (let end = start; end < drawn.length; end += 1) {
+        joined += squash(drawn[end].text);
+        if (joined === target) {
+          match = Array.from({ length: end - start + 1 }, (_, offset) => start + offset);
+          break;
+        }
+        if (!target.startsWith(joined)) break;
+      }
+    }
+    if (!match) continue;
+    match.forEach((index) => used.add(index));
+    // One rectangle per line (a long URL can wrap).
+    const lines = new Map<string, DrawnText[]>();
+    for (const index of match) {
+      const piece = drawn[index];
+      const key = `${piece.page}:${piece.baseline.toFixed(2)}`;
+      lines.set(key, [...(lines.get(key) ?? []), piece]);
+    }
+    for (const pieces of lines.values()) {
+      const left = Math.min(...pieces.map((piece) => piece.x));
+      const right = Math.max(...pieces.map((piece) => piece.x + piece.width));
+      const size = Math.max(...pieces.map((piece) => piece.sizeMm));
+      pdf.setPage(pieces[0].page);
+      pdf.link(left, pieces[0].baseline - size * 0.9, right - left, size * 1.15, { url });
+    }
+  }
+};
+
 // Text show (Tj/TJ) and image/XObject (Do) operators: a page without any carries no CV content.
 const pageHasContent = (pdf: PagedPdf, pageNumber: number) => {
   const stream = pdf.internal.pages[pageNumber];
@@ -85,6 +152,8 @@ export const exportPreviewAsPdf = async (
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
     const { registerCvFonts } = await import('./pdfFonts');
     const fontFaces = await registerCvFonts(pdf);
+    const links = [...element.querySelectorAll('a[href]')].map((anchor) => ({ url: anchor.getAttribute('href') ?? '', text: anchor.textContent ?? '' }));
+    const drawn = recordTextDraws(pdf as unknown as TextPdf);
     // The preview must have finished loading the same font, or text is measured with a fallback.
     await globalThis.document?.fonts?.ready;
     return await new Promise<Blob>((resolve, reject) => {
@@ -95,6 +164,7 @@ export const exportPreviewAsPdf = async (
           jsPDF: pdf,
           callback: (doc) => {
             removeTrailingBlankPages(doc as unknown as PagedPdf);
+            addLinkAnnotations(doc as unknown as TextPdf, drawn, links);
             // Not doc.save(): its Safari path opens the PDF in a new tab instead of downloading it.
             resolve(doc.output('blob'));
           },
