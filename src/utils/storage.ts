@@ -1,8 +1,52 @@
 import { normalizeImportedDocument } from './importDocument';
 import type { SavedCVPayload } from '../types/cv';
-import { CORRUPT_BACKUP_KEY, STORAGE_KEY } from './storageKeys';
+import { CORRUPT_BACKUP_KEY, PUBLIC_COMPUTER_KEY, STORAGE_KEY } from './storageKeys';
 
 export { CORRUPT_BACKUP_KEY };
+
+/** On a shared computer the CV lives only in this tab's sessionStorage, which the browser wipes on close. */
+export const isPublicComputerMode = () => {
+  try {
+    return typeof window !== 'undefined' && window.sessionStorage?.getItem(PUBLIC_COMPUTER_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const draftStore = () => (isPublicComputerMode() ? window.sessionStorage : window.localStorage);
+
+/**
+ * Switches where the CV is kept and moves it there, so turning the mode on also takes the CV off
+ * this computer's lasting storage. Returns false if the browser blocks storage.
+ */
+export const setPublicComputerMode = (on: boolean) => {
+  try {
+    const from = on ? window.localStorage : window.sessionStorage;
+    const to = on ? window.sessionStorage : window.localStorage;
+    for (const key of [STORAGE_KEY, CORRUPT_BACKUP_KEY]) {
+      const value = from.getItem(key);
+      if (value !== null) to.setItem(key, value);
+      from.removeItem(key);
+    }
+    if (on) window.sessionStorage.setItem(PUBLIC_COMPUTER_KEY, '1');
+    else window.sessionStorage.removeItem(PUBLIC_COMPUTER_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** Removes the CV and any set-aside copy from this browser, wherever they're kept. */
+export const deleteCvFromBrowser = () => {
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      store?.removeItem(STORAGE_KEY);
+      store?.removeItem(CORRUPT_BACKUP_KEY);
+    } catch {
+      // Unreachable storage holds nothing we could delete.
+    }
+  }
+};
 const STORAGE_VERSION = 3;
 
 // Only the CV itself is required; the editor's position (active section and items) has safe defaults,
@@ -37,8 +81,8 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
 /** Keeps an unreadable draft under a backup key instead of deleting the only copy of someone's CV. */
 const quarantineDraft = (raw: string) => {
   try {
-    window.localStorage.setItem(CORRUPT_BACKUP_KEY, raw);
-    window.localStorage.removeItem(STORAGE_KEY);
+    draftStore().setItem(CORRUPT_BACKUP_KEY, raw);
+    draftStore().removeItem(STORAGE_KEY);
   } catch {
     // If the backup can't be written, leave the original in place rather than lose it.
   }
@@ -48,7 +92,7 @@ export const loadSavedCV = (): SavedCVPayload | null => {
   if (typeof window === 'undefined') return null;
   let raw: string | null;
   try {
-    raw = window.localStorage.getItem(STORAGE_KEY);
+    raw = draftStore().getItem(STORAGE_KEY);
   } catch {
     // Storage is blocked (private mode, site data disabled); there's nothing we can read or safely clear.
     return null;
@@ -93,7 +137,7 @@ const isQuotaError = (error: unknown) =>
 export const saveCV = (payload: SavedCVPayload): SaveResult => {
   if (typeof window === 'undefined') return { ok: true };
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...payload, version: STORAGE_VERSION }));
+    draftStore().setItem(STORAGE_KEY, JSON.stringify({ ...payload, version: STORAGE_VERSION }));
     return { ok: true };
   } catch (error) {
     if (isQuotaError(error)) {
@@ -114,7 +158,7 @@ export const saveCV = (payload: SavedCVPayload): SaveResult => {
 export const clearSavedCV = () => {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    draftStore().removeItem(STORAGE_KEY);
   } catch {
     // Nothing stored that we can reach.
   }
@@ -133,7 +177,7 @@ export const getSavedDraftMeta = () => {
 export const getUnreadableDraft = () => {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage.getItem(CORRUPT_BACKUP_KEY);
+    return draftStore().getItem(CORRUPT_BACKUP_KEY);
   } catch {
     return null;
   }
@@ -141,7 +185,7 @@ export const getUnreadableDraft = () => {
 
 export const discardUnreadableDraft = () => {
   try {
-    window.localStorage.removeItem(CORRUPT_BACKUP_KEY);
+    draftStore().removeItem(CORRUPT_BACKUP_KEY);
   } catch {
     // Nothing we can reach.
   }

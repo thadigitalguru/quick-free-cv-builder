@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
-import { discardUnreadableDraft, getSavedDraftMeta, getUnreadableDraft, loadSavedCV } from '../../utils/storage';
+import { deleteCvFromBrowser, discardUnreadableDraft, getSavedDraftMeta, getUnreadableDraft, isPublicComputerMode, loadSavedCV, setPublicComputerMode } from '../../utils/storage';
 import { downloadBlob } from '../../utils/download';
 import { downloadCvJson } from '../../utils/export';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
@@ -16,6 +16,10 @@ export default function LandingPage() {
   const createNewCV = useCVStore((state) => state.createNewCV);
   const draftMeta = getSavedDraftMeta();
   const [confirmingFresh, setConfirmingFresh] = useState(false);
+  const [publicComputer, setPublicComputer] = useState(() => isPublicComputerMode());
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [, rerender] = useState(0);
+  const resetCV = useCVStore((state) => state.resetCV);
   const [unreadableDraft, setUnreadableDraft] = useState(() => getUnreadableDraft());
   // The review result produced from the set-aside draft; only confirming that one replaces the backup.
   const [restoredResult, setRestoredResult] = useState<ImportResult | null>(null);
@@ -145,10 +149,58 @@ export default function LandingPage() {
             )}
 
             {draftMeta && (
-              <p className="mt-4 text-sm text-slate-500">
-                Saved draft: {new Date(draftMeta.savedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
+              <div className="mt-4 text-sm text-slate-500">
+                <p>
+                  Saved draft: {savedDraftLabel}
+                  {publicComputer ? ', kept only until this tab closes' : ''}
+                </p>
+                {confirmingDelete ? (
+                  <p role="alert" className="mt-2 text-rose-800">
+                    Delete your CV from this browser? This can't be undone.{' '}
+                    <button type="button" className="font-semibold underline" onClick={handleDownloadSavedDraft}>
+                      Download a JSON copy
+                    </button>{' '}
+                    ·{' '}
+                    <button type="button" className="font-semibold underline" onClick={() => setConfirmingDelete(false)}>
+                      Keep it
+                    </button>{' '}
+                    ·{' '}
+                    <button
+                      type="button"
+                      className="font-semibold text-rose-700 underline"
+                      onClick={() => {
+                        // Clear the in-memory copy too, or opening the builder would save it straight back.
+                        resetCV();
+                        deleteCvFromBrowser();
+                        setConfirmingDelete(false);
+                        rerender((n) => n + 1);
+                      }}
+                    >
+                      Delete it
+                    </button>
+                  </p>
+                ) : (
+                  <button type="button" className="mt-1 font-medium text-slate-600 underline underline-offset-2 hover:text-ink" onClick={() => setConfirmingDelete(true)}>
+                    Delete my CV from this browser
+                  </button>
+                )}
+              </div>
             )}
+
+            <label className="mx-auto mt-5 flex max-w-xl items-start gap-3 rounded-[1.25rem] border border-border bg-white px-4 py-3 text-left text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0"
+                checked={publicComputer}
+                onChange={(event) => {
+                  const on = event.target.checked;
+                  if (setPublicComputerMode(on)) setPublicComputer(on);
+                }}
+              />
+              <span>
+                <span className="font-semibold text-ink">Using a shared or public computer?</span> Keep my CV only in this tab. It's deleted when the tab closes, so download your PDF or a JSON copy before you leave.
+              </span>
+            </label>
 
             {importFlow.error && (
               <div className="mt-5">

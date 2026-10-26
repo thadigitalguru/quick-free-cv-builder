@@ -15,6 +15,7 @@ import { findUnsupportedCharacters } from '../../utils/fontCoverage';
 import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
 import { describeError } from '../../utils/appUpdate';
 import { STORAGE_KEY } from '../../utils/storageKeys';
+import { isPublicComputerMode } from '../../utils/storage';
 import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFlow';
 
 type PreviewTypography = {
@@ -93,6 +94,18 @@ export default function BuilderPage() {
   }, [cvDocument, hydrated, persist, templateId]);
 
   const hasContent = documentHasContent(cvDocument);
+  const publicComputer = isPublicComputerMode();
+
+  // On a shared computer, closing the tab deletes the CV, so confirm before it goes.
+  useEffect(() => {
+    if (!publicComputer || !hasContent) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [publicComputer, hasContent]);
   const pageCount = usePageCount('resume-preview-root', { templateId, mode: previewMode, enabled: viewMode === 'preview' && hasContent }, [cvDocument, typography]);
 
   const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
@@ -183,6 +196,7 @@ export default function BuilderPage() {
         onDownloadJson={() => void handleDownloadJson()}
         onImport={importFlow.openPicker}
         isImporting={importFlow.isImporting}
+        tabOnly={publicComputer}
       />
       {importFlow.fileInput}
 

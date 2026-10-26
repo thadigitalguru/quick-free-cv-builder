@@ -5,7 +5,12 @@ import { CORRUPT_BACKUP_KEY, STORAGE_KEY } from '../../utils/storageKeys';
 
 const readRawDraft = () => {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(CORRUPT_BACKUP_KEY);
+    // Public-computer mode keeps the CV in sessionStorage instead.
+    for (const store of [window.sessionStorage, window.localStorage]) {
+      const value = store?.getItem(STORAGE_KEY) ?? store?.getItem(CORRUPT_BACKUP_KEY);
+      if (value) return value;
+    }
+    return null;
   } catch {
     return null;
   }

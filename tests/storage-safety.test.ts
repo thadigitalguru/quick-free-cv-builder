@@ -99,3 +99,41 @@ describe('draft recovery', () => {
     expect(getUnreadableDraft()).toBeNull();
   });
 });
+
+describe('shared or public computer mode', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('moves the CV off lasting storage into this tab, saves there, and moves it back when turned off', async () => {
+    const local = createMockStorage();
+    const session = createMockStorage();
+    local.storage.setItem('quick-free-cv-builder:v3', JSON.stringify({ version: 3, document: { personalInfo: { fullName: 'Cafe User' } } }));
+    installMockWindow(local.storage, session.storage);
+    const storage = await import('../src/utils/storage');
+    expect(storage.setPublicComputerMode(true)).toBe(true);
+    expect(storage.isPublicComputerMode()).toBe(true);
+    expect(local.data.has('quick-free-cv-builder:v3')).toBe(false);
+    expect(storage.loadSavedCV()?.document.personalInfo.fullName).toBe('Cafe User');
+
+    const { useCVStore } = await import('../src/store/cvStore');
+    useCVStore.getState().initFromStorage();
+    useCVStore.getState().updatePersonalInfo('fullName', 'Edited At Cafe');
+    useCVStore.getState().persist();
+    expect(local.data.size).toBe(0);
+    expect(JSON.parse(session.data.get('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('Edited At Cafe');
+
+    storage.setPublicComputerMode(false);
+    expect(JSON.parse(local.data.get('quick-free-cv-builder:v3')!).document.personalInfo.fullName).toBe('Edited At Cafe');
+    expect(session.data.has('quick-free-cv-builder:v3')).toBe(false);
+  });
+
+  it('deletes the CV and any set-aside copy from both kinds of storage', async () => {
+    const local = createMockStorage({ 'quick-free-cv-builder:v3': '{}', 'quick-free-cv-builder:v3:unreadable-backup': 'x' });
+    const session = createMockStorage({ 'quick-free-cv-builder:v3': '{}' });
+    installMockWindow(local.storage, session.storage);
+    const { deleteCvFromBrowser } = await import('../src/utils/storage');
+    deleteCvFromBrowser();
+    expect([...local.data.keys(), ...session.data.keys()]).toEqual([]);
+  });
+});

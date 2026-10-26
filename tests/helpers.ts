@@ -19,9 +19,10 @@ export function createMockStorage(initial: Record<string, string> = {}) {
   return { data, storage };
 }
 
-export function installMockWindow(storage: Storage) {
+export function installMockWindow(storage: Storage, sessionStorage: Storage = createMockStorage().storage) {
   const mockWindow = {
     localStorage: storage,
+    sessionStorage,
     setTimeout: globalThis.setTimeout.bind(globalThis),
     clearTimeout: globalThis.clearTimeout.bind(globalThis),
     URL: globalThis.URL,

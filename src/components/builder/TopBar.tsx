@@ -15,6 +15,7 @@ export default function TopBar({
   onDownloadJson,
   onImport,
   isImporting,
+  tabOnly,
 }: {
   activeView: 'edit' | 'preview';
   onChangeView: (view: 'edit' | 'preview') => void;
@@ -27,6 +28,8 @@ export default function TopBar({
   onDownloadJson: () => void;
   onImport: () => void;
   isImporting: boolean;
+  /** Public-computer mode: the CV is deleted when this tab closes. */
+  tabOnly: boolean;
 }) {
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const startOverButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -46,9 +49,11 @@ export default function TopBar({
     saveStatus === 'saving'
       ? 'Saving…'
       : saveStatus === 'saved'
-        ? savedAt
-          ? `Saved ${new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-          : 'Saved'
+        ? tabOnly
+          ? 'Saved in this tab only'
+          : savedAt
+            ? `Saved ${new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+            : 'Saved'
         : saveStatus === 'loaded'
           ? 'Loaded draft'
           : saveStatus === 'error'
