@@ -9,6 +9,9 @@ const stringValue = (value: unknown, fallback = '') => (typeof value === 'string
 const booleanValue = (value: unknown, fallback = false) => (typeof value === 'boolean' ? value : fallback);
 const numberValue = (value: unknown, fallback = 1) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback);
 const arrayValue = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+// Items from an imported file: any shape at all, so every field goes through a type guard below.
+type LooseItem = Record<string, unknown> | null | undefined;
+const languageLevels: readonly LanguageItem['proficiency'][] = ['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'];
 
 const normalizeSectionOrder = (value: unknown): SectionId[] => {
   const incoming = arrayValue<string>(value).filter((item): item is SectionId => allowedSectionIds.has(item as SectionId));
@@ -25,7 +28,7 @@ const normalizeVisibility = (value: unknown): Record<SectionId, boolean> => {
 };
 
 const normalizeExperience = (value: unknown): ExperienceItem[] =>
-  arrayValue<any>(value).map((item) => ({
+  arrayValue<LooseItem>(value).map((item) => ({
     id: stringValue(item?.id, createId()),
     role: stringValue(item?.role),
     company: stringValue(item?.company),
@@ -38,7 +41,7 @@ const normalizeExperience = (value: unknown): ExperienceItem[] =>
   }));
 
 const normalizeEducation = (value: unknown): EducationItem[] =>
-  arrayValue<any>(value).map((item) => ({
+  arrayValue<LooseItem>(value).map((item) => ({
     id: stringValue(item?.id, createId()),
     institution: stringValue(item?.institution),
     qualification: stringValue(item?.qualification),
@@ -49,7 +52,7 @@ const normalizeEducation = (value: unknown): EducationItem[] =>
   }));
 
 const normalizeProjects = (value: unknown): ProjectItem[] =>
-  arrayValue<any>(value).map((item) => ({
+  arrayValue<LooseItem>(value).map((item) => ({
     id: stringValue(item?.id, createId()),
     name: stringValue(item?.name),
     role: stringValue(item?.role),
@@ -60,16 +63,14 @@ const normalizeProjects = (value: unknown): ProjectItem[] =>
   }));
 
 const normalizeLanguages = (value: unknown): LanguageItem[] =>
-  arrayValue<any>(value).map((item) => ({
+  arrayValue<LooseItem>(value).map((item) => ({
     id: stringValue(item?.id, createId()),
     name: stringValue(item?.name),
-    proficiency: (['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'] as const).includes(item?.proficiency as any)
-      ? (item.proficiency as LanguageItem['proficiency'])
-      : 'Fluent',
+    proficiency: languageLevels.find((level) => level === item?.proficiency) ?? 'Fluent',
   }));
 
 const normalizeSimpleItems = (value: unknown): SimpleSectionItem[] =>
-  arrayValue<any>(value).map((item) => ({
+  arrayValue<LooseItem>(value).map((item) => ({
     id: stringValue(item?.id, createId()),
     title: stringValue(item?.title),
     details: stringValue(item?.details),

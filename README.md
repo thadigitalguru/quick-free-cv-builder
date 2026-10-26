@@ -34,6 +34,7 @@ npm run dev
 
 ## Run the tests
 ```bash
+npm run lint        # ESLint, including the React hooks rules
 npm test            # unit tests (Vitest)
 npx playwright install chromium webkit   # once
 npm run test:e2e    # browser tests: desktop Chrome and WebKit as an iPhone, against the production build

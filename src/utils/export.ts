@@ -1,6 +1,8 @@
 import type { CVDocument, ResumeTemplateId } from '../types/cv';
 import { downloadTextFile } from './download';
 
+// Control characters are exactly what file names must not contain, so the regex has to match them.
+// eslint-disable-next-line no-control-regex
 const invalidFilenameChars = /[<>:"/\\|?*\x00-\x1F]/g;
 
 export const sanitizeFileName = (value: string) =>

@@ -90,14 +90,17 @@ export const measurePreviewPages = async (element: HTMLElement, options: Measure
 };
 
 /** Debounced A4 page count of the preview as it would export; null until the first measurement. */
-export const usePageCount = (elementId: string, options: MeasureOptions & { enabled: boolean }, deps: unknown[]) => {
+export const usePageCount = (
+  elementId: string,
+  options: MeasureOptions & { enabled: boolean; /** Re-measure when these change. */ document: unknown; typography: unknown },
+) => {
   const [pages, setPages] = useState<number | null>(null);
-  const { templateId, mode, enabled } = options;
+  const { templateId, mode, enabled, document: cvDocument, typography } = options;
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      const element = document.getElementById(elementId);
+      const element = window.document.getElementById(elementId);
       if (!element) return;
       measurePreviewPages(element, { templateId, mode })
         .then((count) => !cancelled && setPages(count))
@@ -107,6 +110,6 @@ export const usePageCount = (elementId: string, options: MeasureOptions & { enab
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [elementId, templateId, mode, enabled, ...deps]);
+  }, [elementId, templateId, mode, enabled, cvDocument, typography]);
   return pages;
 };

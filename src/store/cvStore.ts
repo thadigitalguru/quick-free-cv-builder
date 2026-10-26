@@ -230,10 +230,6 @@ const sectionKeyMap: Record<string, keyof CVDocument> = {
   references: 'references',
 };
 
-const simpleSectionIds = new Set(['certifications', 'volunteer', 'awards', 'references']);
-
-const isOptionalSection = (sectionId: string): sectionId is 'certifications' | 'volunteer' | 'awards' | 'references' =>
-  simpleSectionIds.has(sectionId);
 
 const firstMatchingId = <T extends { id: string }>(items: T[], candidate: string | null | undefined) =>
   candidate && items.some((item) => item.id === candidate) ? candidate : items[0]?.id ?? null;
