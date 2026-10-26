@@ -45,11 +45,11 @@ type SectionKey =
 
 const headingAliases: Record<SectionKey, string[]> = {
   summary: ['summary', 'professional summary', 'profile', 'professional profile', 'about', 'about me', 'objective', 'career objective', 'personal statement', 'career summary'],
-  experience: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience'],
-  education: ['education', 'academic background', 'education and training', 'education & training', 'academic qualifications', 'qualifications'],
-  skills: ['skills', 'top skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise'],
+  experience: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience', 'career', 'career experience', 'professional history', 'professional background', 'work', 'positions held', 'internships', 'internship experience', 'experience and internships', 'experience & internships'],
+  education: ['education', 'academic background', 'education and training', 'education & training', 'academic qualifications', 'qualifications', 'education history', 'academic history', 'educational background', 'academics'],
+  skills: ['skills', 'top skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise', 'skill set', 'skillset', 'areas of expertise', 'key competencies', 'technical proficiencies', 'skills & competencies', 'skills and competencies'],
   projects: ['projects', 'selected projects', 'key projects', 'personal projects'],
-  languages: ['languages', 'language skills'],
+  languages: ['languages', 'language skills', 'spoken languages'],
   certifications: ['certifications', 'certificates', 'licenses & certifications', 'licenses and certifications', 'licences & certifications', 'courses', 'training'],
   awards: ['awards', 'honors', 'honours', 'awards & honors', 'awards and honours', 'awards & honours', 'awards and honors'],
   volunteer: ['volunteering', 'volunteer', 'volunteer experience', 'volunteer work'],
@@ -86,7 +86,9 @@ const locationRegex = /^[A-Za-zÀ-ÿ .'-]{2,30},\s*[A-Za-zÀ-ÿ .'-]{2,30}$/;
 
 const month = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?';
 const datePoint = `(?:${month}\\s+\\d{4}|\\d{1,2}\\/\\d{4}|\\d{4}-\\d{2}|\\d{4})`;
-const dateEnd = `(?:${datePoint}|present|current|now|today|ongoing)`;
+// Open-ended roles: "Present", "Current", "to date" ("2021 – to date", "2021 to date"), "till now".
+const presentWords = 'present|current(?:ly)?|now|today|ongoing|to\\s+date|till\\s+date|till\\s+now|until\\s+now|date';
+const dateEnd = `(?:${datePoint}|${presentWords})`;
 const dateRangeRegex = new RegExp(`(${datePoint})\\s*(?:-|–|—|to|until)\\s*(${dateEnd})`, 'i');
 const singleYearRegex = /\b(19|20)\d{2}\b/;
 
@@ -109,7 +111,9 @@ const isPhone = (token: string) => {
   return Boolean(match && match.replace(/\D/g, '').length >= 9 && !dateRangeRegex.test(match) && !/[a-z]{3,}/i.test(token.replace(match, '')));
 };
 
-const isPresent = (value: string) => /^(present|current|now|today|ongoing)$/i.test(value.trim());
+const isPresent = (value: string) => new RegExp(`^(?:${presentWords})$`, 'i').test(value.trim());
+// "Since March 2021" on a line of its own is an open-ended date range.
+const sinceLine = new RegExp(`^since\\s+(${datePoint})$`, 'i');
 
 const stripBullet = (line: string) => line.replace(bulletRegex, '').trim();
 const isBullet = (line: string) => bulletRegex.test(line) && stripBullet(line).length > 0;
@@ -149,6 +153,10 @@ const uniqueCaseInsensitive = (items: string[]) => {
 };
 
 const joinParagraph = (lines: string[]) => lines.map(stripBullet).join(' ').replace(/\s+/g, ' ').trim();
+
+const jobTitleWords =
+  /\b(analyst|engineer|developer|designer|manager|director|officer|assistant|associate|intern|lead|head|consultant|specialist|coordinator|administrator|accountant|teacher|lecturer|nurse|doctor|scientist|researcher|architect|technician|supervisor|executive|representative|agent|clerk|secretary|president|founder|owner|advisor|adviser|strategist|editor|writer|marketer|programmer|tester|trainer|instructor|tutor|volunteer|chef|driver|cashier|receptionist|attendant|planner|auditor|economist|lawyer|advocate|pharmacist|surveyor|operator|controller|vp|cto|ceo|cfo|coo)s?\b/i;
+const looksLikeJobTitle = (value: string) => jobTitleWords.test(value);
 
 const splitHeaderParts = (line: string) =>
   line
@@ -275,6 +283,10 @@ const parseExperience = (lines: string[], notes: string[]): Draft<ExperienceItem
       const [company, ...rest] = entry.header[1].split(/\s[•|]\s/);
       headerParts = [entry.header[0], company.trim()];
       location = rest.join(', ').trim();
+    }
+    // "Company" above "Role" is common too: swap when only the second line reads like a job title.
+    if (headerParts.length >= 2 && !looksLikeJobTitle(headerParts[0]) && looksLikeJobTitle(headerParts[1])) {
+      headerParts = [headerParts[1], headerParts[0], ...headerParts.slice(2)];
     }
     const [role = '', company = '', ...extraHeader] = headerParts;
     // An all-caps keyword list right under the dates is a technologies line, not an achievement.
@@ -414,7 +426,9 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
   const text = normalizeExtractedText(rawText);
   const lines = text
     .split('\n')
-    .map((line) => collapseLetterSpacing(line).replace(/\s+/g, ' ').trim())
+    // Tabs separate fields ("email<TAB>phone"); keep them as separators instead of plain spaces.
+    .map((line) => collapseLetterSpacing(line).replace(/\t+/g, ' | ').replace(/\s+/g, ' ').replace(/^\|\s*|\s*\|$/g, '').trim())
+    .map((line) => line.replace(sinceLine, '$1 – Present'))
     // Some PDFs emit list markers as their own line.
     .filter((line) => line && !/^[•●▪◦‣∙·*–—-]$/.test(line));
 
@@ -438,7 +452,9 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
       (current === 'experience' || current === 'projects' || current === 'volunteer') &&
       !unsupportedHeadings.has(toHeadingKey(line)) &&
       dateRangeRegex.test(sections[current]!.at(-1) ?? '');
-    const heading = isTechLine ? null : detected;
+    // The very first line is the name even in capitals ("AMINA WANJIRU"), not an unknown heading.
+    const isCapitalisedName = detected === 'unknown' && current === 'header' && header.length === 0 && !unsupportedHeadings.has(toHeadingKey(line));
+    const heading = isTechLine || isCapitalisedName ? null : detected;
     if (heading === 'contact') {
       current = 'header';
       return;
@@ -496,13 +512,19 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
   });
 
   let summary = sections.summary ? joinParagraph(sections.summary) : '';
-  if (!summary && headerLeftovers.length) {
+  // Text before the first recognised heading becomes the summary, unless it has date ranges:
+  // then it's probably job history under a heading we don't know, which a summary would hide.
+  const leftoversLookLikeHistory = headerLeftovers.some((line) => dateRangeRegex.test(line));
+  if (!summary && headerLeftovers.length && !leftoversLookLikeHistory) {
     summary = joinParagraph(headerLeftovers);
   } else {
     unplaced.unshift(...headerLeftovers);
+    if (leftoversLookLikeHistory) notes.push("Some text before the first heading has dates in it, so it looks like job history. It wasn't put in your summary; copy it into Experience.");
   }
 
-  const skills = sections.skills ? parseList(sections.skills, unplaced, 'Skill') : [];
+  // "Tools: SQL, Power BI" groups skills under a label; the label isn't a skill.
+  const skillLines = (sections.skills ?? []).map((line) => line.replace(/^([A-Za-z][\w&/+ -]{0,30}):\s+(?=\S)/, (match, label: string) => (label.trim().split(/\s+/).length <= 4 ? '' : match)));
+  const skills = sections.skills ? parseList(skillLines, unplaced, 'Skill') : [];
   const interests = sections.interests ? parseList(sections.interests, unplaced, 'Interest') : [];
 
   return {
