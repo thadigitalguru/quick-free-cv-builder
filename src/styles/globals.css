@@ -110,6 +110,63 @@ select {
   .cv-placeholder-line {
     display: none !important;
   }
+
+  /* Print / Save as PDF: only the CV, on A4. The browser draws every script and emoji, which the
+     built-in PDF export can't. Everything else leaves the layout so no blank pages follow. */
+  @page {
+    size: A4;
+    margin: 8mm 6mm;
+  }
+
+  html,
+  body,
+  #root,
+  #root > main {
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+
+  body > :not(#root),
+  main > :not(#builder-workspace),
+  #builder-workspace > div > :not(.print-cv-container),
+  .print-cv-container > :not(.print-cv-sheet) {
+    display: none !important;
+  }
+
+  .print-cv-container {
+    display: block !important;
+  }
+
+  #builder-workspace,
+  #builder-workspace > div,
+  .print-cv-sheet,
+  .print-cv-sheet > div,
+  .print-cv-sheet > div > div {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  #resume-preview-root {
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  #resume-preview-root li,
+  #resume-preview-root header {
+    break-inside: avoid;
+  }
+
+  #resume-preview-root h2,
+  #resume-preview-root h3 {
+    break-after: avoid;
+  }
 }
 
 /* Letter-spaced headings are written as separate glyph runs, so text extraction reads

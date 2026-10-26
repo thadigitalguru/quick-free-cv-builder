@@ -11,6 +11,7 @@ import { Button, Select } from '../shared/controls';
 import { templateLabelMap } from '../../utils/templateConfig';
 import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
+import { getExportClasses } from '../../utils/pdf';
 import { findUnsupportedCharacters } from '../../utils/fontCoverage';
 import { canShareFile, downloadBlob, needsTapToSave } from '../../utils/download';
 import { describeError } from '../../utils/appUpdate';
@@ -96,6 +97,23 @@ export default function BuilderPage() {
   const hasContent = documentHasContent(cvDocument);
   const publicComputer = isPublicComputerMode();
 
+  // Printing (the button or Ctrl/Cmd+P) gets the same export clean-ups as the PDF, e.g. no placeholders.
+  useEffect(() => {
+    const root = () => window.document.getElementById('resume-preview-root');
+    let added: string[] = [];
+    const onBeforePrint = () => {
+      added = getExportClasses(previewMode);
+      root()?.classList.add(...added);
+    };
+    const onAfterPrint = () => root()?.classList.remove(...added);
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+  }, [previewMode]);
+
   // On a shared computer, closing the tab deletes the CV, so confirm before it goes.
   useEffect(() => {
     if (!publicComputer || !hasContent) return;
@@ -117,7 +135,7 @@ export default function BuilderPage() {
     ...validationIssues.filter((issue) => issue.field !== 'fullName'),
     // Said before export: the PDF font can't draw these, so they'd silently come out blank.
     ...(unsupportedCharacters.length
-      ? [{ field: 'unsupportedCharacters', sectionId: 'personalInfo' as const, message: `These characters can't be shown in the PDF and would be left blank: ${unsupportedCharacters.slice(0, 12).join(' ')}${unsupportedCharacters.length > 12 ? ' …' : ''}. The PDF supports Latin (with accents), Greek, Cyrillic and Vietnamese, not emoji, Arabic, Chinese or other scripts. Replace or remove them, e.g. "->" for "→".` }]
+      ? [{ field: 'unsupportedCharacters', sectionId: 'personalInfo' as const, message: `These characters can't be shown in the PDF and would be left blank: ${unsupportedCharacters.slice(0, 12).join(' ')}${unsupportedCharacters.length > 12 ? ' …' : ''}. The PDF supports Latin (with accents), Greek, Cyrillic and Vietnamese, not emoji, Arabic, Chinese or other scripts. Replace them (e.g. "->" for "→"), or use Print / Save as PDF, which keeps every character.` }]
       : []),
   ];
   const blockingCount = blockingMessages.length;
@@ -263,7 +281,7 @@ export default function BuilderPage() {
             <EditorPanel validationIssues={validationIssues} />
           </div>
 
-          <div className={`${viewMode === 'preview' ? 'block' : 'hidden'} min-w-0`}>
+          <div className={`print-cv-container ${viewMode === 'preview' ? 'block' : 'hidden'} min-w-0`}>
             <AdvancedOptionsCard
               open={advancedOpen}
               onToggle={() => setAdvancedOpen((value) => !value)}
@@ -335,6 +353,14 @@ export default function BuilderPage() {
                 >
                   {isExportingPdf ? 'Generating PDF…' : 'Export PDF'}
                 </Button>
+                <Button
+                  variant="secondary"
+                  className="h-11 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]"
+                  onClick={() => window.print()}
+                  title="Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts."
+                >
+                  Print / Save as PDF
+                </Button>
               </div>
             </div>
 
@@ -356,7 +382,7 @@ export default function BuilderPage() {
 
             {readyPdf && <ReadyPdfPanel file={readyPdf} onDone={() => setReadyPdf(null)} onError={setExportError} />}
 
-            <div className="mt-3 rounded-[1.5rem] border border-[#d9e2ef] bg-[#dfe5ee] p-2 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:p-4">
+            <div className="print-cv-sheet mt-3 rounded-[1.5rem] border border-[#d9e2ef] bg-[#dfe5ee] p-2 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:p-4">
               <div className="rounded-[1.25rem] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.05)]">
                 <ResumePreview mode={previewMode} typography={typography} />
               </div>
