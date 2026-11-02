@@ -101,7 +101,7 @@ describe('CV store smoke tests', () => {
     state.createNewCV();
     state.moveSectionToIndex('skills', 1);
 
-    expect(useCVStore.getState().document.sectionOrder.slice(0, 4)).toEqual(['personalInfo', 'skills', 'projects', 'experience']);
+    expect(useCVStore.getState().document.sectionOrder.slice(0, 4)).toEqual(['personalInfo', 'skills', 'experience', 'education']);
   });
 });
 

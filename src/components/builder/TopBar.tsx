@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from '../../utils/router';
-import { Home, Upload } from 'lucide-react';
+import { Home, RotateCcw, Upload } from 'lucide-react';
 import { Button } from '../shared/controls';
 
 export default function TopBar({
@@ -16,6 +16,7 @@ export default function TopBar({
   onImport,
   isImporting,
   tabOnly,
+  hasContent,
 }: {
   activeView: 'edit' | 'preview';
   onChangeView: (view: 'edit' | 'preview') => void;
@@ -30,6 +31,8 @@ export default function TopBar({
   isImporting: boolean;
   /** Public-computer mode: the CV is deleted when this tab closes. */
   tabOnly: boolean;
+  /** Export status is only shown once there is something to export. */
+  hasContent: boolean;
 }) {
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const startOverButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -97,20 +100,17 @@ export default function TopBar({
 
   return (
     <header className="z-30 border-b border-[#e2e8f0] bg-white/95 px-4 py-3 backdrop-blur md:sticky md:top-0">
-      <div className="mx-auto flex max-w-[1750px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <img src="/favicon.svg" alt="" width={36} height={36} className="h-9 w-9" />
-            <span className="hidden text-[17px] font-bold tracking-[-0.02em] text-[#0f172a] sm:inline">Quick Free CV Builder</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 md:ml-3">
-            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${statusStyles}`}>{statusLabel}</span>
-            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${exportStyles}`}>{exportLabel}</span>
-          </div>
+      {/* Phones: brand, status and actions on one row, the Edit / Preview switch below. */}
+      <div className="mx-auto flex max-w-[1750px] flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <img src="/favicon.svg" alt="" width={36} height={36} className="h-9 w-9 shrink-0" />
+          <span className="hidden text-[17px] font-bold tracking-[-0.02em] text-[#0f172a] sm:inline">Quick Free CV Builder</span>
+          <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold sm:ml-1 ${statusStyles}`}>{statusLabel}</span>
+          {hasContent && <span className={`hidden whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold md:inline ${exportStyles}`}>{exportLabel}</span>}
         </div>
 
         {/* Phones show one pane at a time; wide screens show both, so the switch isn't needed there. */}
-        <div className="flex rounded-full border border-[#d9e2ef] bg-[#f5f7fc] p-1 lg:hidden">
+        <div className="order-last flex w-full rounded-full border border-[#d9e2ef] bg-[#f5f7fc] p-1 lg:hidden">
           {viewButton('edit', 'Edit')}
           {viewButton('preview', 'Preview')}
         </div>
@@ -121,9 +121,10 @@ export default function TopBar({
               to="/"
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#d9e2ef] bg-white px-3.5 text-xs font-semibold leading-none text-[#374151] transition hover:bg-slate-50"
               title="Home"
+              aria-label="Home"
             >
               <Home className="h-3.5 w-3.5" aria-hidden="true" />
-              Home
+              <span className="hidden sm:inline">Home</span>
             </Link>
             <Button
               variant="secondary"
@@ -132,19 +133,23 @@ export default function TopBar({
               disabled={isImporting}
               aria-busy={isImporting}
               title="Import a CV file or add a photo"
+              aria-label={isImporting ? 'Importing…' : 'Import'}
             >
               <Upload className={`h-3.5 w-3.5 ${isImporting ? 'animate-spin' : ''}`} aria-hidden="true" />
-              {isImporting ? 'Importing…' : 'Import'}
+              <span className="hidden sm:inline">{isImporting ? 'Importing…' : 'Import'}</span>
             </Button>
             <Button
               ref={startOverButtonRef}
               variant="secondary"
-              className="h-9 rounded-full border-[#d9e2ef] bg-white px-4 text-xs font-semibold text-[#374151] leading-none"
+              className="h-9 rounded-full border-[#d9e2ef] bg-white px-3.5 text-xs font-semibold text-[#374151] leading-none sm:px-4"
               onClick={() => setConfirmingStartOver((value) => !value)}
               aria-expanded={confirmingStartOver}
               aria-controls="start-over-confirm"
+              aria-label="Start over"
+              title="Start over"
             >
-              Start over
+              <RotateCcw className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" />
+              <span className="hidden sm:inline">Start over</span>
             </Button>
             {confirmingStartOver && (
               <div

@@ -163,15 +163,16 @@ export function DesignBar({
           Custom
           <input type="color" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" value={current} onChange={(event) => onChangeAccent(event.target.value)} />
         </label>
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#d9e2ef] px-2.5 text-xs font-semibold text-[#374151] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          onClick={() => onChangeAccent(null)}
-          disabled={accentColor === null}
-        >
-          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-          Reset
-        </button>
+        {accentColor !== null && (
+          <button
+            type="button"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#d9e2ef] px-2.5 text-xs font-semibold text-[#374151] transition hover:bg-slate-50"
+            onClick={() => onChangeAccent(null)}
+          >
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            Reset
+          </button>
+        )}
       </div>
       {(atsMode || lowContrast) && (
         <p className="text-xs text-[#5d6b84] xl:basis-full" role="status">

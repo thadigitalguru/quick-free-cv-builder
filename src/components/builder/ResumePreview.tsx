@@ -79,7 +79,7 @@ export default function ResumePreview({
   const pageClass = isCompact ? 'mx-auto w-full max-w-[920px] px-3 py-4 lg:px-4 lg:py-5' : 'mx-auto w-full max-w-[1100px] px-4 py-7 lg:px-6 lg:py-8';
   const isBlank = isBlankDocument(cvDocument);
   const source = isBlank ? samplePreview ?? cvDocument : cvDocument;
-  const visibleOrder = isBlank ? (['summary', 'experience'] as const) : getVisibleOrder(cvDocument);
+  const visibleOrder = isBlank ? (['experience', 'education', 'skills', 'languages'] as const) : getVisibleOrder(cvDocument);
   const isDemoPreview = isBlank;
   const { profilePhoto, photoZoom, photoX, photoY } = cvDocument.personalInfo;
   const croppedPhoto = useCroppedPhoto(profilePhoto, { zoom: photoZoom, x: photoX, y: photoY });
@@ -99,7 +99,7 @@ export default function ResumePreview({
       >
         {isDemoPreview && (
           <div className={`mb-5 rounded-[14px] border px-4 py-3 text-sm ${mode === 'ats' ? 'border-black bg-white text-black' : isModern ? 'border-white/20 bg-white/5 text-white/80' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
-            {samplePreview ? 'Sample content is shown here until you start entering your CV details.' : 'Loading sample preview…'}
+            {samplePreview ? 'This is an example CV. Yours replaces it as you type.' : 'Loading example…'}
           </div>
         )}
 

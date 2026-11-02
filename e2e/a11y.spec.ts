@@ -12,13 +12,13 @@ test('home, editor and preview have no accessibility violations', async ({ page 
   };
   await seedCv(page, { personalInfo: { fullName: 'Access Person', email: 'a@example.com' }, experience: roles(2), skills: ['SQL'] }, 'modern');
   await page.goto('/');
-  await page.getByRole('heading', { level: 1, name: 'Quick Free CV Builder' }).waitFor();
+  await page.getByRole('heading', { level: 1, name: /A polished CV in minutes/ }).waitFor();
   await check('home');
   await openBuilder(page);
   await check('personal info editor');
   await page.locator('aside button:visible, nav[aria-label="CV sections"] button:visible', { hasText: /^Experience/ }).first().click();
   await check('experience editor');
   await showPreview(page);
-  await page.getByRole('button', { name: /Advanced options/ }).click();
+  await page.getByRole('button', { name: /Font sizes/ }).click();
   await check('preview with advanced options');
 });

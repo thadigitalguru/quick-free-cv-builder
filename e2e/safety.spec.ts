@@ -47,7 +47,7 @@ test('a render crash shows a recovery screen with a backup of the saved CV', asy
   await seedCv(page, { personalInfo: { fullName: 'Crash Person' } });
   await page.route(/assets\/BuilderPage-.*\.js/, (route) => route.fulfill({ contentType: 'text/javascript', body: 'export default function Broken() { throw new Error("boom"); }' }));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Resume saved draft' }).click();
+  await page.getByRole('button', { name: 'Continue my CV' }).click();
   await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeVisible();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download CV backup' }).click();

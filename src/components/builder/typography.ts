@@ -1,4 +1,4 @@
-/** Font sizes for the CV preview and export, adjustable in Advanced options. */
+/** Font sizes for the CV preview and export, adjustable under Font sizes. */
 export type PreviewTypography = {
   fullName: number;
   jobTitle: number;

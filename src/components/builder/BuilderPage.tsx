@@ -120,6 +120,7 @@ export default function BuilderPage() {
       : []),
   ];
   const blockingCount = blockingMessages.length;
+  const nothingToExport = 'Add your details first: the preview is showing an example CV.';
   const warningCount = advisoryMessages.length;
 
   const updateTypography = (key: keyof PreviewTypography, value: number) => {
@@ -196,6 +197,7 @@ export default function BuilderPage() {
         onImport={importFlow.openPicker}
         isImporting={importFlow.isImporting}
         tabOnly={publicComputer}
+        hasContent={hasContent}
       />
       {importFlow.fileInput}
 
@@ -255,7 +257,8 @@ export default function BuilderPage() {
       <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-4 lg:pt-5">
         <div className="lg:grid lg:grid-cols-[minmax(400px,480px)_minmax(0,1fr)] lg:items-start lg:gap-6">
           <aside className={`${viewMode === 'preview' ? 'hidden lg:block' : 'block'} min-w-0`} aria-label="CV editor">
-            <SectionSidebar validationIssues={validationIssues} />
+            {/* No checks on a blank CV: guidance first, warnings once there's something to check. */}
+            <SectionSidebar validationIssues={hasContent ? validationIssues : []} />
           </aside>
 
           <div className={`print-cv-container ${viewMode === 'preview' ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-3 lg:sticky lg:top-[84px] lg:h-[calc(100vh-100px)]`}>
@@ -290,7 +293,7 @@ export default function BuilderPage() {
                   </span>
                 )}
                 <div className="ml-auto flex flex-wrap items-center gap-2">
-                  <Button variant="secondary" className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]" onClick={handleDownloadJson} title="Download an editable backup you can import later">
+                  <Button variant="secondary" className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]" onClick={handleDownloadJson} disabled={!hasContent} title={hasContent ? 'Download an editable backup you can import later' : nothingToExport}>
                     <FileJson className="h-4 w-4" aria-hidden="true" />
                     JSON
                   </Button>
@@ -298,12 +301,13 @@ export default function BuilderPage() {
                     variant="secondary"
                     className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]"
                     onClick={() => window.print()}
-                    title="Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts."
+                    disabled={!hasContent}
+                    title={hasContent ? "Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts." : nothingToExport}
                   >
                     <Printer className="h-4 w-4" aria-hidden="true" />
                     Print<span className="hidden 2xl:inline">&nbsp;/ Save as PDF</span>
                   </Button>
-                  <Button className="h-9 rounded-xl px-3.5 text-[13px] font-semibold" onClick={handleDownloadPdf} disabled={isExportingPdf} aria-busy={isExportingPdf}>
+                  <Button className="h-9 rounded-xl px-3.5 text-[13px] font-semibold" onClick={handleDownloadPdf} disabled={isExportingPdf || !hasContent} aria-busy={isExportingPdf} title={hasContent ? undefined : nothingToExport}>
                     <Download className="h-4 w-4" aria-hidden="true" />
                     {isExportingPdf ? 'Generating PDF…' : 'Download PDF'}
                   </Button>
@@ -312,19 +316,25 @@ export default function BuilderPage() {
               <div className="mt-3 border-t border-[#e6ecf4] pt-3">
                 <DesignBar templateId={templateId} onChangeTemplate={setTemplateId} accentColor={accentColor} onChangeAccent={setAccentColor} atsMode={previewMode === 'ats'} />
               </div>
+              <AdvancedOptionsCard
+                open={advancedOpen}
+                onToggle={() => setAdvancedOpen((value) => !value)}
+                onReset={resetTypography}
+                typography={typography}
+                onChange={updateTypography}
+              />
             </div>
 
-            <AdvancedOptionsCard
-              open={advancedOpen}
-              onToggle={() => setAdvancedOpen((value) => !value)}
-              onReset={resetTypography}
-              typography={typography}
-              onChange={updateTypography}
-            />
-
-            {!exportReady && (
-              <div className={`rounded-2xl border px-4 py-3 text-sm ${blockingIssue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-                <p className="font-semibold">Export checklist</p>
+            {/* One line until opened, so the page stays in view; shown once there's a CV to check. */}
+            {hasContent && !exportReady && (
+              <details className={`group rounded-2xl border px-4 py-2.5 text-sm ${blockingIssue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold [&::-webkit-details-marker]:hidden">
+                  <span>
+                    Before you export: {blockingMessages.length + advisoryMessages.length} thing{blockingMessages.length + advisoryMessages.length === 1 ? '' : 's'} to check
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold underline underline-offset-2 group-open:hidden">Show</span>
+                  <span className="hidden shrink-0 text-xs font-semibold underline underline-offset-2 group-open:inline">Hide</span>
+                </summary>
                 <ul className="mt-2 list-disc space-y-1.5 pl-5">
                   {blockingMessages.map((issue) => (
                     <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
@@ -333,7 +343,7 @@ export default function BuilderPage() {
                     <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
                   ))}
                 </ul>
-              </div>
+              </details>
             )}
 
             {exportError && <p className="text-sm text-rose-600">{exportError}</p>}

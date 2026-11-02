@@ -17,11 +17,11 @@ export const sectionDefaults: CVSectionMeta[] = [
 
 export const defaultOrder: SectionId[] = [
   'personalInfo',
-  'projects',
   'experience',
-  'skills',
-  'languages',
   'education',
+  'skills',
+  'projects',
+  'languages',
   'certifications',
   'volunteer',
   'awards',

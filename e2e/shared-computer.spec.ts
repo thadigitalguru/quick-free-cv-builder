@@ -23,7 +23,7 @@ test('on a shared computer the CV stays in the tab and is gone for the next pers
   const next = await context.newPage();
   await next.goto('/');
   await expect(next.getByRole('button', { name: 'Start building' })).toBeVisible();
-  await expect(next.getByRole('button', { name: 'Resume saved draft' })).toHaveCount(0);
+  await expect(next.getByRole('button', { name: 'Continue my CV' })).toHaveCount(0);
 });
 
 test('"Delete my CV from this browser" removes it everywhere, including the open builder', async ({ page }) => {
@@ -33,7 +33,7 @@ test('"Delete my CV from this browser" removes it everywhere, including the open
   await page.getByRole('link', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Delete my CV from this browser' }).click();
   await page.getByRole('button', { name: 'Delete it' }).click();
-  await expect(page.getByRole('button', { name: 'Resume saved draft' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Continue my CV' })).toHaveCount(0);
   await page.goto('/builder');
   await expect(page.locator('input[autocomplete="name"]')).toHaveValue('');
   expect(await page.evaluate((key) => localStorage.getItem(key)?.includes('Leaving Person') ?? false, STORAGE_KEY)).toBe(false);

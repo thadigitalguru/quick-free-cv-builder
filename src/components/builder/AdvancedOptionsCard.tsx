@@ -15,21 +15,22 @@ export function AdvancedOptionsCard({
   onChange: (key: keyof PreviewTypography, value: number) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-[#d9e2ef] bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-      <div className="flex items-start justify-between gap-3">
+    // Lives at the foot of the design card: one quiet line until opened.
+    <div className="mt-2.5 border-t border-[#e6ecf4] pt-2">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="min-w-0 flex-1">
-          <button type="button" className="flex w-full items-start gap-2.5 text-left" onClick={onToggle} aria-expanded={open}>
-            <ChevronDown className={`mt-0.5 h-4.5 w-4.5 shrink-0 text-[#5d6b84] transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
-            <span>
-              <span className="block text-[13px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">Advanced options</span>
-              <span className="block text-[13px] font-normal normal-case tracking-normal text-[#5d6b84]">Font sizes. The defaults work for most CVs.</span>
-            </span>
+          <button type="button" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#5d6b84] hover:text-[#111827]" onClick={onToggle} aria-expanded={open}>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+            Font sizes
+            <span className="font-normal">· the defaults work for most CVs</span>
           </button>
         </h2>
         {/* A separate button: a control nested inside the toggle can't be reached reliably. */}
-        <button type="button" onClick={onReset} className="shrink-0 pt-0.5 text-[13px] font-semibold text-[#2f5ee2]">
-          Restore defaults
-        </button>
+        {open && (
+          <button type="button" onClick={onReset} className="shrink-0 text-[13px] font-semibold text-[#2f5ee2]">
+            Restore defaults
+          </button>
+        )}
       </div>
 
       {open && (
