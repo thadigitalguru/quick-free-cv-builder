@@ -2,6 +2,8 @@
 
 A free, privacy-first CV builder with no login, no paywall, no watermark, autosave, live preview, and PDF/JSON export.
 
+**Live:** https://quick-free-cv-builder.vercel.app
+
 ## Overview
 Quick Free CV Builder lets you create, edit, preview, import, and export CVs entirely in the browser. All data stays local in the browser storage unless you choose to download a file. Imports are parsed on your device; nothing is uploaded and there is no OCR or AI service.
 
@@ -43,8 +45,9 @@ npm run lint        # ESLint, including the React hooks rules
 npm test            # unit tests (Vitest)
 npx playwright install chromium webkit   # once
 npm run test:e2e    # browser tests: desktop Chrome and WebKit as an iPhone, against the production build
+npm run test:e2e:live   # the same browser tests against the live site
 ```
-The browser suite checks what users actually get: the exported PDF's text, links, images and page count, undo, two-tab conflicts, crash recovery, accessibility (axe), and that no request leaves the app under the production security policy. CI runs both suites on every push (`.github/workflows/ci.yml`).
+The browser suite checks what users actually get: the exported PDF's text, links, images and page count, undo, two-tab conflicts, crash recovery, accessibility (axe), and that no request leaves the app under the production security policy. A CI workflow to run both suites on every push is pending a GitHub token with the `workflow` scope.
 
 ## Validate the production build
 ```bash
@@ -53,7 +56,7 @@ npm run preview
 ```
 
 ## Deploy
-This app is configured for Vercel (`vercel.json`) and Netlify (`public/_headers`, `public/_redirects`). Keep those files: they carry the guarantees below.
+Production runs on Vercel and deploys on every push to `main` (details: `docs/deployment.md`). The app is configured for Vercel (`vercel.json`) and Netlify (`public/_headers`, `public/_redirects`). Keep those files: they carry the guarantees below.
 - **Privacy is enforced, not just promised.** A Content Security Policy (`connect-src 'self'`) makes the browser block any request to another server, so CV content can't be sent anywhere, even by a bug or a compromised dependency.
 - **Safe updates.** `index.html` is always revalidated and hashed assets are cached for a year. A missing asset returns 404 (never `index.html`), so a tab opened before a deploy reloads once into the new version instead of breaking.
 - Also sent: `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Permissions-Policy` (no camera, microphone or location), and `frame-ancestors 'none'`.

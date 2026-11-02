@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:e2e:live": "E2E_BASE_URL=https://quick-free-cv-builder.vercel.app playwright test"
   },
   "keywords": [],
   "author": "",

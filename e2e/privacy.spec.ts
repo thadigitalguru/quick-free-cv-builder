@@ -3,9 +3,11 @@ import { exportPdf, fixture, openBuilder, seedCv, showPreview } from './helpers'
 
 test('a full journey makes no request to any other server and breaks no security rule', async ({ page }, testInfo) => {
   const outside: string[] = [];
+  // The app's own origin, wherever the suite points (local preview or a deployment).
+  const origin = new URL(testInfo.project.use.baseURL!).origin;
   page.on('request', (request) => {
     const url = request.url();
-    if (!url.startsWith('http://localhost:4317') && !/^(data|blob|about):/.test(url)) outside.push(url);
+    if (new URL(url).origin !== origin && !/^(data|blob|about):/.test(url)) outside.push(url);
   });
   await page.addInitScript(() => {
     (window as unknown as { violations: string[] }).violations = [];
