@@ -9,7 +9,7 @@ export interface ImportTextDiagnostics {
   lines: number;
   /** Recognised sections in the order met; 'unknown' and 'contact' for headings without a section. */
   headings: string[];
-  rules: { capitalisedName: number; techLines: number; sinceLines: number; tabSeparated: number; letterSpacedHeadings: number; datedTextBeforeHeadings: boolean };
+  rules: { capitalisedName: number; techLines: number; sinceLines: number; tabSeparated: number; letterSpacedHeadings: number; inferredHeadings: number; datedTextBeforeHeadings: boolean };
   /** Shapes of the date ranges seen, e.g. { 'Mon YYYY': 3, 'present-word': 1 }. */
   dateStyles: Record<string, number>;
 }
@@ -61,10 +61,10 @@ const headingAliases: Record<SectionKey, string[]> = {
   summary: ['summary', 'professional summary', 'profile', 'professional profile', 'about', 'about me', 'objective', 'career objective', 'personal statement', 'career summary'],
   experience: ['experience', 'work experience', 'professional experience', 'employment', 'employment history', 'work history', 'career history', 'relevant experience', 'career', 'career experience', 'professional history', 'professional background', 'work', 'positions held', 'internships', 'internship experience', 'experience and internships', 'experience & internships'],
   education: ['education', 'academic background', 'education and training', 'education & training', 'academic qualifications', 'qualifications', 'education history', 'academic history', 'educational background', 'academics'],
-  skills: ['skills', 'top skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise', 'skill set', 'skillset', 'areas of expertise', 'key competencies', 'technical proficiencies', 'skills & competencies', 'skills and competencies'],
+  skills: ['skills', 'top skills', 'technical skills', 'core skills', 'key skills', 'competencies', 'core competencies', 'skills & tools', 'skills and tools', 'tools', 'expertise', 'skill set', 'skillset', 'areas of expertise', 'key competencies', 'technical proficiencies', 'skills & competencies', 'skills and competencies', 'tools & platforms', 'tools and platforms', 'tools & technologies', 'tools and technologies', 'technologies', 'software', 'tech stack', 'technical stack', 'programming languages'],
   projects: ['projects', 'selected projects', 'key projects', 'personal projects'],
   languages: ['languages', 'language skills', 'spoken languages'],
-  certifications: ['certifications', 'certificates', 'licenses & certifications', 'licenses and certifications', 'licences & certifications', 'courses', 'training'],
+  certifications: ['certifications', 'certificates', 'licenses & certifications', 'licenses and certifications', 'licences & certifications', 'courses', 'training', 'professional development', 'continuing education', 'certifications & training', 'certifications and training', 'training & certifications', 'training and certifications', 'courses & certifications', 'courses and certifications', 'professional training', 'online courses'],
   awards: ['awards', 'honors', 'honours', 'awards & honors', 'awards and honours', 'awards & honours', 'awards and honors'],
   volunteer: ['volunteering', 'volunteer', 'volunteer experience', 'volunteer work'],
   interests: ['interests', 'hobbies', 'hobbies and interests', 'hobbies & interests', 'personal interests'],
@@ -73,6 +73,30 @@ const headingAliases: Record<SectionKey, string[]> = {
 
 // Headings we recognise but have no section for; their text is reported back rather than merged elsewhere.
 const unsupportedHeadings = new Set(['publications', 'achievements', 'key achievements', 'memberships', 'affiliations', 'professional memberships', 'activities', 'extracurricular activities', 'leadership', 'research', 'conferences', 'patents', 'additional information', 'other']);
+
+// Unfamiliar all-caps headings ("FREELANCE EXPERIENCE", "EDUCATION & CERTIFICATIONS") go to the section
+// whose keyword appears first, so a whole block isn't dropped for want of an exact alias.
+const headingKeywords: [RegExp, SectionKey][] = [
+  [/volunteer/, 'volunteer'],
+  [/experience|employment|career|work history|internship/, 'experience'],
+  [/education|academic/, 'education'],
+  [/certif|licen[cs]e|course|training|professional development/, 'certifications'],
+  [/skill|tools?\b|technolog|platforms?\b|software|competenc|expertise/, 'skills'],
+  [/project/, 'projects'],
+  [/language/, 'languages'],
+  [/award|honou?rs?\b/, 'awards'],
+  [/interest|hobb/, 'interests'],
+  [/referee|reference/, 'references'],
+];
+
+const inferHeading = (line: string): SectionKey | null => {
+  const key = toHeadingKey(line);
+  const matches = headingKeywords.flatMap(([pattern, section]) => {
+    const index = key.search(pattern);
+    return index >= 0 ? [{ index, section }] : [];
+  });
+  return matches.sort((a, b) => a.index - b.index)[0]?.section ?? null;
+};
 
 // Sidebar blocks of contact details; their lines are read like the header (email, phone, location).
 const contactHeadings = new Set(['contact', 'contacts', 'contact details', 'contact information', 'contact info', 'personal details', 'personal information', 'personal info', 'details', 'get in touch']);
@@ -253,8 +277,12 @@ const groupEntries = (lines: string[], allowSingleYear: boolean): { entries: Raw
       } else {
         target.dateEnd = line.match(singleYearRegex)?.[0] ?? '';
       }
-      const rest = textBesideDate(line);
+      // "Company | Role | Jan 2019 – Jan 2020 – Delivered…": text after the dates describes the role.
+      const after = range ? line.slice(range.index! + range[0].length) : '';
+      const description = after.match(/^\s*[–—:-]\s+(.{12,})$/)?.[1];
+      const rest = textBesideDate(description ? line.slice(0, range!.index! + range![0].length) : line);
       if (rest) target.header.push(rest);
+      if (description) target.body.push(description);
       currentHasDate = true;
     } else {
       target.header.push(line);
@@ -264,7 +292,7 @@ const groupEntries = (lines: string[], allowSingleYear: boolean): { entries: Raw
   return { entries, anchored: true };
 };
 
-/** Bullets become items; wrapped continuation lines (common in PDFs) are joined to the bullet above. */
+/** Bullets become items; wrapped continuation lines (common in PDFs) are joined to the item above. */
 const toBulletItems = (lines: string[]) => {
   const items: string[] = [];
   let lastWasBullet = false;
@@ -272,7 +300,7 @@ const toBulletItems = (lines: string[]) => {
     if (isBullet(line)) {
       items.push(stripBullet(line));
       lastWasBullet = true;
-    } else if (lastWasBullet && items.length && /^[a-z(]/.test(line)) {
+    } else if (items.length && /^[a-z(]/.test(line) && (lastWasBullet || !/[.!?]$/.test(items[items.length - 1]))) {
       items[items.length - 1] = `${items[items.length - 1]} ${line}`;
     } else {
       items.push(line);
@@ -388,17 +416,26 @@ const parseLanguages = (lines: string[], unplaced: string[]): Draft<LanguageItem
   return languages;
 };
 
-const parseSimpleItems = (lines: string[]): Draft<SimpleSectionItem>[] => {
+/** inlineItems: "Course – Provider (2022) | Course – Provider (2020)" lists several items on one line. */
+const parseSimpleItems = (lines: string[], inlineItems = false): Draft<SimpleSectionItem>[] => {
   const items: Draft<SimpleSectionItem>[] = [];
-  lines.forEach((line) => {
+  const source = inlineItems ? lines.flatMap((line) => line.split(/\s*\|\s*/)).filter(Boolean) : lines;
+  source.forEach((line) => {
     const current = items[items.length - 1];
+    // A line wrapped in the PDF ("(2020)", "and Analytics") continues the item above it.
+    if (current && /^[a-z(]/.test(line)) {
+      if (current.details) current.details = `${current.details} ${line}`;
+      else current.title = `${current.title} ${line}`;
+      return;
+    }
     // A bullet, or a short line with a year ("Coursera, 2022"), describes the item above it.
     const looksLikeDetails = isBullet(line) || (singleYearRegex.test(line) && line.length <= 60);
     if (looksLikeDetails && current && !current.details) {
       current.details = stripBullet(line);
       return;
     }
-    items.push({ title: stripBullet(line), details: '' });
+    const titleAndDetails = inlineItems ? stripBullet(line).match(/^(.+?)\s+[–—-]\s+(.+)$/) : null;
+    items.push(titleAndDetails ? { title: titleAndDetails[1], details: titleAndDetails[2] } : { title: stripBullet(line), details: '' });
   });
   return items;
 };
@@ -438,7 +475,7 @@ export const normalizeExtractedText = (text: string) =>
 
 export const parseImportedText = (rawText: string): ImportedTextDraft => {
   const text = normalizeExtractedText(rawText);
-  const rules = { capitalisedName: 0, techLines: 0, sinceLines: 0, tabSeparated: 0, letterSpacedHeadings: 0, datedTextBeforeHeadings: false };
+  const rules = { capitalisedName: 0, techLines: 0, sinceLines: 0, tabSeparated: 0, letterSpacedHeadings: 0, inferredHeadings: 0, datedTextBeforeHeadings: false };
   const headingsSeen: string[] = [];
   const rawLines = text.split('\n');
   rawLines.forEach((line) => {
@@ -475,7 +512,9 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
       dateRangeRegex.test(sections[current]!.at(-1) ?? '');
     // The very first line is the name even in capitals ("AMINA WANJIRU"), not an unknown heading.
     const isCapitalisedName = detected === 'unknown' && current === 'header' && header.length === 0 && !unsupportedHeadings.has(toHeadingKey(line));
-    const heading = isTechLine || isCapitalisedName ? null : detected;
+    const inferred = detected === 'unknown' && !isTechLine && !isCapitalisedName && !unsupportedHeadings.has(toHeadingKey(line)) ? inferHeading(line) : null;
+    const heading = isTechLine || isCapitalisedName ? null : (inferred ?? detected);
+    if (inferred) rules.inferredHeadings += 1;
     if (isTechLine) rules.techLines += 1;
     if (isCapitalisedName) rules.capitalisedName += 1;
     if (heading) headingsSeen.push(heading);
@@ -567,7 +606,7 @@ export const parseImportedText = (rawText: string): ImportedTextDraft => {
     education: sections.education ? parseEducation(sections.education, notes) : [],
     projects: sections.projects ? parseProjects(sections.projects) : [],
     languages: sections.languages ? parseLanguages(sections.languages, unplaced) : [],
-    certifications: sections.certifications ? parseSimpleItems(sections.certifications) : [],
+    certifications: sections.certifications ? parseSimpleItems(sections.certifications, true) : [],
     volunteer: sections.volunteer ? parseSimpleItems(sections.volunteer) : [],
     awards: sections.awards ? parseSimpleItems(sections.awards) : [],
     references: sections.references ? parseSimpleItems(sections.references) : [],
