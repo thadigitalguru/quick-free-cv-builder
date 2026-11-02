@@ -1,6 +1,7 @@
 import { parseImportedText } from './importText';
 import { normalizeImportedDocument } from './importDocument';
 import type { CVDocument, ResumeTemplateId, SectionId } from '../types/cv';
+import { isHexColor } from './templateConfig';
 import { prepareProfilePhoto } from './files';
 
 export type ImportProgressCallback = (message: string) => void;
@@ -39,6 +40,8 @@ export interface ImportResult {
   report: ImportReport;
   /** Template saved in a JSON backup, if any. */
   templateId?: ResumeTemplateId;
+  /** CV colour saved in a JSON backup, if any. */
+  accentColor?: string;
 }
 
 const templateIds: ResumeTemplateId[] = ['classic', 'modern', 'compact', 'banner'];
@@ -255,7 +258,9 @@ const importJson = (text: string, fileName: string): ImportResult | null => {
   const record = parsed as Record<string, unknown>;
   const rawTemplate = record.templateId ?? (record.document as Record<string, unknown> | undefined)?.templateId;
   const templateId = templateIds.find((id) => id === rawTemplate);
-  return { document, templateId, report: { fileName, sourceKind: 'json', found: countFound(document), warnings: [], unplaced: [] } };
+  const rawAccent = record.accentColor ?? (record.document as Record<string, unknown> | undefined)?.accentColor;
+  const accentColor = isHexColor(rawAccent) ? rawAccent : undefined;
+  return { document, templateId, accentColor, report: { fileName, sourceKind: 'json', found: countFound(document), warnings: [], unplaced: [] } };
 };
 
 export const buildImportedDocument = async (file: File, onProgress?: ImportProgressCallback): Promise<ImportResult | null> => {

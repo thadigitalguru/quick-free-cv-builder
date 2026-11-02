@@ -155,7 +155,7 @@ interface CVState {
   toggleSectionVisibility: (sectionId: SectionId) => void;
   addOptionalSection: (sectionId: 'certifications' | 'volunteer' | 'awards' | 'references') => void;
   removeOptionalSection: (sectionId: 'certifications' | 'volunteer' | 'awards' | 'references') => void;
-  loadImportedDocument: (document: CVDocument, templateId?: ResumeTemplateId) => void;
+  loadImportedDocument: (document: CVDocument, templateId?: ResumeTemplateId, accentColor?: string) => void;
   clearSection: (sectionId: SectionId) => void;
   persist: () => void;
   /** The last delete or clear, undoable until the CV changes again. */
@@ -496,7 +496,7 @@ export const useCVStore = create<CVState>((set, get) => {
     }),
   addOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, true)), activeSection: sectionId, saveStatus: 'saving' })),
   removeOptionalSection: (sectionId) => set((state) => ({ document: withUpdatedTimestamp(applyVisibility(state.document, sectionId, false)), saveStatus: 'saving' })),
-  loadImportedDocument: (incomingDocument, importedTemplateId) => {
+  loadImportedDocument: (incomingDocument, importedTemplateId, importedAccent) => {
     const normalized = normalizeImportedDocument(incomingDocument);
     if (!normalized) return;
     const activeSection = getInitialActiveSection(normalized);
@@ -512,6 +512,7 @@ export const useCVStore = create<CVState>((set, get) => {
       savedAt: normalized.lastUpdatedAt,
       hydrated: true,
       templateId: importedTemplateId ?? get().templateId,
+      accentColor: importedAccent ?? get().accentColor,
     });
     get().persist();
   },

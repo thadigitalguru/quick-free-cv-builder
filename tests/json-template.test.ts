@@ -20,6 +20,15 @@ describe('JSON backup template', () => {
     expect(result!.document.personalInfo.fullName).toBe('Jane Doe');
   });
 
+  it('restores the CV colour saved with the document, and ignores anything that is not a colour', async () => {
+    const result = await buildImportedDocument(jsonFile(serializeCvJson(document, 'banner', '#0f766e')));
+    expect(result).toMatchObject({ templateId: 'banner', accentColor: '#0f766e' });
+    expect(result!.document).toEqual(document);
+    const unsafe = await buildImportedDocument(jsonFile(JSON.stringify({ ...document, accentColor: 'red; background:url(x)' })));
+    expect(unsafe!.accentColor).toBeUndefined();
+    expect(JSON.parse(serializeCvJson(document, 'classic', null))).not.toHaveProperty('accentColor');
+  });
+
   it('ignores an unknown template value', async () => {
     const result = await buildImportedDocument(jsonFile(JSON.stringify({ ...document, templateId: 'neon' })));
     expect(result!.templateId).toBeUndefined();

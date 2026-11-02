@@ -17,10 +17,10 @@ export const buildCvFileName = (document: CVDocument, extension: 'json' | 'pdf')
   return `${baseName}.${extension}`;
 };
 
-/** The JSON backup is the document plus the chosen template, so a round trip restores the same look. */
-export const serializeCvJson = (document: CVDocument, templateId?: ResumeTemplateId) =>
-  JSON.stringify(templateId ? { ...document, templateId } : document, null, 2);
+/** The JSON backup is the document plus the chosen template and colour, so a round trip restores the same look. */
+export const serializeCvJson = (document: CVDocument, templateId?: ResumeTemplateId, accentColor?: string | null) =>
+  JSON.stringify({ ...document, ...(templateId ? { templateId } : {}), ...(accentColor ? { accentColor } : {}) }, null, 2);
 
-export const downloadCvJson = (document: CVDocument, templateId?: ResumeTemplateId) => {
-  downloadTextFile(buildCvFileName(document, 'json'), serializeCvJson(document, templateId), 'application/json;charset=utf-8');
+export const downloadCvJson = (document: CVDocument, templateId?: ResumeTemplateId, accentColor?: string | null) => {
+  downloadTextFile(buildCvFileName(document, 'json'), serializeCvJson(document, templateId, accentColor), 'application/json;charset=utf-8');
 };

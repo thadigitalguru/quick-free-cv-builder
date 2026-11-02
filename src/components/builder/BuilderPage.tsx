@@ -140,7 +140,7 @@ export default function BuilderPage() {
   const handleDownloadJson = async () => {
     try {
       const { buildCvFileName, downloadCvJson } = await import('../../utils/export');
-      downloadCvJson(cvDocument, templateId);
+      downloadCvJson(cvDocument, templateId, accentColor);
       setExportError(null);
       return buildCvFileName(cvDocument, 'json');
     } catch (error) {
@@ -153,7 +153,7 @@ export default function BuilderPage() {
     if (!pendingImport) return;
     // A photo only fills the photo slot; it shouldn't wipe the CV being edited.
     if (importIsPhoto) updateProfilePhoto(pendingImport.document.personalInfo.profilePhoto);
-    else loadImportedDocument(pendingImport.document, pendingImport.templateId);
+    else loadImportedDocument(pendingImport.document, pendingImport.templateId, pendingImport.accentColor);
     importFlow.dismiss();
     setViewMode('edit');
   };

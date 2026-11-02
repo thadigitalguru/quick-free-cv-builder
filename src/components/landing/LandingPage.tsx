@@ -37,12 +37,12 @@ export default function LandingPage() {
 
   const handleDownloadSavedDraft = () => {
     const saved = loadSavedCV();
-    if (saved) downloadCvJson(saved.document, saved.templateId);
+    if (saved) downloadCvJson(saved.document, saved.templateId, saved.accentColor);
   };
 
   const handleConfirmImport = () => {
     if (!importFlow.pending) return;
-    loadImportedDocument(importFlow.pending.document, importFlow.pending.templateId);
+    loadImportedDocument(importFlow.pending.document, importFlow.pending.templateId, importFlow.pending.accentColor);
     // The set-aside copy is now the live draft again.
     if (importFlow.pending === restoredResult) discardUnreadableDraft();
     navigate('/builder');
