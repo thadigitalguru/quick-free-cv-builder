@@ -18,6 +18,6 @@ test('Print / Save as PDF keeps every script, and prints only the CV', async ({ 
   for (const symbol of ['→', '🚀', '✓']) expect(pdf.text).toContain(symbol);
   expect(pdf.text).toMatch(/[؀-ۿ]/);
   expect(pdf.text).toContain('Mar 2021 – Present');
-  for (const interfaceText of ['Export PDF', 'Live preview', 'Personal Info', 'Job title or professional headline']) expect(pdf.text).not.toContain(interfaceText);
+  for (const interfaceText of ['Download PDF', 'Live preview', 'Personal Info', 'CV colour', 'Job title or professional headline']) expect(pdf.text).not.toContain(interfaceText);
   expect(pdf.pages).toBe(1);
 });

@@ -1,6 +1,7 @@
 import { normalizeImportedDocument } from './importDocument';
 import type { SavedCVPayload } from '../types/cv';
 import { CORRUPT_BACKUP_KEY, PUBLIC_COMPUTER_KEY, STORAGE_KEY } from './storageKeys';
+import { isHexColor } from './templateConfig';
 
 export { CORRUPT_BACKUP_KEY };
 
@@ -73,6 +74,7 @@ const normalizeSavedPayload = (payload: SavedCVPayload): SavedCVPayload | null =
       simpleSection: payload.activeItemIds?.simpleSection ?? null,
     },
     templateId: payload.templateId ?? 'classic',
+    accentColor: isHexColor(payload.accentColor) ? payload.accentColor : null,
     rev: typeof payload.rev === 'string' ? payload.rev : undefined,
     parentRev: typeof payload.parentRev === 'string' ? payload.parentRev : null,
   };
@@ -112,6 +114,7 @@ export const loadSavedCV = (): SavedCVPayload | null => {
       activeSection: parsed.activeSection,
       activeItemIds: typeof parsed.activeItemIds === 'object' && parsed.activeItemIds !== null ? parsed.activeItemIds : ({} as SavedCVPayload['activeItemIds']),
       templateId: parsed.templateId,
+      accentColor: parsed.accentColor,
       rev: parsed.rev,
       parentRev: parsed.parentRev,
     });

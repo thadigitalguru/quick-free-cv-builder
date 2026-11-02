@@ -28,8 +28,10 @@ export const openBuilder = async (page: Page) => {
   await page.locator('#builder-workspace').waitFor();
 };
 
+/** Phones switch to the preview; wide screens already show it beside the editor. */
 export const showPreview = async (page: Page) => {
-  await page.locator('button[aria-controls="builder-workspace"]').nth(1).click();
+  const previewSwitch = page.locator('button[aria-controls="builder-workspace"]').nth(1);
+  if (await previewSwitch.isVisible()) await previewSwitch.click();
   await page.getByText(/PDF: \d+ A4 page/).waitFor({ timeout: 15_000 }).catch(() => undefined);
 };
 
@@ -41,7 +43,7 @@ export const savedName = (page: Page) =>
 /** Exports the PDF the way a user would; on iPhone that means tapping Save PDF once it's ready. */
 export const exportPdf = async (page: Page, testInfo: TestInfo) => {
   const download = page.waitForEvent('download', { timeout: 60_000 });
-  await page.locator('button:visible', { hasText: 'Export PDF' }).click();
+  await page.locator('button:visible', { hasText: 'Download PDF' }).click();
   if (isPhone(testInfo)) await page.getByRole('button', { name: 'Save PDF' }).click({ timeout: 60_000 });
   const file = testInfo.outputPath(`export-${Date.now()}.pdf`);
   await (await download).saveAs(file);

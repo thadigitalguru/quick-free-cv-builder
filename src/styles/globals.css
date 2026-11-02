@@ -96,8 +96,16 @@ select {
   text-underline-offset: 4px;
 }
 
-[data-template='modern'][data-preview-mode='standard'] .cv-placeholder {
-  color: rgba(255, 255, 255, 0.72) !important;
+[data-template='modern'][data-preview-mode='standard'] .cv-placeholder,
+[data-template='banner'][data-preview-mode='standard'] .cv-banner .cv-placeholder {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* The preview page sits on a dotted canvas, like a design tool's artboard. */
+.preview-canvas {
+  background-color: #eef2f8;
+  background-image: radial-gradient(#c5cfdd 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
 .pdf-export .cv-placeholder,
@@ -135,6 +143,20 @@ select {
 
   .print-cv-container {
     display: block !important;
+    position: static !important;
+    height: auto !important;
+  }
+
+  /* Screen zoom and the fixed preview width never reach the printed page. */
+  .print-cv-sheet > div {
+    zoom: 1 !important;
+    width: auto !important;
+  }
+
+  #resume-preview-root,
+  #resume-preview-root * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   #builder-workspace,

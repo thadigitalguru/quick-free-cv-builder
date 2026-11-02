@@ -111,12 +111,15 @@ interface CVState {
   savedAt: string | null;
   hydrated: boolean;
   templateId: ResumeTemplateId;
+  /** CV accent colour; null uses the template's default. */
+  accentColor: string | null;
   initFromStorage: () => void;
   createNewCV: () => void;
   resetCV: () => void;
   setActiveSection: (section: SectionId) => void;
   setSaveStatus: (status: SaveStatus) => void;
   setTemplateId: (templateId: ResumeTemplateId) => void;
+  setAccentColor: (accentColor: string | null) => void;
   updatePersonalInfo: (field: keyof PersonalInfo, value: string | number) => void;
   updateSummary: (value: string) => void;
   updateProfilePhoto: (value: string) => void;
@@ -289,10 +292,11 @@ export const useCVStore = create<CVState>((set, get) => {
         savedAt: document.lastUpdatedAt,
         hydrated: true,
         templateId: saved.templateId ?? 'classic',
+        accentColor: saved.accentColor ?? null,
       });
       return;
     }
-    set({ document: createEmptyDocument(), hydrated: true, saveStatus: 'idle', templateId: 'classic' });
+    set({ document: createEmptyDocument(), hydrated: true, saveStatus: 'idle', templateId: 'classic', accentColor: null });
   };
   const loadAndSync = () => {
     lastSyncedRev = loadSavedCV()?.rev ?? null;
@@ -313,6 +317,7 @@ export const useCVStore = create<CVState>((set, get) => {
   saveError: null,
   hydrated: false,
   templateId: 'classic',
+  accentColor: null,
   initFromStorage: () => {
     // Already holding a document (e.g. just imported on the landing page): don't overwrite it with the old draft.
     if (get().hydrated) return;
@@ -320,15 +325,16 @@ export const useCVStore = create<CVState>((set, get) => {
   },
   createNewCV: () => {
     clearSavedCV();
-    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic' });
+    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic', accentColor: null });
   },
   resetCV: () => {
     clearSavedCV();
-    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic' });
+    set({ document: createEmptyDocument(), activeSection: 'personalInfo', activeExperienceId: null, activeEducationId: null, activeProjectId: null, activeLanguageId: null, activeSimpleSection: null, saveStatus: 'idle', savedAt: null, templateId: 'classic', accentColor: null });
   },
   setActiveSection: (section) => set({ activeSection: section }),
   setSaveStatus: (status) => set({ saveStatus: status }),
   setTemplateId: (templateId) => set({ templateId, saveStatus: 'saving' }),
+  setAccentColor: (accentColor) => set({ accentColor, saveStatus: 'saving' }),
   updatePersonalInfo: (field, value) =>
     set((state) => ({
       document: withUpdatedTimestamp({
@@ -570,6 +576,7 @@ export const useCVStore = create<CVState>((set, get) => {
         simpleSection: state.activeSimpleSection,
       },
       templateId: state.templateId,
+      accentColor: state.accentColor,
     };
     const result = saveCV(payload);
     if (!result.ok) {

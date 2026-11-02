@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useCVStore } from '../../store/cvStore';
 import { formatRange, getVisibleOrder, experienceSummary, projectSummary } from '../../utils/cvUtils';
 import { sectionLabelMap } from '../../data/sectionMeta';
+import { defaultAccent } from '../../utils/templateConfig';
+import type { CSSProperties } from 'react';
+import type { ResumeTemplateId } from '../../types/cv';
 import { useCroppedPhoto } from '../../utils/photoCrop';
 import { parseRichText, type RichSpan } from '../../utils/richText';
 
@@ -45,6 +48,7 @@ export default function ResumePreview({
 }) {
   const cvDocument = useCVStore((state) => state.document);
   const templateId = useCVStore((state) => state.templateId);
+  const accentColor = useCVStore((state) => state.accentColor);
   const [samplePreview, setSamplePreview] = useState<typeof cvDocument | null>(null);
 
   useEffect(() => {
@@ -67,7 +71,10 @@ export default function ResumePreview({
 
   const isModern = templateId === 'modern' && mode !== 'ats';
   const isCompact = templateId === 'compact' && mode !== 'ats';
+  const isBanner = templateId === 'banner' && mode !== 'ats';
   const renderedTypography = isCompact ? scaleTypography(typography, compactTypographyScale) : typography;
+  // Inline, so the PDF and page-count clones (which copy only this element) keep the colour.
+  const accentStyle = { '--cv-accent': mode === 'ats' ? '#000000' : (accentColor ?? defaultAccent) } as CSSProperties;
   const shellClass = isModern ? 'bg-slate-950 text-white' : 'bg-white text-slate-900';
   const pageClass = isCompact ? 'mx-auto w-full max-w-[920px] px-3 py-4 lg:px-4 lg:py-5' : 'mx-auto w-full max-w-[1100px] px-4 py-7 lg:px-6 lg:py-8';
   const isBlank = isBlankDocument(cvDocument);
@@ -78,7 +85,8 @@ export default function ResumePreview({
   const croppedPhoto = useCroppedPhoto(profilePhoto, { zoom: photoZoom, x: photoX, y: photoY });
   // ATS parsers can't read photos and some reject CVs with images, so ATS mode leaves it out.
   const showPhoto = mode !== 'ats' && !isBlank && Boolean(croppedPhoto);
-  const photoSize = isCompact ? 76 : 92;
+  const photoSize = isCompact ? 76 : isBanner ? 96 : 92;
+  const tone: Tone = mode === 'ats' ? 'ats' : isModern ? 'modern' : isBanner ? 'banner' : 'light';
 
   return (
     <div className="h-full overflow-auto bg-transparent">
@@ -86,6 +94,7 @@ export default function ResumePreview({
         id="resume-preview-root"
         data-template={templateId}
         data-preview-mode={mode}
+        style={accentStyle}
         className={`pdf-section-group rounded-[1px] print:p-0 ${pageClass} ${shellClass} ${mode === 'ats' ? 'font-sans' : ''}`}
       >
         {isDemoPreview && (
@@ -94,8 +103,14 @@ export default function ResumePreview({
           </div>
         )}
 
-        <header className={`pb-5 ${mode === 'ats' ? 'border-b border-black' : isModern ? 'border-b border-white/20' : 'border-b border-slate-200'}`}>
-          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+        <header className={isBanner ? '' : `pb-5 ${mode === 'ats' ? 'border-b border-black' : isModern ? 'border-b border-white/20' : 'border-b border-slate-200'}`}>
+          <div
+            className={
+              isBanner
+                ? 'cv-banner -mx-4 -mt-7 grid gap-5 bg-[color:var(--cv-accent)] px-6 py-7 text-white lg:-mx-6 lg:-mt-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-8'
+                : 'grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start'
+            }
+          >
             <div className="flex min-w-0 items-center gap-4">
               {showPhoto && (
                 <img
@@ -103,19 +118,19 @@ export default function ResumePreview({
                   alt={source.personalInfo.fullName ? `Photo of ${source.personalInfo.fullName}` : 'Profile photo'}
                   width={photoSize}
                   height={photoSize}
-                  className="shrink-0"
+                  className={isBanner ? 'shrink-0 rounded-full border-4 border-white' : 'shrink-0'}
                   style={{ width: photoSize, height: photoSize }}
                 />
               )}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <h1
-                  className={`font-extrabold leading-none tracking-[-0.03em] ${mode === 'ats' || !isModern ? 'text-inherit' : 'text-white'}`}
+                  className={`font-extrabold leading-none tracking-[-0.03em] ${isModern || isBanner ? 'text-white' : 'text-inherit'}`}
                   style={{ fontSize: `${renderedTypography.fullName}px` }}
                 >
                   {source.personalInfo.fullName || <Placeholder>Your full name</Placeholder>}
                 </h1>
                 <p
-                  className={`font-medium ${mode === 'ats' ? 'text-black' : isModern ? 'text-brand-100' : 'text-brand-700'}`}
+                  className={`font-medium ${mode === 'ats' ? 'text-black' : isModern ? 'text-brand-100' : isBanner ? 'mt-1 uppercase tracking-[0.1em] text-white/90' : 'text-[color:var(--cv-accent)]'}`}
                   style={{ fontSize: `${renderedTypography.jobTitle}px` }}
                 >
                   {source.personalInfo.jobTitle || <Placeholder>Job title or professional headline</Placeholder>}
@@ -123,14 +138,14 @@ export default function ResumePreview({
               </div>
             </div>
 
-            <div className={`leading-[1.55] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-slate-500'}`} style={{ fontSize: `${renderedTypography.contact}px` }}>
+            <div className={`leading-[1.55] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : isBanner ? 'text-white/85' : 'text-slate-500'}`} style={{ fontSize: `${renderedTypography.contact}px` }}>
               <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-                <ContactLine label="Email:" value={source.personalInfo.email} href={source.personalInfo.email ? `mailto:${source.personalInfo.email}` : undefined} mode={mode} isModern={isModern} />
-                <ContactLine label="Phone:" value={source.personalInfo.phone} href={source.personalInfo.phone ? `tel:${source.personalInfo.phone.replace(/[^+\d]/g, '')}` : undefined} mode={mode} isModern={isModern} />
-                <ContactLine label="Location:" value={source.personalInfo.location} mode={mode} isModern={isModern} />
-                <ContactLine label="Portfolio:" value={source.personalInfo.websiteUrl} href={normalizeWebUrl(source.personalInfo.websiteUrl)} mode={mode} isModern={isModern} />
+                <ContactLine label="Email:" value={source.personalInfo.email} href={source.personalInfo.email ? `mailto:${source.personalInfo.email}` : undefined} tone={tone} />
+                <ContactLine label="Phone:" value={source.personalInfo.phone} href={source.personalInfo.phone ? `tel:${source.personalInfo.phone.replace(/[^+\d]/g, '')}` : undefined} tone={tone} />
+                <ContactLine label="Location:" value={source.personalInfo.location} tone={tone} />
+                <ContactLine label="Portfolio:" value={source.personalInfo.websiteUrl} href={normalizeWebUrl(source.personalInfo.websiteUrl)} tone={tone} />
                 <div className="sm:col-span-2">
-                  <ContactLine label="LinkedIn:" value={source.personalInfo.linkedinUrl} href={normalizeWebUrl(source.personalInfo.linkedinUrl)} mode={mode} isModern={isModern} />
+                  <ContactLine label="LinkedIn:" value={source.personalInfo.linkedinUrl} href={normalizeWebUrl(source.personalInfo.linkedinUrl)} tone={tone} />
                 </div>
               </div>
             </div>
@@ -138,9 +153,9 @@ export default function ResumePreview({
 
           {/* Skills appear once, in the Skills section, where the user can move or hide them.
               (A header "Top Skills" copy printed them twice and ignored hiding.) */}
-          <div className={`mt-5 text-sm ${source.personalInfo.summary ? '' : 'cv-placeholder-line'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`}>
+          <div className={`text-sm ${isBanner ? 'mt-6 rounded-[10px] border border-slate-200 px-5 py-4' : 'mt-5'} ${source.personalInfo.summary ? '' : 'cv-placeholder-line'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`}>
             <h2
-              className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : 'text-slate-700'}`}
+              className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'text-black' : isModern ? 'text-white' : isBanner ? 'mb-2 border-b border-slate-200 text-[color:var(--cv-accent)]' : 'text-[color:var(--cv-accent)]'}`}
               style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
             >
               Professional Summary
@@ -149,7 +164,7 @@ export default function ResumePreview({
               <SummaryText
                 text={source.personalInfo.summary}
                 className={`mt-1 ${isCompact ? 'leading-7' : 'leading-8'}`}
-                listClassName={`list-disc ${isCompact ? 'pl-4' : 'pl-6'} ${mode === 'ats' ? 'marker:text-black' : isModern ? 'marker:text-white/90' : 'marker:text-brand-600'}`}
+                listClassName={`list-disc ${isCompact ? 'pl-4' : 'pl-6'} ${mode === 'ats' ? 'marker:text-black' : isModern ? 'marker:text-white/90' : 'marker:text-[color:var(--cv-accent)]'}`}
                 fontSize={renderedTypography.sectionDetails}
               />
             ) : (
@@ -160,7 +175,7 @@ export default function ResumePreview({
           </div>
         </header>
 
-        <div className={isCompact ? 'mt-3 space-y-5' : 'mt-6 space-y-8'}>
+        <div className={isCompact ? 'mt-3 space-y-5' : isBanner ? 'mt-5 space-y-5' : 'mt-6 space-y-8'}>
           {visibleOrder.map((sectionId) => (
             <PreviewSection key={sectionId} sectionId={sectionId} mode={mode} templateId={templateId} typography={typography} source={source as typeof cvDocument} />
           ))}
@@ -179,14 +194,16 @@ function PreviewSection({
 }: {
   sectionId: keyof typeof sectionLabelMap;
   mode: 'standard' | 'ats';
-  templateId: 'classic' | 'modern' | 'compact';
+  templateId: ResumeTemplateId;
   typography: PreviewTypography;
   source: ReturnType<typeof useCVStore.getState>['document'];
 }) {
   const label = sectionLabelMap[sectionId];
   const isModern = templateId === 'modern' && mode !== 'ats';
   const isCompact = templateId === 'compact' && mode !== 'ats';
+  const isBanner = templateId === 'banner' && mode !== 'ats';
   const renderedTypography = isCompact ? scaleTypography(typography, compactTypographyScale) : typography;
+  const chipClass = `rounded-[6px] border px-2.5 py-1 font-medium ${isModern ? 'border-white/20 bg-white/5 text-white/90' : 'border-slate-200 bg-slate-50 text-slate-700'}`;
 
   if (sectionId === 'personalInfo') return null;
   if (sectionId === 'summary' && !source.personalInfo.summary) return null;
@@ -202,9 +219,9 @@ function PreviewSection({
   if (sectionId === 'references' && source.references.length === 0) return null;
 
   return (
-    <section className="break-inside-avoid resume-section pdf-avoid-break">
+    <section className={`break-inside-avoid resume-section pdf-avoid-break ${isBanner ? 'rounded-[10px] border border-slate-200 px-5 py-4' : ''}`}>
       <h2
-        className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'border-b border-black text-black' : isModern ? 'border-b border-white/20 text-white' : 'border-b border-slate-200 text-slate-700'}`}
+        className={`pb-2 font-bold uppercase tracking-[0.08em] ${mode === 'ats' ? 'border-b border-black text-black' : isModern ? 'border-b border-white/20 text-white' : 'border-b border-slate-200 text-[color:var(--cv-accent)]'}`}
         style={{ fontSize: `${renderedTypography.sectionTitle}px` }}
       >
         {label}
@@ -237,7 +254,7 @@ function PreviewSection({
                     {item.technologies.length > 0 && (
                       <p className={`text-xs uppercase tracking-wider ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/60' : 'text-slate-400'}`}>{item.technologies.join(' • ')}</p>
                     )}
-                    <ul className={`list-disc ${isCompact ? 'space-y-1 pl-4' : 'space-y-2 pl-6'} ${mode === 'ats' ? 'text-black marker:text-black' : isModern ? 'text-white/90 marker:text-white/90' : 'text-slate-700 marker:text-brand-600'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px`, lineHeight: isCompact ? 1.5 : 2 }}>
+                    <ul className={`list-disc ${isCompact ? 'space-y-1 pl-4' : 'space-y-2 pl-6'} ${mode === 'ats' ? 'text-black marker:text-black' : isModern ? 'text-white/90 marker:text-white/90' : 'text-slate-700 marker:text-[color:var(--cv-accent)]'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px`, lineHeight: isCompact ? 1.5 : 2 }}>
                       {item.achievements.filter((bullet) => bullet.trim()).map((bullet, index) => (
                         <li key={index} className={isCompact ? 'break-inside-avoid pdf-avoid-break hyphens-auto break-words' : undefined}>
                           {bullet}
@@ -272,7 +289,16 @@ function PreviewSection({
             ))}
           </div>
         )}
-        {sectionId === 'skills' && <p className={`${isCompact ? 'leading-7' : 'leading-8'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>{source.skills.join(' · ')}</p>}
+        {sectionId === 'skills' && (isModern || isBanner) && (
+          <ul className="flex flex-wrap gap-2" style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>
+            {source.skills.map((skill) => (
+              <li key={skill} className={chipClass}>
+                {skill}
+              </li>
+            ))}
+          </ul>
+        )}
+        {sectionId === 'skills' && !isModern && !isBanner && <p className={`${isCompact ? 'leading-7' : 'leading-8'} ${mode === 'ats' ? 'text-black' : isModern ? 'text-white/90' : 'text-slate-700'}`} style={{ fontSize: `${renderedTypography.sectionDetails}px` }}>{source.skills.join(' · ')}</p>}
         {sectionId === 'projects' && (
           <div className={isCompact ? 'space-y-3.5' : 'space-y-5'}>
             {source.projects.map((item) => (
@@ -358,20 +384,10 @@ function SummaryText({ text, className, listClassName, fontSize }: { text: strin
   );
 }
 
-function ContactLine({
-  label,
-  value,
-  href,
-  mode,
-  isModern,
-}: {
-  label: string;
-  value: string;
-  href?: string;
-  mode: 'standard' | 'ats';
-  isModern: boolean;
-}) {
-  const valueClass = mode === 'ats' ? 'text-black' : isModern ? 'text-white/80' : 'text-[#2f5ee2]';
+type Tone = 'ats' | 'modern' | 'banner' | 'light';
+
+function ContactLine({ label, value, href, tone }: { label: string; value: string; href?: string; tone: Tone }) {
+  const valueClass = { ats: 'text-black', modern: 'text-white/80', banner: 'text-white/90', light: 'text-[color:var(--cv-accent)]' }[tone];
   const linkClass = `${valueClass} resume-link underline-offset-2 hover:underline`;
   const text = value || '—';
 
@@ -379,7 +395,7 @@ function ContactLine({
   return (
     <div className={value ? undefined : 'cv-placeholder-line'}>
       {/* Modern's dark header needs light labels; slate-700 there was almost invisible (1.9:1), in the PDF too. */}
-      <span className={mode === 'ats' ? 'font-semibold text-black' : isModern ? 'font-semibold text-white' : 'font-semibold text-slate-700'}>{label}</span>{' '}
+      <span className={tone === 'ats' ? 'font-semibold text-black' : tone === 'light' ? 'font-semibold text-slate-700' : 'font-semibold text-white'}>{label}</span>{' '}
       {href && value ? (
         <a className={linkClass} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined}>
           {text}

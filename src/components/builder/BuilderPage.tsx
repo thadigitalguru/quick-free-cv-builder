@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Download, FileJson, Printer } from 'lucide-react';
 import { useCVStore } from '../../store/cvStore';
 import TopBar from './TopBar';
 import SectionSidebar from './SectionSidebar';
-import EditorPanel from './EditorPanel';
 import ResumePreview from './ResumePreview';
 import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 import { Button } from '../shared/controls';
@@ -18,6 +18,7 @@ import { ImportErrorNotice, ImportReview, useCvImport } from '../shared/ImportFl
 import { AdvancedOptionsCard } from './AdvancedOptionsCard';
 import { ReadyPdfPanel, TabConflictBanner, UndoBar } from './BuilderBanners';
 import { defaultTypography, typographyMinMax, type PreviewTypography } from './typography';
+import { DesignBar, PREVIEW_PAGE_WIDTH, ZoomControls, useMediaQuery, usePreviewZoom } from './PreviewToolbar';
 
 export default function BuilderPage() {
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
@@ -38,6 +39,8 @@ export default function BuilderPage() {
     saveError,
     templateId,
     setTemplateId,
+    accentColor,
+    setAccentColor,
     resetCV,
     loadImportedDocument,
     updateProfilePhoto,
@@ -65,7 +68,7 @@ export default function BuilderPage() {
     if (!hydrated) return;
     const timer = window.setTimeout(() => persist(), 450);
     return () => window.clearTimeout(timer);
-  }, [cvDocument, hydrated, persist, templateId]);
+  }, [cvDocument, hydrated, persist, templateId, accentColor]);
 
   const hasContent = documentHasContent(cvDocument);
   const publicComputer = isPublicComputerMode();
@@ -97,7 +100,12 @@ export default function BuilderPage() {
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [publicComputer, hasContent]);
-  const pageCount = usePageCount('resume-preview-root', { templateId, mode: previewMode, enabled: viewMode === 'preview' && hasContent, document: cvDocument, typography });
+  // Wide screens show the editor and the preview side by side; phones switch between them.
+  const isWide = useMediaQuery('(min-width: 1024px)');
+  const previewVisible = isWide || viewMode === 'preview';
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const previewZoom = usePreviewZoom(canvasRef, isWide && hydrated);
+  const pageCount = usePageCount('resume-preview-root', { templateId, mode: previewMode, enabled: previewVisible && hasContent, document: cvDocument, typography });
 
   const validationIssues = useMemo(() => validateDocument(cvDocument), [cvDocument]);
   const unsupportedCharacters = useMemo(() => findUnsupportedCharacters(cvDocument), [cvDocument]);
@@ -244,101 +252,78 @@ export default function BuilderPage() {
       <UndoBar />
       <TabConflictBanner />
 
-      <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-6 md:pt-8 lg:pt-10">
-        <div className={viewMode === 'edit' ? 'grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]' : 'block'}>
-          <aside className={`${viewMode === 'preview' ? 'hidden' : 'block'} min-w-0`}>
-            <SectionSidebar />
+      <section id="builder-workspace" className="mx-auto max-w-[1750px] px-4 pb-6 pt-4 lg:pt-5">
+        <div className="lg:grid lg:grid-cols-[minmax(400px,480px)_minmax(0,1fr)] lg:items-start lg:gap-6">
+          <aside className={`${viewMode === 'preview' ? 'hidden lg:block' : 'block'} min-w-0`} aria-label="CV editor">
+            <SectionSidebar validationIssues={validationIssues} />
           </aside>
 
-          <div className={`${viewMode === 'edit' ? 'block' : 'hidden'} min-w-0`}>
-            <EditorPanel validationIssues={validationIssues} />
-          </div>
+          <div className={`print-cv-container ${viewMode === 'preview' ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-3 lg:sticky lg:top-[84px] lg:h-[calc(100vh-100px)]`}>
+            <div className="rounded-2xl border border-[#d9e2ef] bg-white p-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="sr-only">Live preview</h2>
+                <ZoomControls {...previewZoom} />
+                <div className="inline-flex shrink-0 overflow-hidden rounded-xl border border-[#d9e2ef] bg-[#f5f7fc] p-0.5" role="group" aria-label="Preview mode">
+                  {(['standard', 'ats'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={previewMode === mode}
+                      aria-controls="resume-preview-root"
+                      className={[
+                        'rounded-[10px] px-3.5 py-1.5 text-sm font-semibold transition',
+                        previewMode === mode ? 'bg-[#111827] text-white' : 'text-[#5d6b84] hover:text-[#111827]',
+                      ].join(' ')}
+                      onClick={() => setPreviewMode(mode)}
+                    >
+                      {mode === 'standard' ? 'Standard' : 'ATS'}
+                    </button>
+                  ))}
+                </div>
+                {hasContent && pageCount !== null && (
+                  <span
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${pageCount > 2 ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-[#d9e2ef] bg-[#f5f7fc] text-[#374151]'}`}
+                    aria-live="polite"
+                    title={pageCount > 2 && templateId !== 'compact' ? 'Most CVs fit on 1–2 pages. The Compact template packs more onto each page.' : 'Pages in the exported PDF'}
+                  >
+                    PDF: {pageCount} A4 page{pageCount === 1 ? '' : 's'}
+                  </span>
+                )}
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  <Button variant="secondary" className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]" onClick={handleDownloadJson} title="Download an editable backup you can import later">
+                    <FileJson className="h-4 w-4" aria-hidden="true" />
+                    JSON
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]"
+                    onClick={() => window.print()}
+                    title="Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts."
+                  >
+                    <Printer className="h-4 w-4" aria-hidden="true" />
+                    Print<span className="hidden 2xl:inline">&nbsp;/ Save as PDF</span>
+                  </Button>
+                  <Button className="h-9 rounded-xl px-3.5 text-[13px] font-semibold" onClick={handleDownloadPdf} disabled={isExportingPdf} aria-busy={isExportingPdf}>
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                    {isExportingPdf ? 'Generating PDF…' : 'Download PDF'}
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 border-t border-[#e6ecf4] pt-3">
+                <DesignBar templateId={templateId} onChangeTemplate={setTemplateId} accentColor={accentColor} onChangeAccent={setAccentColor} atsMode={previewMode === 'ats'} />
+              </div>
+            </div>
 
-          <div className={`print-cv-container ${viewMode === 'preview' ? 'block' : 'hidden'} min-w-0`}>
             <AdvancedOptionsCard
               open={advancedOpen}
               onToggle={() => setAdvancedOpen((value) => !value)}
               onReset={resetTypography}
               typography={typography}
-              templateId={templateId}
-              onChangeTemplate={setTemplateId}
               onChange={updateTypography}
             />
 
-            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              {templateId === 'compact' && (
-                <div className="rounded-[1.15rem] border border-[#dbe4f0] bg-[#f7faff] px-3.5 py-2 text-sm text-[#5a6b83]">
-                  Compact template uses tighter spacing and smaller PDF margins for longer CVs.
-                </div>
-              )}
-              <div>
-                <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">LIVE PREVIEW</h2>
-                <p className="text-[15px] text-[#5d6b84]">This preview matches the PDF export.</p>
-                {hasContent && pageCount !== null && (
-                  <p className="mt-1 text-sm text-[#5d6b84]" aria-live="polite">
-                    <span className="font-semibold text-[#374151]">
-                      PDF: {pageCount} A4 page{pageCount === 1 ? '' : 's'}
-                    </span>
-                    {pageCount > 2 && templateId !== 'compact' && ' · Most CVs fit on 1–2 pages. The Compact template in Advanced options packs more onto each page.'}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-                <div className="inline-flex shrink-0 overflow-hidden rounded-[12px] border border-[#c3cde0] bg-white p-1" role="group" aria-label="Preview mode">
-                  <button
-                    type="button"
-                    aria-pressed={previewMode === 'standard'}
-                    aria-controls="resume-preview-root"
-                    className={[
-                      'rounded-[10px] px-4 py-2 text-sm font-semibold leading-none transition',
-                      previewMode === 'standard' ? 'bg-[#111827] text-white' : 'text-[#5d6b84] hover:text-[#111827]',
-                    ].join(' ')}
-                    onClick={() => setPreviewMode('standard')}
-                  >
-                    Standard
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={previewMode === 'ats'}
-                    aria-controls="resume-preview-root"
-                    className={[
-                      'rounded-[10px] px-4 py-2 text-sm font-semibold leading-none transition',
-                      previewMode === 'ats' ? 'bg-[#111827] text-white' : 'text-[#5d6b84] hover:text-[#111827]',
-                    ].join(' ')}
-                    onClick={() => setPreviewMode('ats')}
-                  >
-                    ATS
-                  </button>
-                </div>
-                <Button variant="secondary" className="h-11 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]" onClick={handleDownloadJson}>
-                  Export JSON
-                </Button>
-                {templateId === 'compact' && (
-                  <span className="rounded-full border border-[#dbe4f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5a6b83]">
-                    Compact PDF margins enabled
-                  </span>
-                )}
-                <Button
-                  className="h-11 rounded-[12px] px-4 text-[14px] font-semibold"
-                  onClick={handleDownloadPdf}
-                  disabled={isExportingPdf}
-                  aria-busy={isExportingPdf}
-                >
-                  {isExportingPdf ? 'Generating PDF…' : 'Export PDF'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="h-11 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]"
-                  onClick={() => window.print()}
-                  title="Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts."
-                >
-                  Print / Save as PDF
-                </Button>
-              </div>
-            </div>
-
             {!exportReady && (
-              <div className={`mt-3 rounded-[1.25rem] border px-4 py-3 text-sm ${blockingIssue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+              <div className={`rounded-2xl border px-4 py-3 text-sm ${blockingIssue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
                 <p className="font-semibold">Export checklist</p>
                 <ul className="mt-2 list-disc space-y-1.5 pl-5">
                   {blockingMessages.map((issue) => (
@@ -351,18 +336,25 @@ export default function BuilderPage() {
               </div>
             )}
 
-            {exportError && <p className="mt-3 text-sm text-rose-600">{exportError}</p>}
+            {exportError && <p className="text-sm text-rose-600">{exportError}</p>}
 
             {readyPdf && <ReadyPdfPanel file={readyPdf} onDone={() => setReadyPdf(null)} onError={setExportError} />}
 
-            <div className="print-cv-sheet mt-3 rounded-[1.5rem] border border-[#d9e2ef] bg-[#dfe5ee] p-2 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:p-4">
-              <div className="rounded-[1.25rem] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.05)]">
+            {/* The page on a dotted canvas. On wide screens it's laid out at a fixed width and zoomed;
+                zoom sits outside #resume-preview-root, so the PDF and page count never see it. */}
+            <div
+              ref={canvasRef}
+              className="print-cv-sheet preview-canvas min-h-0 rounded-2xl border border-[#d9e2ef] p-3 lg:flex-1 lg:overflow-auto lg:p-6"
+            >
+              <div
+                className="mx-auto overflow-hidden rounded-[4px] bg-white shadow-[0_10px_40px_rgba(15,23,42,0.12)]"
+                style={isWide ? { width: PREVIEW_PAGE_WIDTH, zoom: previewZoom.zoom } : undefined}
+              >
                 <ResumePreview mode={previewMode} typography={typography} />
               </div>
             </div>
           </div>
         </div>
-
       </section>
     </main>
   );

@@ -12,7 +12,7 @@ export type SectionId =
   | 'interests'
   | 'references';
 
-export type ResumeTemplateId = 'classic' | 'modern' | 'compact';
+export type ResumeTemplateId = 'classic' | 'modern' | 'compact' | 'banner';
 
 export interface PersonalInfo {
   fullName: string;
@@ -103,6 +103,8 @@ export interface SavedCVPayload {
   activeSection: SectionId;
   activeItemIds: Record<string, string | null>;
   templateId?: ResumeTemplateId;
+  /** CV accent colour (#rrggbb); absent means the template's default. */
+  accentColor?: string | null;
   /** Id of this save, and of the save it was built on; lets open tabs tell who overwrote whom. */
   rev?: string;
   parentRev?: string | null;

@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useRef } from 'react';
 import { useCVStore } from '../../store/cvStore';
 import { groupIssuesBySection, type ValidationIssue } from '../../utils/validation';
 import { PersonalInfoForm } from './editor/PersonalInfoForm';
@@ -10,48 +9,17 @@ import { LanguagesForm } from './editor/LanguagesForm';
 import { InterestsForm } from './editor/InterestsForm';
 import { SimpleSectionForm } from './editor/SimpleSectionForm';
 
+/** The active section's form; SectionSidebar shows it inside that section's card. */
 export default function EditorPanel({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
   const { activeSection } = useCVStore();
   const issuesBySection = groupIssuesBySection(validationIssues);
   const sectionIssues = issuesBySection[activeSection] ?? [];
-  const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const previousSection = useRef(activeSection);
-
-  // On stacked (mobile) layouts the editor sits below the section list; bring it into view when the section changes.
-  useEffect(() => {
-    if (previousSection.current === activeSection) return;
-    previousSection.current = activeSection;
-    if (!window.matchMedia('(max-width: 1023px)').matches) return;
-    const heading = headingRef.current;
-    if (!heading) return;
-    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    heading.focus({ preventScroll: true });
-  }, [activeSection]);
-
-  const heading = useMemo(() => {
-    const map: Record<string, string> = {
-      personalInfo: 'Personal Info',
-      experience: 'Experience',
-      skills: 'Skills',
-      projects: 'Projects',
-      education: 'Education',
-      languages: 'Languages',
-      certifications: 'Certifications',
-      volunteer: 'Volunteer Work',
-      awards: 'Awards',
-      interests: 'Interests',
-      references: 'References',
-    };
-    return map[activeSection] ?? 'Personal Info';
-  }, [activeSection]);
 
   return (
-    <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white p-6 shadow-none">
-      <h3 ref={headingRef} tabIndex={-1} className="mb-6 scroll-mt-32 text-[22px] font-semibold tracking-[-0.02em] text-[#1f2937] outline-none">{heading}</h3>
-
-      {/* Only this section's checks; overall progress lives in the sidebar. */}
+    <div>
+      {/* Only this section's checks; overall progress lives above the section list. */}
       {sectionIssues.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-semibold">Checks</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {sectionIssues.map((issue) => (

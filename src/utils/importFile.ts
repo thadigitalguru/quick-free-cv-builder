@@ -41,7 +41,7 @@ export interface ImportResult {
   templateId?: ResumeTemplateId;
 }
 
-const templateIds: ResumeTemplateId[] = ['classic', 'modern', 'compact'];
+const templateIds: ResumeTemplateId[] = ['classic', 'modern', 'compact', 'banner'];
 
 export const MAX_PDF_PAGES = 20;
 

@@ -9,7 +9,7 @@ Quick Free CV Builder lets you create, edit, preview, import, and export CVs ent
 
 ## What it includes
 - Landing page with trust-first messaging
-- Two-pane builder workspace with live preview
+- Side-by-side workspace on wide screens: collapsible section cards on the left, the live page on a zoomable canvas (−/+/Fit) on the right; phones switch between Edit and Preview
 - Section reordering with drag-and-drop, keyboard shortcuts, and show/hide controls
 - Autosave to localStorage, with a visible warning and JSON backup option if browser storage is full or blocked
 - Optional profile photo with zoom and framing; it appears on Standard exports and is left out of ATS exports
@@ -17,7 +17,7 @@ Quick Free CV Builder lets you create, edit, preview, import, and export CVs ent
 - PDFs embed Noto Sans (SIL Open Font License, `src/assets/fonts/OFL.txt`), so names with accents and Greek, Cyrillic or Vietnamese text export correctly. Characters the font can't draw (emoji, Arabic, Chinese and other scripts) are listed in the export checklist instead of silently coming out blank. For those, **Print / Save as PDF** uses the browser's own PDF engine, which keeps every script and emoji (print stylesheet: only the CV, on A4).
 - Import support for JSON, TXT, PDF, DOCX, and image files, with a review step that shows what was found and any text that couldn't be placed (no OCR, so scanned PDFs can't be read). Import from the home page or straight from the builder; an image imported in the builder only sets the profile photo
 - Export support for JSON drafts and PDFs
-- Classic, Modern, and Compact templates
+- Classic, Modern, Compact and Banner templates, with eight CV colours (all 4.5:1 contrast) or a custom one; ATS mode always prints in black
 - Standard and ATS preview modes
 - Optional sections for certifications, volunteer work, awards, interests, and references
 
@@ -27,6 +27,7 @@ If you want to ship a clean final release, the best build targets are:
 2. **ATS Mode** — monochrome, single-column layout with selectable text and plain headings. It's tested for text extraction, not certified against any specific applicant tracking system.
 3. **Compact Template** — best for longer CVs that need tighter spacing.
 4. **Modern Template** — polished showcase view for portfolio-style presentation.
+5. **Banner Template** — a coloured header band with a round photo, section cards and skill chips.
 
 ## Privacy by design, and why there is no AI
 - Everything runs in the browser. CVs are parsed, edited and exported on the device, and the Content Security Policy blocks requests to any other server.

@@ -1,6 +1,4 @@
 import { ChevronDown, Minus, Plus } from 'lucide-react';
-import { Select } from '../shared/controls';
-import { templateLabelMap } from '../../utils/templateConfig';
 import { typographyMinMax, type PreviewTypography } from './typography';
 
 export function AdvancedOptionsCard({
@@ -8,57 +6,34 @@ export function AdvancedOptionsCard({
   onToggle,
   onReset,
   typography,
-  templateId,
-  onChangeTemplate,
   onChange,
 }: {
   open: boolean;
   onToggle: () => void;
   onReset: () => void;
   typography: PreviewTypography;
-  templateId: 'classic' | 'modern' | 'compact';
-  onChangeTemplate: (templateId: 'classic' | 'modern' | 'compact') => void;
   onChange: (key: keyof PreviewTypography, value: number) => void;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-[#d9e2ef] bg-white px-4 py-3 shadow-[0_18px_48px_rgba(15,23,42,0.06)] lg:px-5 lg:py-4">
+    <div className="rounded-2xl border border-[#d9e2ef] bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
         <h2 className="min-w-0 flex-1">
           <button type="button" className="flex w-full items-start gap-2.5 text-left" onClick={onToggle} aria-expanded={open}>
             <ChevronDown className={`mt-0.5 h-4.5 w-4.5 shrink-0 text-[#5d6b84] transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
             <span>
-              <span className="block text-[16px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">Advanced options</span>
-              <span className="mt-0.5 block text-[14px] font-normal normal-case tracking-normal text-[#5d6b84]">Template and font sizes. The defaults work for most CVs.</span>
+              <span className="block text-[13px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">Advanced options</span>
+              <span className="block text-[13px] font-normal normal-case tracking-normal text-[#5d6b84]">Font sizes. The defaults work for most CVs.</span>
             </span>
           </button>
         </h2>
         {/* A separate button: a control nested inside the toggle can't be reached reliably. */}
-        <button type="button" onClick={onReset} className="shrink-0 pt-1 text-[15px] font-semibold text-[#2f5ee2]">
+        <button type="button" onClick={onReset} className="shrink-0 pt-0.5 text-[13px] font-semibold text-[#2f5ee2]">
           Restore defaults
         </button>
       </div>
 
       {open && (
         <div className="mt-4 space-y-6">
-          <section>
-            <h3 className="text-[16px] font-semibold text-[#374151]">Template</h3>
-            <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-              <div>
-                <label htmlFor="template-select" className="mb-1.5 block text-sm font-medium text-slate-700">Preview style</label>
-                <Select id="template-select" value={templateId} onChange={(event) => onChangeTemplate(event.target.value as 'classic' | 'modern' | 'compact')}>
-                  {Object.entries(templateLabelMap).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </Select>
-              </div>
-              <p className="text-sm text-[#5d6b84]">
-                {templateId === 'compact'
-                  ? 'Compact tightens spacing in the editor and export.'
-                  : 'Switch between the available preview styles.'}
-              </p>
-            </div>
-          </section>
-
           <section>
             <h3 className="text-[16px] font-semibold text-[#374151]">Personal Info Options</h3>
             <div className="mt-3 grid gap-4 md:grid-cols-2">

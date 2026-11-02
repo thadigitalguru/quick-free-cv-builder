@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Info } from 'lucide-react';
+import { Trash2, Upload } from 'lucide-react';
 import { useCVStore } from '../../../store/cvStore';
 import { Button, Input, Textarea } from '../../shared/controls';
 import { prepareProfilePhoto } from '../../../utils/files';
@@ -16,7 +16,96 @@ export function PersonalInfoForm({ validationIssues }: { validationIssues: Valid
   const fieldError = (field: string) => issueMap.get(field);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+    <div className="grid gap-6">
+      <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+        <div className="flex items-center gap-4">
+          {info.profilePhoto ? (
+            <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full border-2 border-white shadow-[0_4px_12px_rgba(15,23,42,0.15)]">
+              {/* The same baked crop the CV and PDF use, so what you frame here is what exports. */}
+              {croppedPhoto && <img src={croppedPhoto} alt="Profile photo as it appears on your CV" className="h-full w-full" />}
+            </div>
+          ) : (
+            <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-white text-[12px] font-medium text-[#5d6b84]">
+              No photo
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold text-[#374151]">Profile photo</div>
+            <p className="mt-0.5 text-[13px] leading-5 text-[#5d6b84]">Optional. A square image, at least 400×400px. Shown in Standard exports; ATS exports leave it out.</p>
+          </div>
+        </div>
+
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          id="profile-photo-upload"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            updateProfilePhoto(await prepareProfilePhoto(file));
+            e.target.value = '';
+          }}
+        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {/* A button inside a <label> doesn't open the file picker, so trigger the input directly. */}
+          <Button
+            variant="secondary"
+            className="h-10 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]"
+            onClick={() => window.document.getElementById('profile-photo-upload')?.click()}
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            {info.profilePhoto ? 'Replace photo' : 'Upload photo'}
+          </Button>
+          {info.profilePhoto && (
+            <Button variant="secondary" className="h-10 rounded-[12px] border-[#c3cde0] bg-white px-4 text-[14px] font-semibold text-[#374151]" onClick={removeProfilePhoto}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Remove photo
+            </Button>
+          )}
+        </div>
+
+        {info.profilePhoto && (
+          <div className="mt-4 space-y-4 rounded-[14px] border border-[#e3eaf4] bg-white p-4">
+                <PhotoControl
+                  label="Zoom"
+                  value={Math.min(PHOTO_ZOOM_MAX, Math.max(PHOTO_ZOOM_MIN, info.photoZoom))}
+                  min={PHOTO_ZOOM_MIN}
+                  max={PHOTO_ZOOM_MAX}
+                  step={0.05}
+                  format={(value) => `${value.toFixed(2)}×`}
+                  onChange={(value) => updatePersonalInfo('photoZoom', value)}
+                />
+                <PhotoControl
+                  label="Left ↔ right"
+                  value={info.photoX}
+                  min={0}
+                  max={100}
+                  step={1}
+                  format={(value) => `${Math.round(value)}%`}
+                  onChange={(value) => updatePersonalInfo('photoX', value)}
+                />
+                <PhotoControl
+                  label="Up ↕ down"
+                  value={info.photoY}
+                  min={0}
+                  max={100}
+                  step={1}
+                  format={(value) => `${Math.round(value)}%`}
+                  onChange={(value) => updatePersonalInfo('photoY', value)}
+                />
+            <p className="text-xs leading-5 text-[#5d6b84]">Position moves the frame once the photo is zoomed in or isn't square.</p>
+            <Button variant="secondary" className="h-9 rounded-[12px] border-[#c3cde0] bg-white px-3 text-xs font-semibold text-[#374151]" onClick={() => {
+              updatePersonalInfo('photoZoom', 1);
+              updatePersonalInfo('photoX', 50);
+              updatePersonalInfo('photoY', 50);
+            }} aria-label="Reset photo crop to centered default">
+              Reset crop
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="grid gap-5">
         {/* A missing name isn't an error while someone is still filling the form in; the Checks box covers it. */}
         <Field label="Full Name *" hint="Needed before you can export.">
@@ -54,9 +143,8 @@ export function PersonalInfoForm({ validationIssues }: { validationIssues: Valid
             placeholder="2–4 lines summarizing your experience and goals."
             className="min-h-[108px] rounded-[12px] border-[#cbd6e4] px-4 py-3 text-[15px] placeholder:text-[#a1aab8]"
           />
-          <p id="summary-tip" className="mt-2 flex items-center gap-2 text-[13px] text-[#5d6b84]">
+          <p id="summary-tip" className="mt-2 text-[13px] leading-5 text-[#5d6b84]">
             Tip: wrap words in <strong className="font-semibold text-[#5b6780]">**double asterisks**</strong> for bold, and start a line with <strong className="font-semibold text-[#5b6780]">- </strong> for a bullet.
-            <Info className="h-4 w-4 shrink-0" />
           </p>
         </div>
 
@@ -124,90 +212,6 @@ export function PersonalInfoForm({ validationIssues }: { validationIssues: Valid
         </Field>
       </div>
 
-      <div className="pt-9 lg:pl-6">
-        <div className="text-[15px] font-semibold text-[#374151]">Profile Photo</div>
-        <div className="mt-6 flex flex-col items-center lg:items-start">
-          {info.profilePhoto ? (
-            <div className="relative h-[142px] w-[142px] overflow-hidden rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc]">
-              {/* The same baked crop the CV and PDF use, so what you frame here is what exports. */}
-              {croppedPhoto && <img src={croppedPhoto} alt="Profile photo as it appears on your CV" className="h-full w-full" />}
-            </div>
-          ) : (
-            <div className="grid h-[142px] w-[142px] place-items-center rounded-full border border-dashed border-[#c9d3e2] bg-[#f6f8fc] text-[14px] font-medium text-[#5d6b84]">
-              No photo
-            </div>
-          )}
-
-          <div className="mt-6 w-full max-w-[220px]">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id="profile-photo-upload"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                updateProfilePhoto(await prepareProfilePhoto(file));
-                e.target.value = '';
-              }}
-            />
-            {/* A button inside a <label> doesn't open the file picker, so trigger the input directly. */}
-            <Button
-              variant="secondary"
-              className="h-[46px] w-full rounded-[12px] border-[#c3cde0] bg-white px-5 text-[15px] font-semibold text-[#374151] shadow-[0_2px_0_rgba(15,23,42,0.02)]"
-              onClick={() => window.document.getElementById('profile-photo-upload')?.click()}
-            >
-              Upload photo
-            </Button>
-            <p className="mt-4 text-center text-[13px] leading-5 text-[#5d6b84]">Recommended: use a square image, at least 400×400px.</p>
-          </div>
-
-          {info.profilePhoto && (
-            <div className="mt-6 w-full max-w-[260px] space-y-4 rounded-[16px] border border-[#e3eaf4] bg-[#f8fbff] p-4">
-              <PhotoControl
-                label="Zoom"
-                value={Math.min(PHOTO_ZOOM_MAX, Math.max(PHOTO_ZOOM_MIN, info.photoZoom))}
-                min={PHOTO_ZOOM_MIN}
-                max={PHOTO_ZOOM_MAX}
-                step={0.05}
-                format={(value) => `${value.toFixed(2)}×`}
-                onChange={(value) => updatePersonalInfo('photoZoom', value)}
-              />
-              <PhotoControl
-                label="Left ↔ right"
-                value={info.photoX}
-                min={0}
-                max={100}
-                step={1}
-                format={(value) => `${Math.round(value)}%`}
-                onChange={(value) => updatePersonalInfo('photoX', value)}
-              />
-              <PhotoControl
-                label="Up ↕ down"
-                value={info.photoY}
-                min={0}
-                max={100}
-                step={1}
-                format={(value) => `${Math.round(value)}%`}
-                onChange={(value) => updatePersonalInfo('photoY', value)}
-              />
-              <p className="text-xs leading-5 text-[#5d6b84]">Position moves the frame once the photo is zoomed in or isn't square. The photo appears in Standard exports only. ATS exports leave it out.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" className="h-10 flex-1 rounded-[12px] border-[#c3cde0] bg-white px-3 text-xs font-semibold text-[#374151]" onClick={() => {
-                  updatePersonalInfo('photoZoom', 1);
-                  updatePersonalInfo('photoX', 50);
-                  updatePersonalInfo('photoY', 50);
-                }} aria-label="Reset photo crop to centered default">
-                  Reset crop
-                </Button>
-                <Button variant="ghost" className="h-10 rounded-[12px] px-3 text-xs font-semibold text-slate-500" onClick={removeProfilePhoto}>
-                  Remove photo
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

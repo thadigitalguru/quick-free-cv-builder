@@ -1,21 +1,59 @@
-import { Check, ChevronDown, ChevronUp, EyeOff, GripVertical, Plus } from 'lucide-react';
+import {
+  Award,
+  BadgeCheck,
+  Briefcase,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  EyeOff,
+  FolderKanban,
+  GraduationCap,
+  GripVertical,
+  HandHeart,
+  Languages,
+  Plus,
+  Smile,
+  User,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sectionDefaults, sectionLabelMap } from '../../data/sectionMeta';
 import { useCVStore } from '../../store/cvStore';
 import { cn } from '../../utils/dom';
 import type { SectionId } from '../../types/cv';
 import { getEssentialProgress, getSectionStatus } from '../../utils/progress';
+import type { ValidationIssue } from '../../utils/validation';
+import EditorPanel from './EditorPanel';
 
-export default function SectionSidebar() {
+const sectionIcons: Record<SectionId, LucideIcon> = {
+  personalInfo: User,
+  summary: User,
+  experience: Briefcase,
+  skills: Wrench,
+  projects: FolderKanban,
+  education: GraduationCap,
+  languages: Languages,
+  certifications: BadgeCheck,
+  volunteer: HandHeart,
+  awards: Award,
+  interests: Smile,
+  references: Users,
+};
+
+/** One collapsible card per CV section; the open card holds that section's form. */
+export default function SectionSidebar({ validationIssues = [] }: { validationIssues?: ValidationIssue[] }) {
   const { document, activeSection, setActiveSection, moveSection, moveSectionToIndex, toggleSectionVisibility } = useCVStore();
   const [menuOpen, setMenuOpen] = useState(false);
-  // On small screens the full reorder list pushes the editor off-screen, so it's tucked behind a toggle.
-  const [manageOpen, setManageOpen] = useState(false);
+  // Clicking the open card's header folds it away; opening another section always unfolds.
+  const [collapsed, setCollapsed] = useState(false);
   const [draggedSectionId, setDraggedSectionId] = useState<SectionId | null>(null);
   const [dropTargetSectionId, setDropTargetSectionId] = useState<SectionId | null>(null);
-  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const activeRef = useRef<HTMLDivElement | null>(null);
   const progress = useMemo(() => getEssentialProgress(document), [document]);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const previousSection = useRef(activeSection);
 
   const orderedSections = useMemo(
     () => document.sectionOrder.filter((sectionId) => sectionId !== 'summary' && document.sectionVisibility[sectionId]),
@@ -31,7 +69,11 @@ export default function SectionSidebar() {
     [document.sectionOrder, document.sectionVisibility],
   );
 
+  // A newly opened section (from its header, "Next", or Add section) unfolds and scrolls into view.
   useEffect(() => {
+    if (previousSection.current === activeSection) return;
+    previousSection.current = activeSection;
+    setCollapsed(false);
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [activeSection]);
 
@@ -77,94 +119,60 @@ export default function SectionSidebar() {
     resetDragState();
   };
 
+  const iconButton = 'grid h-8 w-8 place-items-center rounded-full text-[#5f6d86] transition hover:bg-slate-100 hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-30';
+
   return (
-    <aside className="relative rounded-[2rem] border border-[#d9e2ef] bg-transparent p-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-      <div className="px-2 pb-3 pt-6 lg:pt-8">
-        <h2 className="text-[18px] font-bold uppercase tracking-[0.08em] text-[#5d6b84]">SECTIONS</h2>
-        <div className="mt-3 rounded-[14px] border border-[#d9e2ef] bg-white px-3.5 py-3">
-          <div className="flex items-center justify-between text-sm font-semibold text-[#34425c]">
-            <span id="essentials-label">Essentials</span>
-            <span>
-              {progress.done} of {progress.total} done
-            </span>
-          </div>
-          <div
-            className="mt-2 h-2 overflow-hidden rounded-full bg-[#e6ecf4]"
-            role="progressbar"
-            aria-labelledby="essentials-label"
-            aria-valuemin={0}
-            aria-valuemax={progress.total}
-            aria-valuenow={progress.done}
-          >
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
-          </div>
-          {progress.next ? (
-            <button
-              type="button"
-              className="mt-2.5 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
-              onClick={() => setActiveSection(progress.next!)}
-            >
-              Next: {sectionLabelMap[progress.next]} →
-            </button>
-          ) : (
-            <p className="mt-2.5 text-sm text-emerald-700">Ready to preview and export.</p>
-          )}
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-[#d9e2ef] bg-white px-4 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+        <div className="flex items-center justify-between text-sm font-semibold text-[#34425c]">
+          <span id="essentials-label">Essentials</span>
+          <span>
+            {progress.done} of {progress.total} done
+          </span>
         </div>
-        <p className="mt-2 hidden text-xs text-[#5d6b84] lg:block">Tip: drag sections to reorder, or use Alt + ↑ / ↓ on the focused section.</p>
+        <div
+          className="mt-2 h-2 overflow-hidden rounded-full bg-[#e6ecf4]"
+          role="progressbar"
+          aria-labelledby="essentials-label"
+          aria-valuemin={0}
+          aria-valuemax={progress.total}
+          aria-valuenow={progress.done}
+        >
+          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+        </div>
+        {progress.next ? (
+          <button
+            type="button"
+            className="mt-2.5 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+            onClick={() => setActiveSection(progress.next!)}
+          >
+            Next: {sectionLabelMap[progress.next]} →
+          </button>
+        ) : (
+          <p className="mt-2.5 text-sm text-emerald-700">Ready to preview and export.</p>
+        )}
+        <p className="mt-2 hidden text-xs text-[#5d6b84] lg:block">Tip: drag a section by its handle to reorder, or use Alt + ↑ / ↓ on its title.</p>
       </div>
 
-      <nav aria-label="CV sections" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:hidden">
-        {orderedSections.map((sectionId) => {
-          const active = activeSection === sectionId;
-          const complete = getSectionStatus(document, sectionId) === 'complete';
-          return (
-            <button
-              key={sectionId}
-              type="button"
-              onClick={() => setActiveSection(sectionId)}
-              aria-current={active ? 'true' : undefined}
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition',
-                active ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#d9e2ef] bg-white text-[#34425c]',
-              )}
-            >
-              {complete && <Check className={cn('h-3.5 w-3.5', active ? 'text-emerald-300' : 'text-emerald-600')} aria-hidden="true" />}
-              {sectionLabelMap[sectionId]}
-              <span className="sr-only">{complete ? ', complete' : ', not started'}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <button
-        type="button"
-        className="mb-1 text-sm font-semibold text-[#45546e] underline-offset-2 hover:underline lg:hidden"
-        aria-expanded={manageOpen}
-        aria-controls="section-manager"
-        onClick={() => setManageOpen((value) => !value)}
-      >
-        {manageOpen ? 'Done managing sections' : 'Reorder, hide or add sections'}
-      </button>
+      <h2 className="sr-only">CV sections</h2>
 
-      <div id="section-manager" className={cn(manageOpen ? 'block' : 'hidden', 'lg:block')}>
-      <div className="space-y-2.5">
+      <nav aria-label="CV sections" className="space-y-3">
         {orderedSections.map((sectionId, index) => {
           const meta = sectionDefaults.find((section) => section.id === sectionId)!;
+          const Icon = sectionIcons[sectionId];
           const active = activeSection === sectionId;
+          const open = active && !collapsed;
           const canToggle = sectionId !== 'personalInfo';
           const isDragged = draggedSectionId === sectionId;
           const isDropTarget = dropTargetSectionId === sectionId;
           const complete = getSectionStatus(document, sectionId) === 'complete';
+          const panelId = `section-panel-${sectionId}`;
+          const headerId = `section-header-${sectionId}`;
 
           return (
             <div
               key={sectionId}
-              draggable
-              onDragStart={(event) => {
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', sectionId);
-                setDraggedSectionId(sectionId);
-              }}
-              onDragEnd={resetDragState}
+              ref={active ? activeRef : null}
               onDragOver={(event) => {
                 if (!draggedSectionId || draggedSectionId === sectionId) return;
                 event.preventDefault();
@@ -174,97 +182,102 @@ export default function SectionSidebar() {
                 event.preventDefault();
                 handleDropBefore(sectionId);
               }}
-              aria-grabbed={isDragged}
               className={cn(
-                'group flex items-center gap-2.5 rounded-[16px] border border-transparent p-1 transition',
-                isDropTarget && 'border-brand-200 bg-brand-50/70',
+                'scroll-mt-24 rounded-2xl border bg-white transition',
+                open ? 'border-brand-500/40 shadow-[0_12px_32px_rgba(37,99,235,0.10)]' : 'border-[#d9e2ef] shadow-[0_4px_14px_rgba(15,23,42,0.04)] hover:border-[#bfcce0]',
+                isDropTarget && 'border-brand-500 bg-brand-50/70',
                 isDragged && 'opacity-60',
               )}
-              title="Drag to reorder"
             >
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#b4bfd0] transition group-hover:text-[#111827]">
-                <GripVertical className="h-5 w-5" />
-              </div>
-
-              <button
-                ref={active ? activeRef : null}
-                type="button"
-                onClick={() => setActiveSection(sectionId)}
-                onKeyDown={(event) => {
-                  if (event.altKey && event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    moveSection(sectionId, 'up');
-                  }
-                  if (event.altKey && event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    moveSection(sectionId, 'down');
-                  }
+              {/* Only the header drags, so selecting text in the form below never picks the card up. */}
+              <div
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData('text/plain', sectionId);
+                  setDraggedSectionId(sectionId);
                 }}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                title="Alt+ArrowUp / Alt+ArrowDown to reorder"
-                className={cn(
-                  'flex h-[48px] flex-1 items-center rounded-[12px] border px-3.5 text-left transition sm:h-[55px] sm:px-4',
-                  active
-                    ? 'border-[#0c2b63] bg-[#111827] text-white shadow-[0_10px_28px_rgba(15,23,42,0.18)]'
-                    : 'border-[#d9e2ef] bg-white text-[#34425c] shadow-none hover:border-[#bfcce0]',
-                )}
+                onDragEnd={resetDragState}
+                aria-grabbed={isDragged}
+                className={cn('group flex items-center gap-1 py-1.5 pl-1.5 pr-2', open && 'border-b border-[#e6ecf4]')}
               >
-                {complete ? (
-                  <Check className={cn('h-4 w-4 shrink-0', active ? 'text-emerald-300' : 'text-emerald-600')} aria-hidden="true" />
-                ) : (
-                  <span className={cn('h-3.5 w-3.5 shrink-0 rounded-full', active ? 'bg-[#f5c44e]' : 'bg-[#d4dbe6]')} aria-hidden="true" />
-                )}
-                <span className="ml-3 min-w-0 flex-1 truncate text-[15px] font-medium tracking-[-0.01em] sm:ml-4 sm:text-[17px]">
-                  {meta.label}
-                  <span className="sr-only">{complete ? ', complete' : ', not started'}</span>
+                <span className="grid h-8 w-6 shrink-0 cursor-grab place-items-center text-[#b4bfd0] transition group-hover:text-[#5f6d86]" title="Drag to reorder" aria-hidden="true">
+                  <GripVertical className="h-4 w-4" />
                 </span>
-              </button>
-
-              <div className="flex items-center gap-1.5 text-[#5f6d86]">
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center rounded-full transition hover:bg-white hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-30"
-                  onClick={() => moveSection(sectionId, 'up')}
-                  disabled={index === 0}
-                  aria-label={`Move ${meta.label} up`}
-                >
-                  <ChevronUp className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center rounded-full transition hover:bg-white hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-30"
-                  onClick={() => moveSection(sectionId, 'down')}
-                  disabled={index === orderedSections.length - 1}
-                  aria-label={`Move ${meta.label} down`}
-                >
-                  <ChevronDown className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    'grid h-9 w-9 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30',
-                    canToggle ? 'hover:bg-rose-50 hover:text-rose-600' : 'cursor-not-allowed text-[#d2d9e6]',
-                  )}
-                  onClick={() => {
-                    if (!canToggle) return;
-                    toggleSectionVisibility(sectionId);
-                  }}
-                  disabled={!canToggle}
-                  aria-label={canToggle ? `Hide ${meta.label}` : `${meta.label} cannot be hidden`}
-                  title={canToggle ? 'Hide from CV. Your content is kept; add it back from "Add section".' : undefined}
-                >
-                  <EyeOff className="h-5 w-5" />
-                </button>
+                <h3 className="min-w-0 flex-1">
+                  <button
+                    id={headerId}
+                    type="button"
+                    onClick={() => (active ? setCollapsed((value) => !value) : setActiveSection(sectionId))}
+                    onKeyDown={(event) => {
+                      if (event.altKey && event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        moveSection(sectionId, 'up');
+                      }
+                      if (event.altKey && event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        moveSection(sectionId, 'down');
+                      }
+                    }}
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                    className="flex min-h-[48px] w-full items-center gap-2.5 rounded-xl px-1.5 text-left sm:gap-3 sm:px-2"
+                  >
+                    <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl', open ? 'bg-brand-500 text-white' : 'bg-brand-50 text-brand-600')} aria-hidden="true">
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[16px] font-semibold tracking-[-0.01em] text-[#1f2937]">
+                      {meta.label}
+                      <span className="sr-only">{complete ? ', complete' : ', not started'}</span>
+                    </span>
+                    {complete && <Check className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />}
+                    <ChevronDown className={cn('hidden h-5 w-5 shrink-0 text-[#5f6d86] transition sm:block', open && 'rotate-180')} aria-hidden="true" />
+                  </button>
+                </h3>
+                <div className="flex shrink-0 items-center">
+                  <button type="button" className={iconButton} onClick={() => moveSection(sectionId, 'up')} disabled={index === 0} aria-label={`Move ${meta.label} up`}>
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className={iconButton}
+                    onClick={() => moveSection(sectionId, 'down')}
+                    disabled={index === orderedSections.length - 1}
+                    aria-label={`Move ${meta.label} down`}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(iconButton, canToggle && 'hover:bg-rose-50 hover:text-rose-600')}
+                    onClick={() => {
+                      if (!canToggle) return;
+                      toggleSectionVisibility(sectionId);
+                    }}
+                    disabled={!canToggle}
+                    aria-label={canToggle ? `Hide ${meta.label}` : `${meta.label} cannot be hidden`}
+                    title={canToggle ? 'Hide from CV. Your content is kept; add it back from "Add section".' : undefined}
+                  >
+                    <EyeOff className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
+              {open && (
+                <div id={panelId} role="region" aria-labelledby={headerId} className="px-4 pb-5 pt-4 sm:px-5">
+                  <EditorPanel validationIssues={validationIssues} />
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
+      </nav>
 
       {draggedSectionId && (
         <button
           type="button"
-          className="mt-2 w-full rounded-[14px] border border-dashed border-brand-200 bg-brand-50 px-4 py-2.5 text-left text-sm font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-100"
+          className="w-full rounded-2xl border border-dashed border-brand-500/40 bg-brand-50 px-4 py-2.5 text-left text-sm font-medium text-brand-700 transition hover:bg-brand-100"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -276,10 +289,10 @@ export default function SectionSidebar() {
         </button>
       )}
 
-      <div ref={menuRef} className="relative mt-5">
+      <div ref={menuRef} className="relative">
         <button
           type="button"
-          className="flex h-[44px] w-full items-center justify-between rounded-[12px] border-2 border-dashed border-[#cfd9e8] px-4 text-[16px] font-semibold text-[#45546e] transition hover:border-[#b8c6d8] hover:bg-white"
+          className="flex h-[48px] w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#cfd9e8] px-4 text-[15px] font-semibold text-[#45546e] transition hover:border-[#b8c6d8] hover:bg-white"
           onClick={() => setMenuOpen((value) => !value)}
           disabled={hiddenSections.length === 0}
         >
@@ -291,7 +304,7 @@ export default function SectionSidebar() {
         </button>
 
         {menuOpen && hiddenSections.length > 0 && (
-          <div className="absolute left-0 right-0 top-[50px] z-20 overflow-hidden rounded-[16px] border border-[#d9e2ef] bg-white shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
+          <div className="absolute left-0 right-0 top-[54px] z-20 overflow-hidden rounded-2xl border border-[#d9e2ef] bg-white shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
             {hiddenSections.map((section) => (
               <button
                 key={section.id}
@@ -312,7 +325,6 @@ export default function SectionSidebar() {
           </div>
         )}
       </div>
-      </div>
-    </aside>
+    </div>
   );
 }

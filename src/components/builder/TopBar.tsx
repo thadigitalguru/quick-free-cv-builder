@@ -80,47 +80,42 @@ export default function TopBar({
       ? 'border-rose-200 bg-rose-50 text-rose-800'
       : 'border-amber-200 bg-amber-50 text-amber-800';
 
+  const viewButton = (view: 'edit' | 'preview', label: string) => (
+    <button
+      type="button"
+      onClick={() => onChangeView(view)}
+      aria-pressed={activeView === view}
+      aria-controls="builder-workspace"
+      className={[
+        'flex-1 rounded-full py-2 text-sm font-semibold leading-none transition',
+        activeView === view ? 'bg-[#111827] text-white shadow-[0_6px_16px_rgba(15,23,42,0.2)]' : 'text-[#5d6b84] hover:text-[#111827]',
+      ].join(' ')}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <header className="z-30 bg-[#f5f7fc] px-4 pb-3 pt-4 md:sticky md:top-0 md:pt-6">
-      <div className="mx-auto flex max-w-[1750px] flex-col gap-3 md:flex-row md:items-center md:justify-center">
-        <div className="flex w-full max-w-[1680px] rounded-full border border-[#d9e2ef] bg-white p-1 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-          <button
-            type="button"
-            onClick={() => onChangeView('edit')}
-            aria-pressed={activeView === 'edit'}
-            aria-controls="builder-workspace"
-            className={[
-              'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
-              activeView === 'edit' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#5d6b84] hover:text-[#111827]',
-            ].join(' ')}
-          >
-            <span className="hidden sm:inline">CV Builder</span>
-            <span className="sm:hidden">Builder</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onChangeView('preview')}
-            aria-pressed={activeView === 'preview'}
-            aria-controls="builder-workspace"
-            className={[
-              'flex-1 rounded-full py-2.5 text-sm font-semibold leading-none transition sm:py-3',
-              activeView === 'preview' ? 'bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]' : 'text-[#5d6b84] hover:text-[#111827]',
-            ].join(' ')}
-          >
-            <span className="hidden sm:inline">Live preview</span>
-            <span className="sm:hidden">Preview</span>
-          </button>
+    <header className="z-30 border-b border-[#e2e8f0] bg-white/95 px-4 py-3 backdrop-blur md:sticky md:top-0">
+      <div className="mx-auto flex max-w-[1750px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="" width={36} height={36} className="h-9 w-9" />
+            <span className="hidden text-[17px] font-bold tracking-[-0.02em] text-[#0f172a] sm:inline">Quick Free CV Builder</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 md:ml-3">
+            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${statusStyles}`}>{statusLabel}</span>
+            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${exportStyles}`}>{exportLabel}</span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 md:justify-end">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${statusStyles}`}>
-              {statusLabel}
-            </span>
-            <span className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${exportStyles}`}>
-              {exportLabel}
-            </span>
-          </div>
+        {/* Phones show one pane at a time; wide screens show both, so the switch isn't needed there. */}
+        <div className="flex rounded-full border border-[#d9e2ef] bg-[#f5f7fc] p-1 lg:hidden">
+          {viewButton('edit', 'Edit')}
+          {viewButton('preview', 'Preview')}
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
           <div className="relative flex flex-wrap justify-end gap-2">
             <Link
               to="/"
