@@ -44,11 +44,11 @@ npm run dev
 ```bash
 npm run lint        # ESLint, including the React hooks rules
 npm test            # unit tests (Vitest)
-npx playwright install chromium webkit   # once
-npm run test:e2e    # browser tests: desktop Chrome and WebKit as an iPhone, against the production build
+npx playwright install chromium firefox webkit   # once
+npm run test:e2e    # browser tests: Chrome, Firefox and Safari on desktop, iPhone and Android, against the production build
 npm run test:e2e:live   # the same browser tests against the live site
 ```
-The browser suite checks what users actually get: the exported PDF's text, links, images and page count, undo, two-tab conflicts, crash recovery, accessibility (axe), and that no request leaves the app under the production security policy. A CI workflow to run both suites on every push is pending a GitHub token with the `workflow` scope.
+The browser suite checks what users actually get: the exported PDF's text, links, images and page count, undo, two-tab conflicts, crash recovery, accessibility (axe), and that no request leaves the app under the production security policy. CI runs lint, unit tests, the build and the browser suite on every push and pull request (`.github/workflows/ci.yml`).
 
 ## Validate the production build
 ```bash

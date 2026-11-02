@@ -5,7 +5,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 export const STORAGE_KEY = 'quick-free-cv-builder:v3';
 export const fixture = (name: string) => fileURLToPath(new URL(`../tests/fixtures/${name}`, import.meta.url));
-export const isPhone = (testInfo: TestInfo) => testInfo.project.name === 'iphone';
+export const isPhone = (testInfo: TestInfo) => ['iphone', 'android'].includes(testInfo.project.name);
 
 export const roles = (count: number) =>
   Array.from({ length: count }, (_, i) => ({
@@ -44,7 +44,8 @@ export const savedName = (page: Page) =>
 export const exportPdf = async (page: Page, testInfo: TestInfo) => {
   const download = page.waitForEvent('download', { timeout: 60_000 });
   await page.locator('button:visible', { hasText: 'Download PDF' }).click();
-  if (isPhone(testInfo)) await page.getByRole('button', { name: 'Save PDF' }).click({ timeout: 60_000 });
+  // iOS needs a tap to save (see needsTapToSave); Android downloads straight away.
+  if (testInfo.project.name === 'iphone') await page.getByRole('button', { name: 'Save PDF' }).click({ timeout: 60_000 });
   const file = testInfo.outputPath(`export-${Date.now()}.pdf`);
   await (await download).saveAs(file);
   return file;

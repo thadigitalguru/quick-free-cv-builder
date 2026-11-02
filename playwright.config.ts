@@ -23,5 +23,10 @@ export default defineConfig({
     // Locally, the installed Chrome; in CI, Playwright's own Chromium.
     { name: 'chrome', use: { ...devices['Desktop Chrome'], viewport: { width: 1400, height: 900 }, channel: process.env.CI ? undefined : 'chrome' } },
     { name: 'iphone', use: { ...devices['iPhone 14'] } },
+    // The other engines people use: Gecko (Firefox), WebKit on the desktop (Safari), and
+    // Chromium on an Android phone. Emulated, so real-device checks are still worth doing.
+    { name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1400, height: 900 } } },
+    { name: 'safari', use: { ...devices['Desktop Safari'], viewport: { width: 1400, height: 900 } } },
+    { name: 'android', use: { ...devices['Pixel 7'] } },
   ],
 });

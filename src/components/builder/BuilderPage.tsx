@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileJson, Printer } from 'lucide-react';
+import { ChevronDown, Download, FileJson, Printer } from 'lucide-react';
+import { accentSwatches, defaultAccent, templateLabelMap } from '../../utils/templateConfig';
 import { useCVStore } from '../../store/cvStore';
 import TopBar from './TopBar';
 import SectionSidebar from './SectionSidebar';
@@ -24,6 +25,8 @@ export default function BuilderPage() {
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [previewMode, setPreviewMode] = useState<'standard' | 'ats'>('standard');
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Phones: template and colour fold into one line above the page.
+  const [designOpen, setDesignOpen] = useState(false);
   const [typography, setTypography] = useState<PreviewTypography>(defaultTypography);
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -295,7 +298,7 @@ export default function BuilderPage() {
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   <Button variant="secondary" className="h-9 rounded-xl border-[#d9e2ef] bg-white px-3 text-[13px] font-semibold text-[#374151]" onClick={handleDownloadJson} disabled={!hasContent} title={hasContent ? 'Download an editable backup you can import later' : nothingToExport}>
                     <FileJson className="h-4 w-4" aria-hidden="true" />
-                    JSON
+                    <span className="sr-only sm:not-sr-only">JSON</span>
                   </Button>
                   <Button
                     variant="secondary"
@@ -305,7 +308,8 @@ export default function BuilderPage() {
                     title={hasContent ? "Uses your browser's print dialog: choose Save as PDF. Keeps every character, including emoji and non-Latin scripts." : nothingToExport}
                   >
                     <Printer className="h-4 w-4" aria-hidden="true" />
-                    Print<span className="hidden 2xl:inline">&nbsp;/ Save as PDF</span>
+                    <span className="sr-only sm:not-sr-only">Print</span>
+                    <span className="hidden 2xl:inline">&nbsp;/ Save as PDF</span>
                   </Button>
                   <Button className="h-9 rounded-xl px-3.5 text-[13px] font-semibold" onClick={handleDownloadPdf} disabled={isExportingPdf || !hasContent} aria-busy={isExportingPdf} title={hasContent ? undefined : nothingToExport}>
                     <Download className="h-4 w-4" aria-hidden="true" />
@@ -313,16 +317,40 @@ export default function BuilderPage() {
                   </Button>
                 </div>
               </div>
-              <div className="mt-3 border-t border-[#e6ecf4] pt-3">
-                <DesignBar templateId={templateId} onChangeTemplate={setTemplateId} accentColor={accentColor} onChangeAccent={setAccentColor} atsMode={previewMode === 'ats'} />
-              </div>
-              <AdvancedOptionsCard
-                open={advancedOpen}
-                onToggle={() => setAdvancedOpen((value) => !value)}
-                onReset={resetTypography}
-                typography={typography}
-                onChange={updateTypography}
-              />
+              {!isWide && (
+                <button
+                  type="button"
+                  className="mt-3 flex w-full items-center justify-between gap-3 border-t border-[#e6ecf4] pt-3 text-left text-sm"
+                  onClick={() => setDesignOpen((open) => !open)}
+                  aria-expanded={designOpen}
+                  aria-controls="design-options"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-[#374151]">
+                    <span className="font-semibold">Design:</span>
+                    <span className="truncate">{templateLabelMap[templateId]}</span>
+                    <span className="h-4 w-4 shrink-0 rounded-full" style={{ backgroundColor: accentColor ?? defaultAccent }} aria-hidden="true" />
+                    <span className="truncate">{accentSwatches.find((swatch) => swatch.value === (accentColor ?? defaultAccent))?.name ?? 'Custom'}</span>
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-brand-600">
+                    {designOpen ? 'Done' : 'Change'}
+                    <ChevronDown className={`h-4 w-4 transition ${designOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </span>
+                </button>
+              )}
+              {(isWide || designOpen) && (
+                <div id="design-options">
+                  <div className="mt-3 border-t border-[#e6ecf4] pt-3">
+                    <DesignBar templateId={templateId} onChangeTemplate={setTemplateId} accentColor={accentColor} onChangeAccent={setAccentColor} atsMode={previewMode === 'ats'} />
+                  </div>
+                  <AdvancedOptionsCard
+                    open={advancedOpen}
+                    onToggle={() => setAdvancedOpen((value) => !value)}
+                    onReset={resetTypography}
+                    typography={typography}
+                    onChange={updateTypography}
+                  />
+                </div>
+              )}
             </div>
 
             {/* One line until opened, so the page stays in view; shown once there's a CV to check. */}

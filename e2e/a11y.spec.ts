@@ -19,6 +19,9 @@ test('home, editor and preview have no accessibility violations', async ({ page 
   await page.locator('aside button:visible, nav[aria-label="CV sections"] button:visible', { hasText: /^Experience/ }).first().click();
   await check('experience editor');
   await showPreview(page);
+  // Phones fold the design options into one line.
+  const design = page.getByRole('button', { name: /^Design:/ });
+  if (await design.isVisible()) await design.click();
   await page.getByRole('button', { name: /Font sizes/ }).click();
   await check('preview with advanced options');
 });

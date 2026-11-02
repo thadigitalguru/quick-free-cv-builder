@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { exportPdf, fixture, openBuilder, readPdf, roles, seedCv, setPreviewMode, showPreview } from './helpers';
+import { exportPdf, fixture, isPhone, openBuilder, readPdf, roles, seedCv, setPreviewMode, showPreview } from './helpers';
 
 const person = {
   fullName: 'Łukasz Żółć-Nguyễn', jobTitle: 'Data Engineer', email: 'lukasz@example.com', phone: '+254 711 222333', location: 'Kraków',
@@ -20,7 +20,7 @@ test('the PDF keeps accented names, real links, one copy of skills and no Markdo
 
 for (const [label, count, template] of [['one page', 3, 'classic'], ['two pages', 7, 'modern'], ['compact', 10, 'compact']] as const) {
   test(`the page count matches the exported PDF (${label})`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'iphone' && label !== 'two pages', 'one phone case is enough');
+    test.skip(isPhone(testInfo) && label !== 'two pages', 'one phone case is enough');
     await seedCv(page, { personalInfo: { fullName: 'Page Count', email: 'p@example.com' }, experience: roles(count) }, template);
     await openBuilder(page);
     await showPreview(page);

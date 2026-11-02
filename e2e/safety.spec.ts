@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openBuilder, roles, savedName, seedCv, STORAGE_KEY } from './helpers';
+import { isPhone, openBuilder, roles, savedName, seedCv, STORAGE_KEY } from './helpers';
 
 const storedRoles = (page: import('@playwright/test').Page) =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).document.experience.map((item: { role: string }) => item.role), STORAGE_KEY);
@@ -18,7 +18,7 @@ test('deleting a role can be undone, and undo never overwrites newer edits', asy
 });
 
 test('two tabs editing at once ask instead of silently overwriting each other', async ({ context }) => {
-  test.skip(test.info().project.name === 'iphone', 'tabs are a desktop concern');
+  test.skip(isPhone(test.info()), 'tabs are a desktop concern');
   const first = await context.newPage();
   await seedCv(first, { personalInfo: { fullName: 'Start' } });
   await openBuilder(first);
