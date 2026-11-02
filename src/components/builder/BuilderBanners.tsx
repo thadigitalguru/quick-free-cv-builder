@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../../utils/router';
 import { isUndoAvailable, useCVStore } from '../../store/cvStore';
 import { Button } from '../shared/controls';
 import { canShareFile, downloadBlob } from '../../utils/download';

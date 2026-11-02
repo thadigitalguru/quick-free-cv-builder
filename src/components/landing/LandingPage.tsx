@@ -1,6 +1,6 @@
 import { ExternalLink, Lock, ShieldCheck, Sparkles, Upload } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../../utils/router';
 import { Button } from '../shared/controls';
 import { useCVStore } from '../../store/cvStore';
 import { deleteCvFromBrowser, discardUnreadableDraft, getSavedDraftMeta, getUnreadableDraft, isPublicComputerMode, loadSavedCV, setPublicComputerMode } from '../../utils/storage';

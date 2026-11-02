@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../../utils/router';
 import { Home, Upload } from 'lucide-react';
 import { Button } from '../shared/controls';
 

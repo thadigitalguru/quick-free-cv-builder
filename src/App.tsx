@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from './utils/router';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import { APP_UPDATED_MESSAGE, lazyWithReload } from './utils/appUpdate';
 
