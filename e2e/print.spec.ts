@@ -16,7 +16,9 @@ test('Print / Save as PDF keeps every script, and prints only the CV', async ({ 
   // System CJK fonts can map 工 to the identical-looking Kangxi radical ⼯ on extraction; NFKC folds it back.
   expect(pdf.text.normalize('NFKC').replace(/\s/g, '')).toContain('数据工程师');
   for (const symbol of ['→', '🚀', '✓']) expect(pdf.text).toContain(symbol);
-  expect(pdf.text).toMatch(/[؀-ۿ]/);
+  // Arabic letters, in their basic or shaped (presentation-form) code points: Chromium on Linux
+  // writes the shaped forms with Noto fonts, macOS the basic ones.
+  expect(pdf.text, `printed text: ${pdf.text.slice(0, 400)}`).toMatch(/[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/);
   expect(pdf.text).toContain('Mar 2021 – Present');
   for (const interfaceText of ['Download PDF', 'Live preview', 'Personal Info', 'CV colour', 'Job title or professional headline']) expect(pdf.text).not.toContain(interfaceText);
   expect(pdf.pages).toBe(1);
