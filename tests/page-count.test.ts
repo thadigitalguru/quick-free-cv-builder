@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { countPages } from '../src/utils/pageCount';
-import { getExportGeometry } from '../src/utils/pdf';
+import { getExportGeometry } from '../src/utils/exportGeometry';
 
 describe('page count', () => {
   const { pageContentHeightPx } = getExportGeometry({ templateId: 'classic', mode: 'standard' });

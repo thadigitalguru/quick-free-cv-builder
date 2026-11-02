@@ -8,7 +8,7 @@ import { hasBlockingIssues, validateDocument } from '../../utils/validation';
 import { Button } from '../shared/controls';
 import { documentHasContent } from '../../utils/progress';
 import { usePageCount } from '../../utils/pageCount';
-import { getExportClasses } from '../../utils/pdf';
+import { getExportClasses } from '../../utils/exportGeometry';
 import { findUnsupportedCharacters } from '../../utils/fontCoverage';
 import { downloadBlob, needsTapToSave } from '../../utils/download';
 import { describeError } from '../../utils/appUpdate';

@@ -23,7 +23,7 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             // Vite's tiny dynamic-import helper is shared by every chunk. Grouped with jsPDF (as
             // manualChunks did), it made each first visit download the 400 kB PDF library up front.

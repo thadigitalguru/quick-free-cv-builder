@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ResumeTemplateId } from '../types/cv';
-import { getExportClasses, getExportGeometry } from './pdf';
+import { getExportClasses, getExportGeometry } from './exportGeometry';
 
 type MeasureOptions = { templateId: ResumeTemplateId; mode: 'standard' | 'ats' };
 
